@@ -167,6 +167,15 @@ h2 + .row, p + .row { border-top: 0; padding-top: 0; }
 .row .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 .row > img.px { width: 34px; height: 34px; }
 .row button { flex: none; }
+.row.bld { flex-wrap: nowrap; }
+.row.bld .grow { flex: 1 1 0; }
+.row.bld .acts { flex: none; flex-direction: column; flex-wrap: nowrap; align-items: flex-end; gap: 4px; }
+.row.bld .mini { display: flex; gap: 4px; }
+.row.bld .mini button { min-height: 34px; padding: 2px 8px; }
+button.fm { display: inline-flex; align-items: center; gap: 4px; }
+button.fm > img.px { width: 22px; height: 22px; }
+button.fm .cost img.px { width: 14px; height: 14px; }
+button.sw { min-width: 44px; }
 .prog { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 4px; overflow: hidden; }
 .prog i { display: block; height: 100%; width: 0; background: var(--copper); }
 .prog.idle i { background: var(--line); }
@@ -1255,20 +1264,25 @@ function buyRow(b, list) {
   const btn = h('button', { cls: 'buy', on: () => buyBuilding(b) }, lab, ' ', costEl(() => buyPlan(b).c, null, list));
   const head = kind === 'shops' ? recipe(def) : h('span', { cls: 'recipe' }, ico(def.out, ITEMS[def.out].n));
   const prog = kind === 'shops' ? h('div', { cls: 'prog' }, h('i')) : null;
-  const acts = h('div', { cls: 'acts' });
-  const row = h('div', { cls: 'row' }, ico(id, ''), h('div', { cls: 'grow' }, name, h('div', null, head, info), msl, prog), acts);
+  // buy button on top; the run switch and foreman sit small underneath so the row never needs a line of its own
+  const mini = h('div', { cls: 'mini' }), acts = h('div', { cls: 'acts' }, btn, mini);
+  const row = h('div', { cls: 'row bld' }, ico(id, ''), h('div', { cls: 'grow' }, name, h('div', null, head, info), msl, prog), acts);
   let tog = null;
-  if (kind === 'shops') { tog = h('button', { cls: 'small', on: () => { S.off[id] = !S.off[id]; } }); acts.append(tog); }
-  const mg = h('button', { cls: 'small', on: () => { if (S.mgr[id]) S.mgr[id] = S.mgr[id] === 1 ? 2 : 1; else hire(id); } });
-  acts.append(mg, btn);
+  if (kind === 'shops') { tog = h('button', { cls: 'small sw', on: () => { S.off[id] = !S.off[id]; } }); mini.append(tog); }
+  const mgL = h('span'), mgC = costEl(() => mgrCost(id), null, list);
+  const mg = h('button', { cls: 'small fm', on: () => { if (S.mgr[id]) S.mgr[id] = S.mgr[id] === 1 ? 2 : 1; else hire(id); } }, ico('foreman', ''), mgL, mgC);
+  mini.append(mg);
   list.push(() => {
     const have = blv(id), p = buyPlan(b), mult = (kind === 'ext' ? prodMult() : craftMult()) * bMult(id), ms = MS(have);
     name.textContent = def.n; name.append(h('i', null, have ? 'Lv ' + have : '')); if (ms) name.append(h('em', null, '★'.repeat(Math.min(ms, 5)) + (ms > 5 ? '+' + (ms - 5) : '')));
     info.textContent = rate(Math.max(1, have) * def.rate * mult) + '/s' + (have ? '' : ' at level 1');
     msl.textContent = have ? 'Output ×2 at level ' + nextMs(have) + (S.mgr[id] === 1 ? ' · foreman working' : S.mgr[id] === 2 ? ' · foreman resting' : '') : '';
     lab.textContent = have ? '+' + p.n : 'Build'; btn.disabled = !p.ok;
-    if (tog) { tog.hidden = !have; tog.textContent = S.off[id] ? 'Paused' : 'Running'; tog.classList.toggle('on', !S.off[id]); }
-    mg.hidden = !(S.mgr[id] || have >= 10); mg.textContent = S.mgr[id] ? (S.mgr[id] === 1 ? 'Foreman on' : 'Foreman off') : 'Hire foreman ' + fmt(mgrCost(id)); mg.classList.toggle('on', S.mgr[id] === 1); mg.disabled = !S.mgr[id] && S.coins < mgrCost(id);
+    if (tog) { tog.hidden = !have; tog.textContent = S.off[id] ? 'Off' : 'On'; tog.classList.toggle('on', !S.off[id]); tog.title = S.off[id] ? 'Workshop paused. Tap to run it.' : 'Workshop running. Tap to pause it.'; tog.setAttribute('aria-label', tog.title); }
+    mg.hidden = !(S.mgr[id] || have >= 10); mgL.textContent = S.mgr[id] ? (S.mgr[id] === 1 ? 'On' : 'Off') : ''; mgL.hidden = !S.mgr[id]; mgC.hidden = !!S.mgr[id];
+    mg.title = S.mgr[id] ? (S.mgr[id] === 1 ? 'Foreman working. Tap to rest them.' : 'Foreman resting. Tap to put them to work.') : 'Hire a foreman for ' + fmt(mgrCost(id)) + ' coins'; mg.setAttribute('aria-label', mg.title);
+    mg.classList.toggle('on', S.mgr[id] === 1); mg.disabled = !S.mgr[id] && S.coins < mgrCost(id);
+    mini.hidden = (!tog || tog.hidden) && mg.hidden;
     if (prog) { const a = have ? ACT[id] || 0 : 0, fast = have * def.rate * mult > 2.5; prog.classList.toggle('idle', a < .08); prog.firstChild.style.width = (a < .08 ? 0 : fast ? 100 : (PHASE[id] || 0) * 100) + '%'; }
   });
   return row;
