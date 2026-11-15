@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Copper Gulch",
+  "short_name": "Copper Gulch",
+  "description": "A tycoon, tower defence and incremental game in the Old West. No ads, no purchases, no tracking.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#161a2a",
+  "theme_color": "#161a2a",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Copper Gulch</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#161a2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Copper Gulch">
+<meta name="description" content="A tycoon, tower defence and incremental game in the Old West. No ads, no purchases, no tracking.">
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: an app shell. Phones: header, pinned map with controls, scrolling sheet, bottom tab bar. Wide screens: map on the left, tabs and sheet on the right. */
@@ -246,6 +255,10 @@ p strong { color: var(--fg); }
 .records { display: grid; gap: 2px; }
 .records div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--muted); }
 .records b { color: var(--fg); }
+.updatebar { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 65; display: grid; gap: 2px; text-align: left;
+  width: min(92vw, 380px); padding: 10px 14px; background: var(--panel); border: 2px solid var(--teal); border-radius: 4px; box-shadow: 4px 4px 0 rgba(0, 0, 0, .45); }
+.updatebar b { color: var(--teal); }
+.updatebar span { color: var(--muted); font-weight: 500; font-size: .9rem; }
 .medal { position: fixed; left: 50%; top: 12px; z-index: 70; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; border-radius: 999px;
   background: linear-gradient(180deg, #3d3522, #2a2418); border: 2px solid var(--gold); box-shadow: 0 8px 30px rgba(0, 0, 0, .5), 0 0 24px rgba(242, 208, 74, .35); animation: medalin .5s cubic-bezier(.2, 1.4, .4, 1); transition: opacity .4s, transform .4s; }
 .medal img.px { width: 36px; height: 36px; }
@@ -1855,8 +1868,18 @@ const PANELS = {
     p.append(h('h2', null, 'Save'), h('p', null, 'The game saves in this browser every few seconds and keeps working for up to 8 hours while you are away. Copy a save code to move to another device.'), ta,
       h('div', { cls: 'bar' },
         h('button', { cls: 'small', on: () => { save(); ta.value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); ta.select(); say('Save code ready. Copy it from the box.'); } }, 'Make save code'),
-        h('button', { cls: 'small', on: () => { try { if (!adopt(JSON.parse(decodeURIComponent(escape(atob(ta.value.trim())))))) throw 0; bakeGround(); wipeField(); W.countdown = 15; save(); say('Save loaded.'); } catch (e) { say('That save code is not valid. Paste the whole code and try again.'); } } }, 'Load save code'), wipe),
-      h('p', null, 'No ads. No purchases. Nothing leaves this page.'));
+        h('button', { cls: 'small', on: () => { try { if (!adopt(JSON.parse(decodeURIComponent(escape(atob(ta.value.trim())))))) throw 0; bakeGround(); wipeField(); W.countdown = 15; save(); say('Save loaded.'); } catch (e) { say('That save code is not valid. Paste the whole code and try again.'); } } }, 'Load save code'),
+        h('button', { cls: 'small', on: saveFile }, 'Save to file'), h('button', { cls: 'small', on: loadFile }, 'Load from file'), wipe));
+    // the app: install, storage protection, version
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !APP.installed;
+    const appNote = h('p'), inst = h('button', { cls: 'primary', on: installApp }, 'Install Copper Gulch');
+    p.append(h('h2', null, 'App'), appNote, h('div', { cls: 'bar' }, inst), h('p', null, 'Version ' + GAME_VERSION + '. No ads. No purchases. Nothing leaves this page.'));
+    ups.push(() => {
+      inst.hidden = !APP.prompt;
+      appNote.textContent = (APP.installed ? 'Installed as an app. ' : APP.prompt ? 'Install it to play full screen from your home screen, even offline. ' : ios ? 'To install on iPhone or iPad: tap Share, then Add to Home Screen. ' : 'To install, open your browser menu and choose Install app or Add to Home screen. ')
+        + (APP.persisted === true ? 'Your save is protected: the browser will not clear it to free up space.' : APP.persisted === false ? 'The browser may clear saves if the device runs low on space, so keep a save file now and then.' : '')
+        + ' New versions download by themselves; you will see "Update ready" when one arrives.';
+    });
   },
 };
 const TABS = [['defend', 'Defend', 'crossbow'], ['works', 'Works', 'camp'], ['market', 'Market', 'market'], ['research', 'Research', 'flask'], ['charter', 'Charter', 'office']];
@@ -1975,7 +1998,7 @@ function frame(now) {
 function start(data) {
   paintSprites(); paintSprites2(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
-  checkBadges(true); applyMotion();
+  checkBadges(true); applyMotion(); protectSave();
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); window.addEventListener('resize', fit);
   if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * Math.min(window.devicePixelRatio || 1, 2) - cv.width) > 2) fit(); }).observe(cv);
@@ -1988,6 +2011,45 @@ function start(data) {
   window.addEventListener('pagehide', save);
   if (document.fonts && document.fonts.load) document.fonts.load('20px Rye').catch(() => {});
   prev = performance.now(); refresh(); requestAnimationFrame(frame);
+}
+/* =========================================================
+   Installing as an app, updates and keeping the save safe
+   ========================================================= */
+const GAME_VERSION = '2026.11.15-3'; // keep in step with VERSION in sw.js
+const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
+window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
+async function installApp() { if (!APP.prompt) return; APP.prompt.prompt(); try { await APP.prompt.userChoice; } catch (e) {} APP.prompt = null; rebuild = true; }
+/* Ask the browser not to clear this save when space runs low. Installed apps are usually granted this. */
+async function protectSave() {
+  try { if (navigator.storage && navigator.storage.persist) { APP.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); rebuild = true; } } catch (e) {}
+}
+function showUpdate() {
+  if ($('updateBar')) return;
+  const bar = h('button', { cls: 'updatebar', id: 'updateBar', on: () => { save(); if (APP.waiting) APP.waiting.postMessage('skip'); else location.reload(); } }, h('b', null, 'Update ready'), h('span', null, 'Tap to load the new version. Your save is kept.'));
+  document.body.append(bar);
+}
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      const watch = w => { if (!w) return; const done = () => { if (w.state === 'installed' && navigator.serviceWorker.controller) { APP.waiting = w; showUpdate(); } }; done(); w.addEventListener('statechange', done); };
+      watch(reg.waiting); reg.addEventListener('updatefound', () => watch(reg.installing));
+      let reloading = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
+      const check = () => reg.update().catch(() => {});
+      setInterval(check, 15 * 60 * 1000); document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    } catch (e) {}
+  });
+}
+function saveFile() {
+  save(); const blob = new Blob([JSON.stringify(S)], { type: 'application/json' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'copper-gulch-save-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000); say('Save file downloaded. Keep it somewhere safe.');
+}
+function loadFile() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { if (!adopt(JSON.parse(t))) throw 0; bakeGround(); wipeField(); W.countdown = 15; applyMotion(); save(); say('Save loaded from file.'); }).catch(() => say('That file is not a Copper Gulch save.')); };
+  inp.click();
 }
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) hot.snapshot(() => { save(); return { S }; });

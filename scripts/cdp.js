@@ -83,6 +83,8 @@ async function launch() {
           if (ev === 'console') s.on('Runtime.consoleAPICalled', p => cb({ type: () => p.type, text: () => p.args.map(a => a.value !== undefined ? a.value : a.description).join(' ') }));
         },
         async close() { s.close(); try { await bws.send('Target.closeTarget', { targetId }); } catch (e) {} },
+        cdp: (method, params) => s.send(method, params), // raw DevTools protocol call
+
       };
       if (opts.viewport) await page.setViewportSize(opts.viewport);
       pages.push(page);
