@@ -227,6 +227,8 @@ small { color: var(--muted); font-weight: 500; font-size: .82rem; }
 .wxline { display: flex; align-items: center; gap: 8px; background: #1c2b3a; border: 2px solid #2f6f6a; border-radius: 3px; padding: 6px 10px; color: var(--muted); font-size: .9rem; }
 .wxline img.px { width: 28px; height: 28px; }
 .wxline b { color: var(--teal); }
+.wxline.warn { background: #3a2026; border-color: #8a3a44; }
+.wxline.warn b { color: #ff8fb0; }
 .panel { background: var(--panel); border: 2px solid var(--line); border-radius: 3px; padding: 10px; display: grid; gap: 8px; box-shadow: 4px 4px 0 rgba(0, 0, 0, .3); }
 .card { border-width: 2px; border-radius: 3px; box-shadow: 4px 4px 0 rgba(0, 0, 0, .35); }
 h2 { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 6px 0 0; display: flex; align-items: center; gap: 8px; }
@@ -926,7 +928,7 @@ function startWave() {
   W.queue = W.next; W.next = null; W.type = W.ntype; W.hpm = T.hp; W.active = true; W.spawnT = 0; W.spawned = 0; W.total = W.queue.length;
   W.weather = W.nweather || null; W.nweather = null; W.leaks = 0;
   W.gap = Math.max(.25, .75 - S.wave * .01) * T.gap;
-  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? 'War wagon on the road' : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
+  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? 'War wagon: stop it or lose the vault' : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
   snd('wave', 220, .25, 'sawtooth', .04, 220);
 }
 function spawn(type) {
@@ -1019,6 +1021,12 @@ function leak(f) {
     const ks = Object.keys(ITEMS).filter(k => S.res[k] >= 1).sort((a, b) => S.res[b] * ITEMS[b].p - S.res[a] * ITEMS[a].p);
     if (ks.length) { const k = ks[0], n = Math.max(1, Math.floor(S.res[k] * .1)); S.res[k] -= n; floats.push({ x: VAULT[0] + .2, y: VAULT[1] - .2, t: 1.2, s: '-' + fmt(n) + ' ' + ITEMS[k].n.toLowerCase(), c: P.red, z: .32 }); }
     FXS.flash = .12; snd('steal', 300, .15, 'triangle', .05, -150); return;
+  }
+  // a war wagon that reaches the vault smashes it, however strong it is: it has to be destroyed to get past its wave
+  if (f.type === 'boss') {
+    S.vaultHp = 0; W.smashed = 1; W.leaks = (W.leaks || 0) + 1; FXS.quake = 1.2; FXS.flash = .5;
+    fx.push({ k: 'boom', x: VAULT[0], y: VAULT[1], r: 1.8, t: .6, d: .6 }); snd('kaboom', 50, .8, 'sawtooth', .1, -25);
+    return;
   }
   S.vaultHp -= D.leak; W.leaks = (W.leaks || 0) + 1;
   const stolen = Math.min(S.coins * .05, foeCoins(S.wave) * 10); S.coins -= stolen;
@@ -1121,8 +1129,14 @@ function combat(dt) {
   if (S.vaultHp <= 0) {
     const lost = S.coins * .1; S.coins -= lost; foes = []; shots = []; W.queue = []; W.active = false; W.countdown = 15;
     S.wave = Math.max(1, S.wave - 2); S.vaultHp = vaultMax(); FXS.quake = .8; W.weather = null;
-    FXS.banner = { t: 2.6, a: 'Vault breached', b: 'Back to wave ' + S.wave };
-    say('Vault breached! Raiders took ' + fmt(lost) + ' coins. Falling back to wave ' + S.wave + '.');
+    if (W.smashed) {
+      W.smashed = 0; S.stats.smashed = (S.stats.smashed || 0) + 1;
+      FXS.banner = { t: 3.2, a: 'Vault smashed', b: 'The war wagon got through · back to wave ' + S.wave };
+      say('The war wagon smashed the vault and took ' + fmt(lost) + ' coins. Back to wave ' + S.wave + '. Destroy the war wagon to get past its wave.');
+    } else {
+      FXS.banner = { t: 2.6, a: 'Vault breached', b: 'Back to wave ' + S.wave };
+      say('Vault breached! Raiders took ' + fmt(lost) + ' coins. Falling back to wave ' + S.wave + '.');
+    }
   } else if (W.active && !W.queue.length && !foes.length) {
     W.active = false; W.countdown = 20; const b = Math.ceil(foeCoins(S.wave) * 5 * MAP.coin); earn(b);
     say('Wave ' + S.wave + ' cleared: +' + fmt(b) + ' coins.'); snd('clear', 520, .2, 'triangle', .05, 520);
@@ -1579,7 +1593,7 @@ function draw(time) {
     const bx = c * .45, bw = cv.width - c * .9, by = c * .5, bh = c * .24, fr = Math.max(0, boss.hp / boss.max);
     cx.fillStyle = 'rgba(22,26,42,.88)'; cx.fillRect(bx - c * .12, by - c * .42, bw + c * .24, bh + c * .56);
     cx.textAlign = 'left'; cx.textBaseline = 'middle'; cx.font = '700 ' + Math.max(9, c * .26) + 'px "Barlow Semi Condensed", "Arial Narrow", sans-serif';
-    cx.fillStyle = '#ff8fb0'; cx.fillText('WAR WAGON' + (boss.rage ? ' · FULL STEAM' : boss.ph1 ? ' · CREW OFF' : ''), bx, by - c * .2);
+    cx.fillStyle = '#ff8fb0'; cx.fillText('WAR WAGON' + (boss.rage ? ' · FULL STEAM' : boss.ph1 ? ' · CREW OFF' : ' · STOP IT BEFORE THE VAULT'), bx, by - c * .2);
     cx.textAlign = 'right'; cx.fillStyle = '#ece6d8'; cx.fillText(fmt(Math.max(0, boss.hp)), bx + bw, by - c * .2); cx.textAlign = 'center';
     cx.fillStyle = '#3a1c26'; cx.fillRect(bx, by, bw, bh);
     const g = cx.createLinearGradient(bx, 0, bx + bw, 0); g.addColorStop(0, '#f07067'); g.addColorStop(1, '#ff4f8b'); cx.fillStyle = g; cx.fillRect(bx, by, bw * fr, bh);
@@ -1864,7 +1878,7 @@ function card() {
         const hp = Math.max(0, S.vaultHp), mx = vaultMax(), miss = mx - hp;
         info.textContent = 'Strength ' + hp + ' / ' + mx + ' · heals ' + (1 + lv('mason')) + ' per cleared wave';
         bar.style.width = hp / mx * 100 + '%'; bar.style.background = hp / mx > .5 ? 'var(--good)' : hp / mx > .25 ? 'var(--gold)' : 'var(--bad)';
-        note.textContent = W.active ? 'Raiders are on the road. Repair between waves.' : miss ? 'Each point costs ' + fmt(repairCost()) + ' coins. A raider that gets through takes 1 to 5 strength and 5% of your coins.' : 'The vault is at full strength.';
+        note.textContent = W.active ? 'Raiders are on the road. Repair between waves.' : miss ? 'Each point costs ' + fmt(repairCost()) + ' coins. A raider that gets through takes 1 or 2 strength and 5% of your coins; a war wagon smashes the vault outright.' : 'The vault is at full strength.';
         one.disabled = W.active || !miss || S.coins < repairCost(); full.disabled = W.active || !miss || S.coins < repairCost() * miss;
       });
     } else if (sel.plot) {
@@ -1955,7 +1969,7 @@ function spark(canvas, k) {
 const FOE_TIPS = {
   raider: 'Plain gunmen.', runner: 'Fast riders.', brute: 'Slow and tough. Takes 2 off the vault.',
   shield: 'Blocks four hits. Cannons smash the shield in one.', sapper: 'Jams a tower it walks past unless it dies quickly.',
-  healer: 'Mends raiders around it. Kill it first.', thief: 'Steals goods instead of hitting the vault.', boss: 'Every tenth wave. Takes 5 off the vault.',
+  healer: 'Mends raiders around it. Kill it first.', thief: 'Steals goods instead of hitting the vault.', boss: 'Every tenth wave. If it reaches the vault, the vault falls however strong it is: destroy it to move on.',
 };
 const PANELS = {
   defend(p) {
@@ -1969,8 +1983,10 @@ const PANELS = {
       claim.disabled = !done; claim.classList.toggle('primary', done); swap.hidden = !g.gen || done;
     });
     const nxT = h('h2'), nx = h('div', { cls: 'next' }), wxl = h('div', { cls: 'wxline' }); let sig = null;
-    p.append(nxT, nx, wxl);
+    const bw = h('div', { cls: 'wxline warn' }, ico('boss', ''), h('span', null, h('b', null, 'War wagon wave. '), 'If the wagon reaches the vault, the vault falls however strong it is. Destroy it to move on.'));
+    p.append(nxT, nx, bw, wxl);
     ups.push(() => {
+      bw.hidden = S.wave % 10 !== 0;
       const q = W.active ? W.queue : W.next || [], wk = W.active ? W.weather : W.nweather, s = (W.active ? 'a' : 'n') + S.wave + ':' + q.length + W.ntype + wk;
       nxT.textContent = W.active ? 'Still to come' : 'Next: ' + (S.wave % 10 === 0 ? 'war wagon' : WTYPES[W.ntype].n.toLowerCase());
       if (s === sig) return; sig = s; nx.textContent = ''; const n = {}; for (const t of q) n[t] = (n[t] || 0) + 1;
@@ -2311,8 +2327,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-6'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'New settings panel (gear button on the map): graphics presets Low to Ultra, shadows, glow, resolution, effects, frame rate, five colour looks, film grain and scanlines.';
+const GAME_VERSION = '2026.11.15-7'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'War wagons now smash the vault outright if they reach it, however strong it is: you have to destroy them to get past their wave.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-6",
-  "notes": "New settings panel (gear button on the map): graphics presets Low to Ultra, shadows, glow, resolution, effects, frame rate, five colour looks, film grain and scanlines."
+  "version": "2026.11.15-7",
+  "notes": "War wagons now smash the vault outright if they reach it, however strong it is: you have to destroy them to get past their wave."
 }

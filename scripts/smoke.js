@@ -45,6 +45,11 @@ const shots = process.argv[2];
       hurt(boss, boss.max * .55); combat(.05); const ph1 = !!boss.ph1 && foes.filter(f => f.type === 'brute').length >= 2;
       hurt(boss, boss.max * .25); combat(.05); const rage = !!boss.rage; const b0 = S.stats.bosses; hurt(boss, boss.max); const bossPaid = S.stats.bosses === b0 + 1;
       foes = []; W.queue = []; combat(.05);
+      // a war wagon that reaches the vault smashes it whatever its strength, and the wave is lost
+      S.research.vault = 20; S.vaultHp = vaultMax(); S.wave = 20; planWave(); startWave(); W.queue = []; spawn('boss');
+      const wag = foes[foes.length - 1]; wag.d = PATHS[wag.p].len - .01; combat(.05);
+      const smashed = S.wave === 18 && S.vaultHp === vaultMax() && !W.active && (S.stats.smashed || 0) >= 1;
+      foes = []; W.queue = []; S.research.vault = 0; S.vaultHp = vaultMax();
       // weather changes tower reach
       const t0 = S.towers.find(t => t.type === 'crossbow'), r0 = towerStats(t0).range; S.wave = 13; planWave(); W.nweather = 'dust'; startWave();
       const dust = towerStats(t0).range < r0; foes = []; W.queue = []; combat(.05);
@@ -53,10 +58,10 @@ const shots = process.argv[2];
       tap(VAULT[0], VAULT[1]); refresh(); const vaultCard = /The vault/.test(document.getElementById('card').textContent);
       const repaired = repair(2) && S.vaultHp === 5;
       return { otOn, bombThrown, towers: S.towers.length, branched: S.towers.filter(t => t.br).length, wave: S.wave, tapped, kills: S.stats.kills, priceAfterSell: +dem('wood').toFixed(3),
-        foremanBought: S.ext.camp, ph1, rage, bossPaid, dust, refused, vaultCard, repaired };
+        foremanBought: S.ext.camp, ph1, rage, bossPaid, smashed, dust, refused, vaultCard, repaired };
     });
     const want = { otOn: 'overtime did not start', bombThrown: 'dynamite did not fire', tapped: 'holding the trees gathered nothing', ph1: 'war wagon did not drop brutes at half health',
-      rage: 'war wagon did not reach full steam', bossPaid: 'war wagon did not pay out', dust: 'dust storm did not shorten tower reach', refused: 'vault repair was allowed during a wave',
+      rage: 'war wagon did not reach full steam', bossPaid: 'war wagon did not pay out', smashed: 'a war wagon reaching a full 120-strength vault did not smash it', dust: 'dust storm did not shorten tower reach', refused: 'vault repair was allowed during a wave',
       vaultCard: 'tapping the vault did not open its card', repaired: 'vault repair did not add strength' };
     for (const k in want) if (!r[k]) errs.push(want[k]);
     if (r.branched < 5) errs.push('expected 5 branched towers, got ' + r.branched);
