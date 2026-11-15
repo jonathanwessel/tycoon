@@ -40,13 +40,13 @@ function frame(now) {
   }
   // the 30 fps setting keeps the simulation running every frame but draws every other one or so (saves battery)
   const cap = GX().fps === 30 ? 1 / 31 : 0; drawAcc += dt;
-  if (drawAcc >= cap) { draw(playT); drawAcc = cap ? drawAcc % cap : 0; fpsN++; }
+  if (drawAcc >= cap) { if (R3.on) r3Render(playT); else draw(playT); drawAcc = cap ? drawAcc % cap : 0; fpsN++; }
   tickHud(Math.min(dt, .1));
   fpsT += dt; if (fpsT >= .5) { const el = $('fpsMeter'); if (el) { el.hidden = !GX().fpsShow; el.textContent = Math.round(fpsN / fpsT) + ' fps' + (GLX.on ? ' · ' + (GLX.nLights || 0) + ' lights' : ''); } fpsT = 0; fpsN = 0; }
   // if lighting makes a device struggle (well under 30 frames a second for several seconds), drop to simple graphics
-  if (GLX.on && !GLX.noAuto && !document.hidden && dt > 0 && dt < .5) {
+  if ((GLX.on || R3.on) && !GLX.noAuto && !document.hidden && dt > 0 && dt < .5) {
     GLX.frames++; if (dt > 1 / 24) GLX.slow++;
-    if (GLX.frames >= 240) { if (GLX.slow > 170) { setGx('preset', GX().preset === 'ultra' || GX().preset === 'high' ? 'med' : 'low'); say('Lowered the graphics quality to keep the game smooth. Change it any time with the gear button on the map.'); } GLX.frames = GLX.slow = 0; }
+    if (GLX.frames >= 240) { if (GLX.slow > 170 && R3.on) { setGx('view', '2d'); say('Switched back to the 2D view to keep the game smooth. You can try 3D again from the gear button.'); } else if (GLX.slow > 170) { setGx('preset', GX().preset === 'ultra' || GX().preset === 'high' ? 'med' : 'low'); say('Lowered the graphics quality to keep the game smooth. Change it any time with the gear button on the map.'); } GLX.frames = GLX.slow = 0; }
   }
   uiT -= dt; if (uiT <= 0) { uiT = .2; refresh(); }
   if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('show');
@@ -73,8 +73,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-11'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Fix: dusk turns warm orange again as raiders arrive.';
+const GAME_VERSION = '2026.11.15-12'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'New: a 3D view of your town (preview). Open the gear button on the map, Graphics, View, 3D: drag to turn, pinch or scroll to zoom.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

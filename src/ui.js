@@ -127,7 +127,7 @@ function card() {
   for (const f of cardUps) f();
 }
 /* Map taps */
-function gridAt(ev) { const r = cv.getBoundingClientRect(), bw = cv.clientLeft, bt = cv.clientTop; return [(ev.clientX - r.left - bw) / (cv.clientWidth || r.width) * COLS, (ev.clientY - r.top - bt) / (cv.clientHeight || r.height) * ROWS]; }
+function gridAt(ev) { if (R3.on) return r3Pick(ev); const r = cv.getBoundingClientRect(), bw = cv.clientLeft, bt = cv.clientTop; return [(ev.clientX - r.left - bw) / (cv.clientWidth || r.width) * COLS, (ev.clientY - r.top - bt) / (cv.clientHeight || r.height) * ROWS]; }
 function slotAt(gx, gy) { if (gy >= YARD) return null; const sx = Math.floor(gx / 2) * 2, sy = Math.floor(gy / 2) * 2; return Object.keys(SLOT).find(k => SLOT[k][0] === sx && SLOT[k][1] === sy); }
 let holdT = null;
 const stopHold = () => { clearInterval(holdT); holdT = null; };
@@ -522,6 +522,7 @@ function openSettings(t) {
     const qh = row('Quality', '', [['low', 'Low'], ['med', 'Medium'], ['high', 'High'], ['ultra', 'Ultra']], () => GX().preset, v => setGx('preset', v));
     setUps.push(() => { qh.textContent = GX().preset === 'custom' ? 'Custom mix. Pick a preset to reset the details below.' : { low: 'Fastest: no lighting, 30 fps, fewer effects.', med: 'Lighting with soft shadows at a lower resolution.', high: 'Full lighting, shadows and glow.', ultra: 'Sharper than your screen, long shadows, strong glow, every effect.' }[GX().preset]; });
     body.append(h('h2', null, 'Detail'));
+    row('View', 'The 3D view is a preview of the new engine: drag to turn the town, pinch or scroll to zoom, double-tap to reset.', [['2d', '2D'], ['3d', '3D (preview)']], () => GX().view || '2d', v => setGx('view', v));
     row('Lighting', 'Lights, shadows, glow and day-night. Off is fastest.', [[1, 'On'], [0, 'Off']], () => GX().light ? 1 : 0, v => setGx('light', v));
     row('Shadows', 'Cast by buildings, towers and raiders as the sun moves.', [[0, 'Off'], [1, 'Soft'], [2, 'Full'], [3, 'Long']], () => GX().shadow, v => setGx('shadow', v), litOff);
     row('Glow', 'Light bleeding from fires, lamps and blasts.', [[0, 'Off'], [1, 'Low'], [2, 'Normal'], [3, 'Strong']], () => GX().bloom, v => setGx('bloom', v), litOff);

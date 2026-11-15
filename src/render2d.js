@@ -8,7 +8,7 @@ function fit() {
   // the Resolution setting scales the render: below 1 is faster and blockier, above 1 renders sharper than the screen
   const w = cv.clientWidth || 360, dpr = renderScale();
   cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr * ROWS / COLS); cell = cv.width / COLS;
-  bakeGround(); glResize();
+  bakeGround(); glResize(); if (typeof r3Resize === "function") r3Resize();
 }
 function bakeGround() { if (!cv.width) return; ground = document.createElement('canvas'); ground.width = cv.width; ground.height = cv.height; bake(ground.getContext('2d'), cell); GLX.groundDirty = true; }
 function sp(g, name, x, y, hgt, flip) {
@@ -323,6 +323,13 @@ function draw(time) {
   for (const f of floats) { cx.globalAlpha = Math.min(1, f.t * 3); cx.font = '700 ' + Math.max(9, f.z * c * (1 + .55 * Math.max(0, 1 - (f.a || 0) / .16))) + 'px "Barlow Semi Condensed", sans-serif'; cx.lineWidth = Math.max(2, c * .08); cx.strokeStyle = '#2a1c22'; const hw = cx.measureText(f.s).width / 2 + 3, fx_ = Math.max(hw, Math.min(cv.width - hw, f.x * c)); cx.strokeText(f.s, fx_, f.y * c); cx.fillStyle = f.c; cx.fillText(f.s, fx_, f.y * c); }
   cx.globalAlpha = 1;
   cx.restore();
+  drawHUD();
+  if (LIT) glRender(time);
+  cx = cx0;
+}
+/* Screen-space parts drawn over the map in every view: the boss's health bar and the sliding banners (uses cx and cell). */
+function drawHUD() {
+  const c = cell;
   // the war wagon gets a proper health bar across the top of the map
   const boss = foes.find(f => f.type === 'boss' && f.hp > 0);
   if (boss) {
@@ -351,6 +358,4 @@ function draw(time) {
     if (b.b) { cx.fillStyle = '#ece6d8'; cx.font = '600 ' + c * .36 + 'px "Barlow Semi Condensed", "Arial Narrow", sans-serif'; cx.fillText(b.b, cv.width / 2, by + c * .58); }
     cx.restore(); cx.globalAlpha = 1;
   }
-  if (LIT) glRender(time);
-  cx = cx0;
 }

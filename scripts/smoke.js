@@ -124,6 +124,18 @@ const shots = process.argv[2];
     });
     if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');
     else { if (!(lit.lights > 0)) errs.push('lighting engine gathered no lights'); if (lit.glErr) errs.push('WebGL error ' + lit.glErr); if (!lit.simpleOk) errs.push('simple graphics did not switch off lighting'); }
+    // the 3D view: renders frames without GL errors, and a tap on a projected cell picks that cell
+    const v3 = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      setGx('view', '3d'); if (!R3.on) { setGx('view', '2d'); return { on: false }; }
+      S.wave = 9; planWave(); startWave(); await wait(800);
+      const err = R3.gl.getError(), r = cv.getBoundingClientRect(), [px, py] = r3Project(5.5, .1, 10.5), s = cv.clientWidth / R3.canvas.width;
+      const g = r3Pick({ clientX: r.left + cv.clientLeft + px * s, clientY: r.top + cv.clientTop + py * s });
+      foes = []; W.queue = []; W.active = false; setGx('view', '2d');
+      return { on: true, err, pick: [Math.floor(g[0]), Math.floor(g[1])], models: Object.keys(R3.models).length, back2d: !R3.on };
+    });
+    if (!v3.on) console.log(name, 'warning: no WebGL2 in this browser, 3D view not tested');
+    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 80 || !v3.back2d) errs.push('3D check failed: ' + JSON.stringify(v3));
     // the empire: open Iron Ridge, play a wave there with its boss, ship goods, look at the Empire tab, come home
     const emp = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

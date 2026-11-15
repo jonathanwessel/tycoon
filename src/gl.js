@@ -82,8 +82,12 @@ function glResize() {
 /* Turn lighting on or off from the Graphics setting (falls back to plain drawing without WebGL). */
 function applyGfx() {
   const g = GX();
-  GLX.on = !!g.light && glSetup();
+  // the 3D view replaces the 2D map (and its lighting engine) when chosen and WebGL2 is available
+  R3.on = g.view === '3d' && r3Setup();
+  if (R3.canvas) R3.canvas.hidden = !R3.on;
+  GLX.on = !R3.on && !!g.light && glSetup();
   if (GLX.canvas) GLX.canvas.hidden = !GLX.on;
+  if (g.view === '3d' && !R3.on && R3.tried) say('This device cannot run the 3D view, so the map stays 2D.');
   cv.style.filter = GLX.on ? '' : (LOOKS[g.look] || LOOKS.natural).css; // simple mode grades the colour with a CSS filter
   const mw = document.querySelector('.mapwrap'); if (mw) mw.classList.toggle('scan', !!g.scan);
   if (cv.width && GLX.res !== g.res) { GLX.res = g.res; fit(); }
@@ -125,6 +129,19 @@ function gatherLights(time) {
   L.sort((a, b) => b[4] * b[2] - a[4] * a[2]);
   return L.slice(0, MAXL);
 }
+/* Light for the time of day and the weather, shared by the 2D lighting engine and the 3D engine.
+   n: night 0..1; amb: ambient colour; sunK: sun strength; az: the sun's slow sideways drift. */
+function sceneLight(time) {
+  const n = Math.min(1, FXS.night), dusk = Math.sin(Math.PI * n), wa = FXS.wxA || 0, wk = FXS.wxK;
+  const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  // night stays readable (raiders must be visible on the road); dusk passes through a warm sunset
+  let amb = mix([1, .98, .93], [.4, .42, .64], n);
+  amb = mix(amb, [1.02, .66, .46], dusk * .55);
+  const tint = wk === 'rain' ? [.74, .8, .94] : wk === 'dust' ? [1.06, .9, .72] : wk === 'heat' ? [1.08, .97, .84] : wk === 'moon' ? [1.05, 1.1, 1.3] : [1, 1, 1];
+  amb = amb.map((v, i) => v * (1 + (tint[i] - 1) * wa));
+  const sunK = (1 - n) * (wk === 'rain' ? 1 - .65 * wa : wk === 'dust' ? 1 - .45 * wa : 1);
+  return { n, dusk, wa, wk, amb, sunK, az: Math.sin(time * .012) * .9 };
+}
 function glRender(time) {
   const gl = GLX.gl, W = cv.width, H = cv.height, P_ = GLX.P;
   const up = (t, src) => { gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); };
@@ -135,16 +152,7 @@ function glRender(time) {
     texs.forEach(([name, t], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(prog.u[name], i); });
     set(prog.u); gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
-  // light for the time of day and the weather
-  const n = Math.min(1, FXS.night), dusk = Math.sin(Math.PI * n), wa = FXS.wxA || 0, wk = FXS.wxK;
-  const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-  // night stays readable (raiders must be visible on the road); dusk passes through a warm sunset
-  let amb = mix([1, .98, .93], [.4, .42, .64], n);
-  amb = mix(amb, [1.02, .66, .46], dusk * .55);
-  const tint = wk === 'rain' ? [.74, .8, .94] : wk === 'dust' ? [1.06, .9, .72] : wk === 'heat' ? [1.08, .97, .84] : wk === 'moon' ? [1.05, 1.1, 1.3] : [1, 1, 1];
-  amb = amb.map((v, i) => v * (1 + (tint[i] - 1) * wa));
-  const sunK = (1 - n) * (wk === 'rain' ? 1 - .65 * wa : wk === 'dust' ? 1 - .45 * wa : 1);
-  const az = Math.sin(time * .012) * .9, len = .62, dl = Math.hypot(az, 1);
+  const { n, wa, wk, amb, sunK, az } = sceneLight(time), len = .62, dl = Math.hypot(az, 1);
   const shake = FXS.quake > 0 && !REDUCED && GX().shake ? [(Math.random() - .5) * FXS.quake * .5 / COLS, (Math.random() - .5) * FXS.quake * .5 / ROWS] : [0, 0];
   const Ls = gatherLights(time); GLX.nLights = Ls.length;
   Ls.forEach(([x, y, r, col, k], i) => { GLX.lights.set([x, ROWS - y, r, k], i * 4); GLX.colors.set(col, i * 3); });
