@@ -50,6 +50,13 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 1.2rem; margin: 0
 .hud > span { display: inline-flex; align-items: center; gap: 3px; }
 .hud img.px { width: 18px; height: 18px; }
 .hud b { color: var(--copper); font-size: 1.05em; }
+#hVaultWrap { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; }
+#hVaultWrap:hover { background: rgba(255, 255, 255, .06); }
+#hVaultWrap:focus-visible { outline: 2px solid var(--teal); }
+#hVaultWrap.low b { color: var(--bad); animation: lowpulse 1s ease-in-out infinite; }
+@keyframes lowpulse { 50% { opacity: .45; } }
+.prog.vbar { height: 10px; margin: 0; border-radius: 5px; }
+.prog.vbar i { border-radius: 5px; }
 .hud .lbl { display: none; color: var(--muted); font-weight: 500; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
 .stage { grid-area: stage; display: grid; gap: 6px; min-width: 0; align-content: start; }
 .mapwrap { position: relative; width: min(100%, calc(46vh * 12 / 14)); width: min(100%, calc(46dvh * 12 / 14)); aspect-ratio: 12 / 14; margin: 0 auto; max-width: 100%; }
@@ -71,7 +78,10 @@ canvas#cv {
 .pausecover b { font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--copper); }
 .pausecover span { color: var(--fg); font-weight: 600; }
 .pausecover b::before { content: ''; display: block; width: 0; height: 0; margin: 0 auto 10px; border-style: solid; border-width: 18px 0 18px 30px; border-color: transparent transparent transparent var(--copper); }
-.controls { display: flex; gap: 6px; align-items: stretch; }
+.controls { display: flex; gap: 6px; align-items: stretch; position: relative; }
+.speedmenu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; display: grid; gap: 4px; padding: 6px; background: var(--panel); border: 1px solid var(--copper); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); animation: popin .2s ease-out; }
+.speedmenu button { min-width: 84px; }
+.setrow .seg { margin-left: auto; justify-content: flex-end; }
 .controls #bWave { flex: 1; min-width: 0; min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .controls #bSpeed { width: 48px; padding: 0; }
 #bWave { --p: 0%; background-image: linear-gradient(90deg, rgba(255, 255, 255, .18) var(--p), transparent var(--p)); }
@@ -166,6 +176,9 @@ small { color: var(--muted); font-weight: 500; font-size: .82rem; }
 .next { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; font-weight: 600; }
 .next span { display: inline-flex; align-items: center; gap: 2px; }
 .next img.px { width: 26px; height: 26px; }
+.wxline { display: flex; align-items: center; gap: 8px; background: rgba(86, 211, 198, .08); border: 1px solid rgba(86, 211, 198, .3); border-radius: 8px; padding: 6px 10px; color: var(--muted); font-size: .9rem; }
+.wxline img.px { width: 28px; height: 28px; }
+.wxline b { color: var(--teal); }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
 h2 { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 6px 0 0; }
 h2:first-child { margin-top: 0; }
@@ -196,6 +209,25 @@ canvas.spark { width: 64px; height: 24px; flex: none; }
 p { margin: 0; color: var(--muted); max-width: 60ch; }
 p strong { color: var(--fg); }
 .deeds { display: flex; align-items: baseline; gap: 8px; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.badge { display: grid; justify-items: center; text-align: center; gap: 2px; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); opacity: .5; }
+.badge img.px { width: 34px; height: 34px; filter: grayscale(1) brightness(.6); }
+.badge b { font-size: .85rem; line-height: 1.15; }
+.badge small { font-size: .7rem; line-height: 1.2; }
+.badge.got { opacity: 1; border-color: var(--gold); background: radial-gradient(circle at 50% 30%, rgba(242, 208, 74, .18), transparent 70%), var(--panel-2); }
+.badge.got img.px { filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .35)); }
+.badge.got b { color: var(--gold); }
+.records { display: grid; gap: 2px; }
+.records div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--muted); }
+.records b { color: var(--fg); }
+.medal { position: fixed; left: 50%; top: 12px; z-index: 70; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; border-radius: 999px;
+  background: linear-gradient(180deg, #3d3522, #2a2418); border: 2px solid var(--gold); box-shadow: 0 8px 30px rgba(0, 0, 0, .5), 0 0 24px rgba(242, 208, 74, .35); animation: medalin .5s cubic-bezier(.2, 1.4, .4, 1); transition: opacity .4s, transform .4s; }
+.medal img.px { width: 36px; height: 36px; }
+.medal div { display: grid; line-height: 1.1; }
+.medal small { color: var(--gold); text-transform: uppercase; letter-spacing: .1em; font-size: .7rem; }
+.medal b { font-family: var(--display); font-weight: 400; font-size: 1.15rem; }
+.medal.out { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+@keyframes medalin { from { opacity: 0; transform: translateX(-50%) translateY(-30px) scale(.8); } }
 .deeds b { font-family: var(--display); font-weight: 400; font-size: 1.6rem; color: var(--gold); }
 textarea { width: 100%; min-height: 64px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 5px; font: .8rem ui-monospace, monospace; padding: 6px; }
 img.fly { position: fixed; width: 22px; height: 22px; z-index: 50; pointer-events: none; image-rendering: pixelated; }
@@ -216,7 +248,9 @@ img.fly { position: fixed; width: 22px; height: 22px; z-index: 50; pointer-event
 .prog i { transition: width .25s ease-out; }
 nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 @keyframes dotpop { from { transform: scale(0); } }
-@media (prefers-reduced-motion: reduce) { .toast, button, .prog i { transition: none; } .modal, .modal .box, .goal.done, #bWave.soon, nav .dot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .toast, button, .prog i { transition: none; } .modal, .modal .box, .goal.done, #bWave.soon, nav .dot, #hVaultWrap.low b, .medal, .pausecover, .speedmenu { animation: none; } }
+.calm .toast, .calm button, .calm .prog i { transition: none; }
+.calm .modal, .calm .modal .box, .calm .goal.done, .calm #bWave.soon, .calm nav .dot, .calm #hVaultWrap.low b, .calm .medal, .calm .pausecover, .calm .speedmenu { animation: none; }
 </style>
 </head>
 <body>
@@ -226,7 +260,7 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
     <div class="hud">
       <span id="hCoinWrap"><img class="px" id="hCoinIcon" alt=""><span class="lbl">Coins</span><b id="hCoins">0</b></span>
       <span title="Wave"><img class="px" id="hWaveIcon" alt="Wave"><span class="lbl">Wave</span><b id="hWave">1</b></span>
-      <span title="Vault strength"><img class="px" id="hVaultIcon" alt="Vault"><span class="lbl">Vault</span><b id="hVault">20</b></span>
+      <span id="hVaultWrap" role="button" tabindex="0" title="Vault strength. Tap to look after the vault."><img class="px" id="hVaultIcon" alt="Vault"><span class="lbl">Vault</span><b id="hVault">20</b></span>
       <span id="hDeedsWrap" title="Deeds" hidden><img class="px" id="hDeedIcon" alt="Deeds"><span class="lbl">Deeds</span><b id="hDeeds">0</b></span>
     </div>
   </header>
@@ -296,7 +330,8 @@ const RESEARCH = [
   { id: 'haggle', n: 'Haggling',         d: '+10% sale prices.',                         cost: 500, g: 2,   max: 99 },
   { id: 'guns',   n: 'Gunsmithing',      d: '+15% tower damage, compounding.',           cost: 400, g: 2.2, max: 99 },
   { id: 'bounty', n: 'Bounty Posters',   d: '+20% coins from raiders.',                  cost: 600, g: 2,   max: 99 },
-  { id: 'vault',  n: 'Reinforced Vault', d: '+5 vault strength.',                        cost: 300, g: 2,   max: 20 },
+  { id: 'vault',  n: 'Reinforced Vault', d: '+5 vault strength. Every 4 levels shows on the vault.', cost: 300, g: 2, max: 20 },
+  { id: 'mason',  n: 'Masonry',          d: '+1 extra vault strength back after every cleared wave.', cost: 800, g: 2.2, max: 4 },
 ];
 const TOWERS = {
   crossbow: { n: 'Crossbow',   coins: 25,   goods: { plank: 5 },             dmg: 4,  rate: 1.25, range: 2.4, d: 'Quick single shots.' },
@@ -335,12 +370,24 @@ const WTYPES = {
   swarm: { n: 'Swarm',        from: 5, w: { raider: 6, runner: 1, sapper: 1 },                                      count: 1.9,  hp: .5,   gap: .45 },
   heavy: { n: 'Heavy column', from: 7, w: { brute: 3, shield: 3, healer: 1, raider: 1 },                            count: .55,  hp: 1.15, gap: 1.4 },
 };
+/* Weather: one at a time, announced in the Next preview, never on war wagon waves. Lasts for the wave. */
+const WEATHER = {
+  dust: { n: 'Dust storm',  d: 'Tower reach −25%. Frost and tesla are not bothered.', icon: 'w_dust' },
+  rain: { n: 'Rain',        d: 'Raiders 20% slower. Crossbows 15% weaker (wet strings).', icon: 'w_rain' },
+  heat: { n: 'Heat wave',   d: 'Workshops 25% faster. Raiders 10% faster.', icon: 'w_heat' },
+  moon: { n: 'Clear night', d: 'Every tower does 10% more damage by moonlight.', icon: 'w_moon' },
+};
+function wx() { return W.active ? W.weather : null; }
+function wxSpd() { const w = wx(); return w === 'rain' ? .8 : w === 'heat' ? 1.1 : 1; }
 const MAPS = {
   gulch: { n: 'Copper Gulch', d: 'One long road with room to build along it.',
            paths: [[[-.5, 7], [10, 7], [10, 9], [1, 9], [1, 12], [11, 12]]], vault: [11, 12], hp: 1, coin: 1, deed: 0 },
   fork:  { n: 'Forked Canyon', d: 'The road splits in two and is shorter. Raiders pay 50% more, and charters signed here earn an extra deed.',
            paths: [[[-.5, 10], [2, 10], [2, 7], [9, 7], [9, 10], [11, 10]], [[-.5, 10], [2, 10], [2, 13], [9, 13], [9, 10], [11, 10]]], vault: [11, 10], hp: .8, coin: 1.5, deed: 1 },
+  bridge: { n: 'Trestle Bridge', d: 'The road crosses a ravine on three trestle bridges. Raiders on a bridge take 25% more damage. Raiders pay double, and charters signed here earn two extra deeds.',
+           paths: [[[-.5, 7], [10, 7], [10, 10], [1, 10], [1, 13], [11, 13]]], vault: [11, 13], hp: 1.1, coin: 2, deed: 2, ravine: [5, 6] },
 };
+const onBridge = f => MAP.ravine && MAP.ravine.includes(Math.round(f.x));
 const PERKS = [
   { id: 'start',   n: 'Head Start',     d: 'Each charter starts with the Lumber Camp and Ore Mine at level 5 per rank, and a Sawmill.', max: 3, cost: l => 1 + l },
   { id: 'coffers', n: 'Seed Money',     d: 'Each charter starts with 500 coins, ten times more per extra rank.',                     max: 3, cost: l => 1 + l },
@@ -378,13 +425,13 @@ function setMap(id) {
   });
   PLOTS = [];
   for (let y = YARD; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-    if (PATH.has(x + ',' + y)) continue;
+    if (PATH.has(x + ',' + y) || (MAP.ravine && MAP.ravine.includes(x))) continue;
     let cover = 0;
     for (let p = 0; p < PATHS.length; p++) for (let d = 0; d < PATHS[p].len; d += .25) { const [px, py] = posAt(d, p); if (Math.hypot(px - x, py - y) <= 2.4) cover++; }
     PLOTS.push({ x, y, cover });
   }
   PLOTS.sort((a, b) => b.cover - a.cover);
-  let seed = id === 'fork' ? 91 : 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  let seed = id === 'fork' ? 91 : id === 'bridge' ? 33 : 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const spots = PLOTS.slice(Math.floor(PLOTS.length * .35)); CACTI = [];
   while (CACTI.length < 8 && spots.length) { const i = Math.floor(rnd() * spots.length); CACTI.push([spots[i].x, spots[i].y, rnd()]); spots.splice(i, 1); }
 }
@@ -505,6 +552,12 @@ function paintSprites2() {
   mk('dynamite', 12, 14, p => { for (const x of [2, 5, 8]) { p(P.red, x, 5, 3, 8); p('#f59a8f', x, 5, 1, 7); } p(P.redD, 2, 12, 9, 1); p(P.woodD, 2, 8, 9, 1); p(P.dark, 6, 2, 1, 3); p(P.org, 6, 0, 2, 2); p(P.yelL, 7, 0, 1, 1); });
   mk('bell', 13, 14, p => { p(P.woodD, 6, 0, 1, 2); p(P.brass, 5, 2, 3, 1); p(P.yel, 4, 3, 5, 3); p(P.yel, 3, 6, 7, 3); p(P.brass, 2, 9, 9, 2); p(P.yelL, 4, 4, 1, 4); p(P.yelL, 5, 3, 1, 1); p(P.dark, 6, 11, 1, 2); });
   mk('flask', 12, 14, p => { p(P.greyL, 4, 0, 4, 1); p(P.white, 5, 1, 2, 4); p(P.white, 3, 5, 6, 2); p(P.white, 2, 7, 8, 5); p(P.teal, 3, 8, 6, 3); p(P.tealL, 4, 8, 1, 2); p(P.tealD, 6, 10, 2, 1); p(P.white, 3, 12, 6, 1); });
+  // weather icons
+  mk('w_dust', 14, 12, p => { p('#c9a476', 1, 2, 9, 1); p('#d9b886', 3, 5, 10, 1); p('#c9a476', 0, 8, 8, 1); p('#a88a5a', 9, 8, 4, 1); p('#d9b886', 10, 2, 2, 1); p('#a88a5a', 2, 11, 6, 1); });
+  mk('w_rain', 13, 14, p => { p.disc(P.greyL, 5, 4, 3.4); p.disc(P.greyL, 8.5, 4.5, 3); p(P.grey, 2, 6, 10, 2); for (const [x, y] of [[3, 9], [6, 10], [9, 9], [4, 12], [8, 12]]) p('#5b8be0', x, y, 1, 2); });
+  mk('w_heat', 14, 14, p => { p.disc(P.org, 7, 7, 4); p.disc(P.yel, 7, 7, 3); p(P.yelL, 6, 5, 2, 1); for (const [x, y, w, hh] of [[6, 0, 2, 2], [6, 12, 2, 2], [0, 6, 2, 2], [12, 6, 2, 2], [2, 2, 1, 1], [11, 2, 1, 1], [2, 11, 1, 1], [11, 11, 1, 1]]) p(P.org, x, y, w, hh); });
+  mk('w_moon', 13, 13, p => { p.disc('#e8ecf5', 6.5, 6.5, 5.4); p.disc(null, 9, 5, 4.2); p('#c9d2de', 3, 8, 1, 1); p('#c9d2de', 4, 4, 1, 1); p(P.yelL, 11, 1, 1, 1); p(P.yelL, 10, 10, 1, 1); });
+  for (const f of [0, 1]) mk('bird' + (f ? '_b' : ''), 13, 7, p => { p(P.dark, 5, 2, 3, 2); p(P.redD, 6, 1, 1, 1); if (f) { p(P.dark, 0, 0, 2, 1); p(P.dark, 2, 1, 3, 1); p(P.dark, 8, 1, 3, 1); p(P.dark, 11, 0, 2, 1); } else { p(P.dark, 0, 4, 2, 1); p(P.dark, 2, 3, 3, 1); p(P.dark, 8, 3, 3, 1); p(P.dark, 11, 4, 2, 1); } });
   mk('tumble', 12, 12, p => { p.disc('#a88a5a', 6, 6, 5.5); p.disc(null, 6, 6, 4); p.disc('#8a6a40', 6, 6, 3.4); p.disc(null, 6, 6, 2); for (const [x, y] of [[2, 3], [9, 2], [3, 9], [8, 8], [5, 5], [6, 1], [1, 6], [10, 6]]) p('#c9a476', x, y, 1, 1); });
 }
 
@@ -514,10 +567,11 @@ function paintSprites2() {
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 2, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 3, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
-    stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
+    stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
+    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false },
     autoWave: true, speed: 1, sound: false, last: Date.now(),
   };
 }
@@ -528,8 +582,11 @@ function load() { try { const t = localStorage.getItem(KEY); if (t) adopt(JSON.p
 function adopt(o) {
   if (!o || typeof o !== 'object' || !o.res) return false;
   if (!o.v) { (o.towers || []).forEach(t => { t.r += 2; }); o.v = 2; } // v1 maps had a two-row yard
+  if (o.v < 3) { if (o.goal >= 7) o.goal++; o.v = 3; } // v3 added the vault goal at position 7
   const f = fresh(); S = Object.assign(f, o);
-  for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd']) S[k] = Object.assign(fresh()[k], o[k]);
+  for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt']) S[k] = Object.assign(fresh()[k], o[k]);
+  if (!o.stats || o.stats.coins === undefined) S.stats.coins = S.life || 0; // older saves: start the lifetime count from this charter
+  if (!S.bestMap[S.map]) S.bestMap[S.map] = S.best;
   setMap(S.map);
   S.towers = (S.towers || []).filter(t => TOWERS[t.type] && t.r >= YARD && t.r < ROWS && t.c >= 0 && t.c < COLS && !onRoad(t.c, t.r));
   return true;
@@ -542,7 +599,7 @@ const lv = id => S.research[id] || 0;
 const perk = id => S.perks[id] || 0;
 const deedMult = () => 1 + .2 * S.deeds;
 const prodMult = () => (1 + .25 * lv('steam')) * deedMult();
-const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult();
+const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * (wx() === 'heat' ? 1.25 : 1);
 const sellMult = () => 1 + .1 * lv('haggle');
 const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult();
 const tapYield = () => Math.pow(2, lv('tools'));
@@ -577,7 +634,7 @@ function fmt(n) {
 }
 const rate = n => n < 10 ? (Math.round(n * 100) / 100).toString() : fmt(n);
 const pct = n => Math.round(n * 100) + '%';
-function earn(c) { S.coins += c; S.life += c; }
+function earn(c) { S.coins += c; S.life += c; S.stats.coins += c; }
 function add(k, n) { S.res[k] += n; if (!S.seen[k] && S.res[k] > 0) { S.seen[k] = 1; rebuild = true; } }
 function goodsText(g) { return Object.keys(g).map(k => g[k] + ' ' + ITEMS[k].n.toLowerCase()).join(' + '); }
 function hasGoods(g) { for (const k in g) if (S.res[k] < g[k]) return false; return true; }
@@ -591,6 +648,7 @@ function snd(name, f, d = .07, type = 'square', v = .04, slide = 0) {
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime;
     o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+    v *= S.opt.vol === undefined ? 1 : S.opt.vol; if (v <= 0) return;
     g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d);
   } catch (e) {}
 }
@@ -607,7 +665,7 @@ function econStep(dt) {
     const l = S.shops[s.id] || 0; if (!l) continue;
     const cap = l * s.rate * cm * bMult(s.id) * dt; let n = S.off[s.id] ? 0 : cap, miss = null;
     for (const k in s.in) { const m = S.res[k] / s.in[k]; if (m < n) { n = m; miss = k; } }
-    if (n > 0) { for (const k in s.in) S.res[k] -= n * s.in[k]; add(s.out, n); PHASE[s.id] = ((PHASE[s.id] || 0) + n / l / bMult(s.id)) % 1; }
+    if (n > 0) { for (const k in s.in) S.res[k] -= n * s.in[k]; add(s.out, n); S.stats.made += n; PHASE[s.id] = ((PHASE[s.id] || 0) + n / l / bMult(s.id)) % 1; }
     ACT[s.id] = (ACT[s.id] || 0) + (n / cap - (ACT[s.id] || 0)) * ease; STARVE[s.id] = miss;
   }
   const rec = 1 - Math.exp(-(perk('trade') ? .04 : .02) * dt);
@@ -683,6 +741,7 @@ const GOALS = [
   { t: 'Sell 30 goods at the market', p: () => [S.stats.sold, 30], r: 60 },
   { t: 'Fill a caravan contract', p: () => [S.stats.contracts, 1], r: 80 },
   { t: 'Survive five waves', p: () => [S.best - 1, 5], r: 100 },
+  { t: 'Check on the vault: tap it on the map', p: () => [S.stats.vaultSeen ? 1 : 0, 1], r: 80 },
   { t: 'Build a Smelter', p: () => [has('smelt'), 1], r: 100 },
   { t: 'Build a cannon', p: () => [S.towers.some(t => t.type === 'cannon') ? 1 : 0, 1], r: 150 },
   { t: 'Research the Trading Ledger', p: () => [lv('ledger'), 1], r: 200 },
@@ -691,6 +750,37 @@ const GOALS = [
   { t: 'Raise any tower to level 5 and pick its path', p: () => [S.towers.some(t => t.br) ? 1 : 0, 1], r: 1000 },
   { t: 'Build a Crystal Drill and a Glassworks', p: () => [has('drill') + has('glass'), 2], r: 1500 },
 ];
+/* Badges: long-term goals, kept across charters. */
+const BADGES = [
+  { id: 'k100',    n: 'Deputy',             d: 'Defeat 100 raiders.',                              icon: 'raider',   ok: () => S.stats.kills >= 100 },
+  { id: 'k1k',     n: 'Sheriff',            d: 'Defeat 1,000 raiders.',                            icon: 'shield',   ok: () => S.stats.kills >= 1000 },
+  { id: 'k10k',    n: 'Marshal',            d: 'Defeat 10,000 raiders.',                           icon: 'brute',    ok: () => S.stats.kills >= 1e4 },
+  { id: 'w10',     n: 'Holding Out',        d: 'Reach wave 10.',                                   icon: 'crossbow', ok: () => S.best >= 10 },
+  { id: 'w25',     n: 'Dug In',             d: 'Reach wave 25.',                                   icon: 'cannon',   ok: () => S.best >= 25 },
+  { id: 'w50',     n: 'Legend of the Gulch', d: 'Reach wave 50.',                                  icon: 'tesla',    ok: () => S.best >= 50 },
+  { id: 'boss1',   n: 'Wagon Wrecker',      d: 'Destroy a war wagon.',                             icon: 'boss',     ok: () => S.stats.bosses >= 1 },
+  { id: 'boss10',  n: 'Wheel Breaker',      d: 'Destroy 10 war wagons.',                           icon: 'dynamite', ok: () => S.stats.bosses >= 10 },
+  { id: 'clean',   n: 'Clean Sweep',        d: 'Clear a wave with nobody reaching the vault.',     icon: 'vault',    ok: () => S.stats.flawless >= 1 },
+  { id: 'clean25', n: 'Iron Gate',          d: 'Clear 25 waves with nobody reaching the vault.',   icon: 'buckler',  ok: () => S.stats.flawless >= 25 },
+  { id: 'trade',   n: 'Caravan Master',     d: 'Fill 25 caravan contracts.',                       icon: 'wagon',    ok: () => S.stats.contracts >= 25 },
+  { id: 'make',    n: 'Industrialist',      d: 'Make 10,000 goods in workshops.',                  icon: 'gear',     ok: () => S.stats.made >= 1e4 },
+  { id: 'auto',    n: 'Clockwork Dream',    d: 'Build an automaton.',                              icon: 'auto',     ok: () => !!S.seen.auto },
+  { id: 'arsenal', n: 'Full Arsenal',       d: 'Have every kind of tower on the map at once.',     icon: 'gatling',  ok: () => Object.keys(TOWERS).every(k => S.towers.some(t => t.type === k)) },
+  { id: 'weather', n: 'Weathered',          d: 'Clear a wave in each kind of weather.',            icon: 'w_rain',   ok: () => Object.keys(WEATHER).every(k => S.wxSeen[k]) },
+  { id: 'charter', n: 'Founder',            d: 'Sign a charter.',                                  icon: 'office',   ok: () => S.charters >= 1 },
+  { id: 'canyon',  n: 'Canyon Runner',      d: 'Sign a charter on Forked Canyon.',                 icon: 'runner',   ok: () => !!S.chMap.fork },
+  { id: 'bridge',  n: 'Bridge Builder',     d: 'Sign a charter on Trestle Bridge.',                icon: 'sign',     ok: () => !!S.chMap.bridge },
+];
+function checkBadges(quiet) {
+  for (const b of BADGES) if (!S.badges[b.id] && b.ok()) {
+    S.badges[b.id] = 1; if (quiet) continue;
+    snd('badge', 784, .35, 'triangle', .06, 392); medal(b);
+  }
+}
+function medal(b) {
+  const m = h('div', { cls: 'medal', role: 'status' }, ico(b.icon, ''), h('div', null, h('small', null, 'Badge earned'), h('b', null, b.n)));
+  document.body.append(m); setTimeout(() => m.classList.add('out'), 3000); setTimeout(() => m.remove(), 3500);
+}
 function genGoal() {
   const opts = [], r = Math.ceil(Math.max(100, S.life * .02));
   const built = BUILD.filter(b => blv(b.def.id)).sort((a, b) => (nextMs(blv(a.def.id)) - blv(a.def.id)) - (nextMs(blv(b.def.id)) - blv(b.def.id)));
@@ -717,7 +807,7 @@ function claimGoal() {
 /* =========================================================
    Combat
    ========================================================= */
-let foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], sel = null;
+let foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
 const FXS = { shake: {}, gold: {}, pop: {}, scorch: [], quake: 0, night: 0, banner: null, flash: 0, car: 9, lastCoin: 0, flow: {} };
 const W = { active: false, queue: [], next: null, ntype: 'mixed', type: 'mixed', shown: null, spawnT: 0, gap: .7, countdown: 30, spawned: 0, hpm: 1 };
 const foeHp = w => 10 * Math.pow(1.25, w - 1) * (1 + w * .05);
@@ -731,6 +821,7 @@ function planWave() {
   const q = []; for (let i = 0; i < n; i++) q.push(pool[Math.floor(Math.random() * pool.length)]);
   if (w % 10 === 0) q.push('boss');
   W.next = q; W.nextFor = w; W.ntype = type;
+  const wk = Object.keys(WEATHER); W.nweather = w >= 6 && w % 10 !== 0 && Math.random() < .35 ? wk[Math.floor(Math.random() * wk.length)] : null;
 }
 function startWave() {
   if (W.active) return;
@@ -738,13 +829,21 @@ function startWave() {
   if (!W.next || W.nextFor !== S.wave) planWave();
   const T = WTYPES[W.ntype];
   W.queue = W.next; W.next = null; W.type = W.ntype; W.hpm = T.hp; W.active = true; W.spawnT = 0; W.spawned = 0; W.total = W.queue.length;
+  W.weather = W.nweather || null; W.nweather = null; W.leaks = 0;
   W.gap = Math.max(.25, .75 - S.wave * .01) * T.gap;
-  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: S.wave % 10 === 0 ? 'War wagon on the road' : T.n };
+  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? 'War wagon on the road' : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
   snd('wave', 220, .25, 'sawtooth', .04, 220);
 }
 function spawn(type) {
   const p = W.spawned++ % PATHS.length, hp = foeHp(S.wave) * FOES[type].hp * (type === 'boss' ? 1 : W.hpm) * MAP.hp, [x, y] = posAt(0, p);
   foes.push({ type, p, d: 0, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: 1, flash: 0, num: 0, ht: 1.5 });
+  // every raider kicks up a puff of dust as it rides in; the war wagon shakes the ground
+  for (let i = 0; i < (type === 'boss' ? 22 : 5); i++) parts.push({ x: x + .4 + Math.random() * .4, y: y + .5 + (Math.random() - .5) * .6, vx: Math.random() * 1.2, vy: -.3 - Math.random() * .5, g: 0, t: .7, c: '#dcc59c', s: .09, smoke: 1 });
+  if (type === 'boss') { FXS.quake = Math.max(FXS.quake, .9); FXS.bossIn = 2.5; snd('rumble', 55, .7, 'sawtooth', .08, -15); floats.push({ x: x + 1.2, y: y - .3, t: 1.6, s: 'War wagon!', c: '#ff8fb0', z: .45 }); }
+}
+function spawnAt(type, from, back) {
+  const hp = foeHp(S.wave) * FOES[type].hp * W.hpm * MAP.hp, d = Math.max(0, from.d - back), [x, y] = posAt(d, from.p);
+  foes.push({ type, p: from.p, d, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: from.dir, flash: 0, num: 0, ht: 1.5 });
 }
 function hurt(f, dmg, o) {
   if (f.hp <= 0) return;
@@ -755,10 +854,19 @@ function hurt(f, dmg, o) {
     if (!(o && o.splash)) return;
   }
   if (f.brit > 0) dmg *= 1.3;
+  if (onBridge(f)) dmg *= 1.25;
   f.hp -= dmg; f.flash = .09;
-  if (f.num <= 0 && floats.length < 40) { f.num = .35; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, dmg)), c: '#fff', z: .26 }); }
+  if (f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .35; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, dmg)), c: '#fff', z: .26 }); }
   if (f.hp <= 0) {
     const D = FOES[f.type], c = foeCoins(S.wave) * D.rw * MAP.coin; earn(c); S.stats.kills++;
+    if (f.type === 'boss') {
+      const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1;
+      fx.push({ k: 'boom', x: f.x, y: f.y, r: 2.2, t: .6, d: .6 }); FXS.quake = 1; FXS.flash = .15; snd('kaboom', 60, .7, 'sawtooth', .1, -30);
+      FXS.banner = { t: 2.8, a: 'War wagon destroyed', b: '+' + fmt(bonus) + ' bonus coins', gold: 1, boss: 1 };
+      for (let i = 0; i < 40; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 9, vy: -2 - Math.random() * 6, g: 9, t: 1 + Math.random() * .6, c: [P.yel, P.yelL, '#8a6a48', P.steelL, P.org][i % 5], s: .1 + Math.random() * .06 });
+      for (let i = 0; i < 10; i++) setTimeout(() => fly('coin', f.x + .5 + (Math.random() - .5), f.y + .5, $('hCoinWrap')), i * 70);
+    }
+    if (!REDUCED) for (let i = 0; i < (f.type === 'boss' ? 6 : 1 + (Math.random() < .4)); i++) drops.push({ x: f.x + .5, y: f.y + .55, z: 0, vz: 3 + Math.random() * 2, vx: (Math.random() - .5) * 1.6, t: 1.1 });
     if (corpses.length < 40) corpses.push({ type: f.type, x: f.x, y: f.y, dir: f.dir, t: .8 });
     for (let i = 0; i < 7; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 4, vy: -1 - Math.random() * 3, g: 9, t: .5, c: i % 2 ? D.c : P.white, s: .08 });
     floats.push({ x: f.x + .5, y: f.y + .2, t: .9, s: '+' + fmt(Math.max(1, c)), c: P.yel, z: .34 });
@@ -770,9 +878,10 @@ function hurt(f, dmg, o) {
   }
 }
 function towerStats(t) {
-  const d = TOWERS[t.type], b = t.br ? BRANCH[t.type][t.br] : {};
+  const d = TOWERS[t.type], b = t.br ? BRANCH[t.type][t.br] : {}, w = wx();
+  const wr = w === 'dust' && t.type !== 'frost' && t.type !== 'tesla' ? .75 : 1, wd = (w === 'rain' && t.type === 'crossbow' ? .85 : 1) * (w === 'moon' ? 1.1 : 1);
   return {
-    dmg: d.dmg * (b.dmg || 1) * Math.pow(1.45, t.lvl) * dmgMult(), range: d.range + (b.range || 0) + Math.min(1, t.lvl * .06), rate: d.rate * (b.rate || 1),
+    dmg: d.dmg * (b.dmg || 1) * Math.pow(1.45, t.lvl) * dmgMult() * wd, range: (d.range + (b.range || 0) + Math.min(1, t.lvl * .06)) * wr, rate: d.rate * (b.rate || 1),
     splash: b.splash || d.splash || 0, chain: b.chain || d.chain || 0, falloff: b.falloff || .7, slow: d.slow || 0,
     cone: b.cone, freeze: b.freeze, brittle: b.brittle, stun: b.stun, pierce: b.pierce,
   };
@@ -799,6 +908,16 @@ function pickTarget(t, st) {
   }
   return best;
 }
+/* Vault repairs: coins for strength, only while the road is clear. */
+const repairCost = () => Math.ceil(foeCoins(S.wave) * 4 * MAP.coin);
+function repair(n) {
+  if (W.active) { say('Repair the vault between waves.'); return false; }
+  n = Math.min(n, vaultMax() - S.vaultHp); if (n <= 0) return false;
+  const c = repairCost() * n; if (S.coins < c) return false;
+  S.coins -= c; S.vaultHp += n; S.stats.repairs = (S.stats.repairs || 0) + n; FXS.mend = 1.4;
+  floats.push({ x: VAULT[0] + .5, y: VAULT[1] - .3, t: 1.3, s: '+' + n + ' strength', c: P.grnL, z: .34 });
+  snd('build', 520, .12, 'triangle', .05, 260); return true;
+}
 function leak(f) {
   const D = FOES[f.type]; f.hp = 0;
   if (D.thief) {
@@ -806,7 +925,7 @@ function leak(f) {
     if (ks.length) { const k = ks[0], n = Math.max(1, Math.floor(S.res[k] * .1)); S.res[k] -= n; floats.push({ x: VAULT[0] + .2, y: VAULT[1] - .2, t: 1.2, s: '-' + fmt(n) + ' ' + ITEMS[k].n.toLowerCase(), c: P.red, z: .32 }); }
     FXS.flash = .12; snd('steal', 300, .15, 'triangle', .05, -150); return;
   }
-  S.vaultHp -= D.leak;
+  S.vaultHp -= D.leak; W.leaks = (W.leaks || 0) + 1;
   const stolen = Math.min(S.coins * .05, foeCoins(S.wave) * 10); S.coins -= stolen;
   FXS.quake = .35; FXS.flash = .3; snd('hit', 110, .2, 'sawtooth', .07, -60);
   if (stolen >= 1) floats.push({ x: VAULT[0] + .5, y: VAULT[1], t: 1, s: '-' + fmt(stolen), c: P.red, z: .36 });
@@ -822,7 +941,14 @@ function combat(dt) {
   for (const f of foes) {
     const D = FOES[f.type];
     f.slow = Math.max(0, f.slow - dt); f.stun = Math.max(0, f.stun - dt); f.brit = Math.max(0, f.brit - dt); f.flash -= dt; f.num -= dt;
-    if (f.stun <= 0) f.d += D.spd * (f.slow > 0 ? .55 : 1) * dt;
+    if (f.stun <= 0) f.d += D.spd * (f.slow > 0 ? .55 : 1) * (f.rage ? 1.6 : 1) * wxSpd() * dt;
+    if (f.type === 'boss' && f.hp > 0) {
+      if (!f.ph1 && f.hp <= f.max * .5) {
+        f.ph1 = 1; spawnAt('brute', f, .5); spawnAt('brute', f, 1); FXS.quake = Math.max(FXS.quake, .4);
+        floats.push({ x: f.x + .5, y: f.y - .4, t: 1.4, s: 'Brutes jump off!', c: '#d7a8ff', z: .36 }); snd('thud', 90, .2, 'square', .06, -40);
+      }
+      if (!f.rage && f.hp <= f.max * .25) { f.rage = 1; floats.push({ x: f.x + .5, y: f.y - .4, t: 1.4, s: 'Full steam!', c: P.org, z: .36 }); snd('steam', 400, .3, 'sawtooth', .04, -250); }
+    }
     const [nx, ny] = posAt(f.d, f.p); if (Math.abs(nx - f.x) > .001) f.dir = nx > f.x ? 1 : -1; f.x = nx; f.y = ny;
     if (D.heal && (f.ht -= dt) <= 0) {
       f.ht = 2.5; let any = false;
@@ -899,16 +1025,19 @@ function combat(dt) {
   for (const e of fx) e.t -= dt; fx = fx.filter(e => e.t > 0);
   if (S.vaultHp <= 0) {
     const lost = S.coins * .1; S.coins -= lost; foes = []; shots = []; W.queue = []; W.active = false; W.countdown = 15;
-    S.wave = Math.max(1, S.wave - 2); S.vaultHp = vaultMax(); FXS.quake = .8;
+    S.wave = Math.max(1, S.wave - 2); S.vaultHp = vaultMax(); FXS.quake = .8; W.weather = null;
     FXS.banner = { t: 2.6, a: 'Vault breached', b: 'Back to wave ' + S.wave };
     say('Vault breached! Raiders took ' + fmt(lost) + ' coins. Falling back to wave ' + S.wave + '.');
   } else if (W.active && !W.queue.length && !foes.length) {
     W.active = false; W.countdown = 20; const b = Math.ceil(foeCoins(S.wave) * 5 * MAP.coin); earn(b);
     say('Wave ' + S.wave + ' cleared: +' + fmt(b) + ' coins.'); snd('clear', 520, .2, 'triangle', .05, 520);
-    FXS.banner = { t: 2.2, a: 'Wave ' + S.wave + ' cleared', b: '+' + fmt(b) + ' coins', gold: 1 };
+    if (!(FXS.banner && FXS.banner.boss)) FXS.banner = { t: 2.2, a: 'Wave ' + S.wave + ' cleared', b: '+' + fmt(b) + ' coins', gold: 1 };
+    if (!W.leaks) S.stats.flawless = (S.stats.flawless || 0) + 1;
+    if (W.weather) S.wxSeen[W.weather] = 1;
+    W.weather = null;
     for (let i = 0; i < 28; i++) parts.push({ x: VAULT[0] + .5, y: VAULT[1] + .3, vx: (Math.random() - .5) * 6, vy: -2 - Math.random() * 4, g: 7, t: .9 + Math.random() * .5, c: [P.yel, P.yelL, '#56d3c6', '#ff8fb0'][i % 4], s: .09 });
     floats.push({ x: VAULT[0] + .2, y: VAULT[1] - .2, t: 1.4, s: '+' + fmt(b), c: P.yel, z: .4 });
-    S.wave++; S.best = Math.max(S.best, S.wave); S.vaultHp = Math.min(vaultMax(), S.vaultHp + 1);
+    S.wave++; S.best = Math.max(S.best, S.wave); S.bestMap[S.map] = Math.max(S.bestMap[S.map] || 1, S.wave); S.vaultHp = Math.min(vaultMax(), S.vaultHp + 1 + lv('mason'));
   }
 }
 
@@ -923,11 +1052,13 @@ function buyPerk(id) {
   if (l >= p.max || (p.req && !perk(p.req)) || freeDeeds() < p.cost(l)) return;
   S.perks[id] = l + 1; snd('ms', 660, .25, 'triangle', .06, 440); say(p.n + ' is now rank ' + (l + 1) + '.');
 }
-function wipeField() { foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; sel = null; W.active = false; W.queue = []; W.next = null; W.countdown = 30; rebuild = true; }
+function wipeField() { foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
 function prestige(mapId) {
   const g = deedsOnOffer(); if (!g) return;
-  const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, maps: Object.assign(S.maps, { fork: 1 }), goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
+  const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, maps: Object.assign(S.maps, { fork: 1 }, S.map === 'fork' ? { bridge: 1 } : {}), goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
+    badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
     sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {} };
+  if (S.map === 'fork' && !S.maps.bridgeSeen) { S.maps.bridgeSeen = 1; setTimeout(() => say('Trestle Bridge is open. Pick it next time you sign a charter.'), 2600); }
   S = fresh(); Object.assign(S, keep); S.map = MAPS[mapId] ? mapId : 'gulch'; setMap(S.map); bakeGround();
   const st = perk('start'); if (st) { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; }
   const cf = perk('coffers'); if (cf) S.coins += 500 * Math.pow(10, cf - 1);
@@ -938,7 +1069,10 @@ function prestige(mapId) {
 /* =========================================================
    Things that only exist to be looked at
    ========================================================= */
-const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SYS_REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+let REDUCED = SYS_REDUCED;
+/* The motion setting: follow the device, or force calm or full motion. */
+function applyMotion() { const m = S.opt.calm; REDUCED = m === 'calm' ? true : m === 'full' ? false : SYS_REDUCED; document.documentElement.classList.toggle('calm', REDUCED); }
 const CHIP = {}; let flyN = 0;
 function bump(el) { if (el && el.animate && !REDUCED) el.animate([{ transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 180 }); }
 function flyPx(icon, x0, y0, target) {
@@ -962,6 +1096,7 @@ function cosmetics(dt, time) {
   for (const k in FXS.shake) FXS.shake[k] = Math.max(0, FXS.shake[k] - dt);
   for (const k in FXS.gold) if ((FXS.gold[k] -= dt) <= 0) delete FXS.gold[k];
   for (const k in FXS.pop) if ((FXS.pop[k] -= dt) <= 0) delete FXS.pop[k];
+  if (FXS.mend > 0) { FXS.mend -= dt; if (Math.random() < dt * 14) parts.push({ x: VAULT[0] + .5 + (Math.random() - .5) * .9, y: VAULT[1] + .5, vx: (Math.random() - .5) * 1.5, vy: -1 - Math.random(), g: 5, t: .5, c: Math.random() < .5 ? '#c9d2de' : '#a6b0c2', s: .06 }); }
   // explosions leave scorch marks that fade; walking raiders kick up dust; cannonballs trail smoke
   for (const e of fx) if (e.k === 'boom' && !e.sc) { e.sc = 1; if (FXS.scorch.length < 24) FXS.scorch.push({ x: e.x, y: e.y, r: Math.min(1.2, e.r * .55), t: 5 }); }
   for (const s of FXS.scorch) s.t -= dt; FXS.scorch = FXS.scorch.filter(s => s.t > 0);
@@ -999,6 +1134,24 @@ function cosmetics(dt, time) {
   }
   for (const w of workers) { const dx = w.tx - w.x, dy = w.ty - w.y, q = Math.hypot(dx, dy), st = 1.7 * hurry * dt; if (q <= st) w.done = true; else { w.x += dx / q * st; w.y += dy / q * st; w.dir = dx >= 0 ? 1 : -1; } }
   workers = workers.filter(w => !w.done);
+  // weather fades in and out with its wave; rain, dust and heat haze are particles
+  const tw = wx(); if (tw) FXS.wxK = tw; FXS.wxA = (FXS.wxA || 0) + ((tw ? 1 : 0) - (FXS.wxA || 0)) * Math.min(1, dt * 1.5);
+  FXS.wxp = FXS.wxp || [];
+  if (!REDUCED && FXS.wxA > .05 && FXS.wxp.length < 150) {
+    const k = FXS.wxK, n = k === 'rain' ? 70 : k === 'dust' ? 32 : k === 'heat' ? 4 : 0;
+    for (let i = 0; i < n * dt * 4 * FXS.wxA; i++) FXS.wxp.push(k === 'rain' ? { k, x: Math.random() * (COLS + 3) - 1, y: -1, vx: -1.5, vy: 15, t: 2, land: 1 + Math.random() * (ROWS - 1) }
+      : k === 'dust' ? { k, x: -1, y: Math.random() * ROWS, vx: 6 + Math.random() * 6, vy: (Math.random() - .5) * .8, t: 3, l: .3 + Math.random() * .7 }
+      : { k, x: Math.random() * COLS, y: YARD + 1 + Math.random() * (ROWS - YARD - 1), vx: 0, vy: -.35, t: 2.5, ph: Math.random() * 7 });
+  }
+  for (const q of FXS.wxp) { q.t -= dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.k === 'rain' && q.y > q.land) { q.t = 0; if (Math.random() < .45) FXS.wxp.push({ k: 'splash', x: q.x, y: q.y, vx: 0, vy: 0, t: .3 }); } }
+  FXS.wxp = FXS.wxp.filter(q => q.t > 0 && q.x < COLS + 2);
+  // coins bounce out of fallen raiders; vultures circle; idle towers look around; a raging war wagon smokes
+  for (const d of drops) { d.t -= dt; d.vz -= 14 * dt; d.z += d.vz * dt; d.x += d.vx * dt; if (d.z < 0) { d.z = 0; d.vz = Math.abs(d.vz) * .45; d.vx *= .6; } }
+  drops = drops.filter(d => d.t > 0);
+  if (!FXS.birds) FXS.birds = [0, 1].map(i => ({ cx: 3 + Math.random() * 6, cy: YARD + 2 + Math.random() * 4, r: 1.6 + Math.random(), a: Math.random() * 7, v: (.35 + Math.random() * .2) * (i ? -1 : 1) }));
+  for (const b of FXS.birds) { b.a += b.v * dt; b.cx += Math.sin(time * .05 + b.r) * dt * .2; }
+  for (const t of S.towers) if (t.cd < -1.5 && !(t.jam > 0)) t.aim = (t.aim || 0) + Math.sin(time * .8 + t.c * 1.7) * dt * .7;
+  for (const f of foes) if (f.rage && Math.random() < dt * 12) parts.push({ x: f.x + .5 - f.dir * .3, y: f.y + .1, vx: -f.dir * .4, vy: -.8, g: 0, t: .9, c: '#4a4450', s: .12, smoke: 1 });
   rateT += dt; if (rateT >= 1) { for (const k in ITEMS) { const r = (S.res[k] - (lastRes[k] === undefined ? S.res[k] : lastRes[k])) / rateT; RATE[k] = RATE[k] === undefined ? r : RATE[k] * .6 + r * .4; lastRes[k] = S.res[k]; } rateT = 0; }
   histT += dt; if (histT >= 2) { histT = 0; for (const k in ITEMS) { (HIST[k] = HIST[k] || []).push(dem(k)); if (HIST[k].length > 45) HIST[k].shift(); } }
 }
@@ -1042,7 +1195,23 @@ function bake(g, c) {
     g.strokeStyle = col; g.lineWidth = wd; g.lineJoin = 'miter'; g.lineCap = 'butt';
     for (const P_ of PATHS) { g.beginPath(); P_.way.forEach(([x, y], i) => { const px = (x + .5) * c, py = (y + .5) * c; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.lineTo(VAULT[0] * c + c, VAULT[1] * c + c / 2); g.stroke(); }
   };
+  // Trestle Bridge: a ravine with a creek at the bottom
+  if (MAP.ravine) {
+    const x0 = Math.min(...MAP.ravine) * c, x1 = (Math.max(...MAP.ravine) + 1) * c, y0 = YARD * c, y1 = ROWS * c, rg = g.createLinearGradient(x0, 0, x1, 0);
+    rg.addColorStop(0, '#6a4630'); rg.addColorStop(.25, '#3a2419'); rg.addColorStop(.5, '#24160f'); rg.addColorStop(.75, '#3a2419'); rg.addColorStop(1, '#6a4630');
+    g.fillStyle = rg; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+    const mid = (x0 + x1) / 2; g.fillStyle = '#2f5d78'; g.fillRect(mid - c * .16, y0, c * .32, y1 - y0); g.fillStyle = '#5b9cc0';
+    for (let y = y0; y < y1; y += c * .45) g.fillRect(mid - c * .1 + (Math.floor(y / c) % 2) * c * .08, y, c * .1, Math.max(1, c * .04));
+    for (let y = y0; y < y1; y += px) { const j1 = Math.floor(rnd() * 3), j2 = Math.floor(rnd() * 3); g.fillStyle = '#9a6e4a'; g.fillRect(x0 - j1 * px, y, px * (1 + j1), px); g.fillRect(x1 - px, y, px * (1 + j2), px); g.fillStyle = 'rgba(30,18,12,.35)'; g.fillRect(x0 + px, y, px * 2, px); g.fillRect(x1 - px * 3, y, px * 2, px); }
+  }
   line(c * .96, '#7a5a3e'); line(c * .84, '#9b7552'); line(c * .44, '#8a6645'); line(c * .34, '#9b7552');
+  if (MAP.ravine) for (const key of PATH) {
+    const [bx, by] = key.split(',').map(Number); if (!MAP.ravine.includes(bx) || by < YARD) continue;
+    const horiz = PATH.has((bx - 1) + ',' + by) || PATH.has((bx + 1) + ',' + by);
+    g.fillStyle = '#2a1c22'; g.fillRect(bx * c - 1, by * c + c * .02, c + 2, c * .96);
+    for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#a8703f' : '#b98250'; if (horiz) g.fillRect(bx * c + i * c / 6, by * c + c * .08, c / 6 - Math.max(1, px * .6), c * .84); else g.fillRect(bx * c + c * .08, by * c + i * c / 6, c * .84, c / 6 - Math.max(1, px * .6)); }
+    g.fillStyle = '#5a3a22'; if (horiz) { g.fillRect(bx * c, by * c + c * .02, c, c * .07); g.fillRect(bx * c, by * c + c * .9, c, c * .07); } else { g.fillRect(bx * c + c * .02, by * c, c * .07, c); g.fillRect(bx * c + c * .9, by * c, c * .07, c); }
+  }
   for (let p = 0; p < PATHS.length; p++) for (let i = 0; i < 70; i++) { const [x, y] = posAt(rnd() * PATHS[p].len, p); g.fillStyle = 'rgba(70,48,30,.35)'; g.fillRect((x + .5 + (rnd() - .5) * .7) * c, (y + .5 + (rnd() - .5) * .7) * c, c * .07, c * .05); }
   // yard fence and the dividers between yard rows
   g.fillStyle = '#6e4526'; g.fillRect(0, c * YARD - c * .1, c * COLS, c * .05); g.fillRect(0, c * YARD - c * .22, c * COLS, c * .04);
@@ -1130,6 +1299,18 @@ function draw(time) {
   const hpF = S.vaultHp / vaultMax(), vx = X(VAULT[0]), vy = Y(VAULT[1]);
   if (hpF < .67) { cx.strokeStyle = '#2a1c22'; cx.lineWidth = Math.max(1, c * .05); cx.beginPath(); cx.moveTo(vx - c * .4, vy - c * .45); cx.lineTo(vx - c * .2, vy - c * .2); cx.lineTo(vx - c * .36, vy + c * .1); if (hpF < .34) { cx.moveTo(vx + c * .36, vy - c * .5); cx.lineTo(vx + c * .2, vy - c * .2); cx.lineTo(vx + c * .34, vy + .2 * c); } cx.stroke(); }
   cx.fillStyle = 'rgba(22,26,42,.8)'; cx.fillRect(vx - c * .45, vy + c * .5, c * .9, c * .12); cx.fillStyle = hpF > .5 ? '#7fd992' : hpF > .25 ? '#f2d04a' : '#f07067'; cx.fillRect(vx - c * .45, vy + c * .5, c * .9 * Math.max(0, hpF), c * .12);
+  // reinforcement shows every 4 levels: iron bands, sandbags, stone wall, flag
+  const vl = lv('vault'), px_ = Math.max(1, c * .05);
+  if (vl >= 4) { cx.fillStyle = '#2a1c22'; for (const oy of [-.3, .18]) cx.fillRect(vx - c * .5, vy + oy * c, c * .92, c * .09); cx.fillStyle = '#6a6372'; for (const oy of [-.3, .18]) { cx.fillRect(vx - c * .48, vy + oy * c + px_ * .4, c * .88, c * .04); for (const ox of [-.4, 0, .34]) { cx.fillStyle = '#c9d2de'; cx.fillRect(vx + ox * c, vy + oy * c + px_ * .3, px_, px_); cx.fillStyle = '#6a6372'; } } }
+  if (vl >= 8) for (let i = 0; i < 5; i++) { const bx_ = vx - c * .56 + i * c * .27, by2 = vy + c * .44 + (i % 2) * c * .04; cx.fillStyle = '#2a1c22'; cx.beginPath(); cx.ellipse(bx_, by2, c * .16, c * .1, 0, 0, 7); cx.fill(); cx.fillStyle = i % 2 ? '#c9a476' : '#d9b886'; cx.beginPath(); cx.ellipse(bx_, by2 - px_ * .3, c * .14, c * .08, 0, 0, 7); cx.fill(); }
+  if (vl >= 12) for (const sx_ of [-1, 1]) for (let i = 0; i < 3; i++) { const wx_ = vx + sx_ * c * .72 - c * .13, wy = vy - c * .45 + i * c * .3; cx.fillStyle = '#2a1c22'; cx.fillRect(wx_, wy, c * .26, c * .28); cx.fillStyle = i % 2 ? '#8f9bb0' : '#a6b0c2'; cx.fillRect(wx_ + px_ * .5, wy + px_ * .5, c * .26 - px_, c * .28 - px_); cx.fillStyle = '#c9d2de'; cx.fillRect(wx_ + px_ * .5, wy + px_ * .5, c * .26 - px_, px_ * .6); }
+  if (vl >= 16) { const fx0 = vx + c * .42, fy0 = vy - c * .95, wv = Math.sin(time * 5) * c * .04; cx.fillStyle = '#2a1c22'; cx.fillRect(fx0, fy0, c * .05, c * .55); cx.fillStyle = '#e38d4e'; cx.beginPath(); cx.moveTo(fx0 + c * .05, fy0); cx.lineTo(fx0 + c * .36, fy0 + c * .08 + wv); cx.lineTo(fx0 + c * .05, fy0 + c * .18); cx.fill(); cx.fillStyle = '#f2d04a'; cx.fillRect(fx0 + c * .1, fy0 + c * .06, c * .06, c * .06); }
+  // masons at work after a repair
+  if (FXS.mend > 0) for (const sx_ of [-1, 1]) {
+    const mx = vx + sx_ * c * .62, my = vy + c * .2, swing = Math.sin(time * 18 + sx_) ;
+    sp(cx, Math.floor(time * 8) % 2 ? 'worker_b' : 'worker', mx, my, c * .5, sx_ > 0);
+    cx.save(); cx.translate(mx - sx_ * c * .1, my - c * .08); cx.rotate(-sx_ * (.6 + swing * .6)); cx.fillStyle = '#6e4526'; cx.fillRect(-c * .02, -c * .2, c * .04, c * .2); cx.fillStyle = '#8f9bb0'; cx.fillRect(-c * .06, -c * .24, c * .12, c * .06); cx.restore();
+  }
   const torches = [[VAULT[0] - .08, VAULT[1] - .05], [VAULT[0] - .08, VAULT[1] + 1.25]];
   for (const [tx, ty] of torches) { cx.fillStyle = '#6e4526'; cx.fillRect(tx * c - c * .04, ty * c - c * .3, c * .08, c * .36); cx.fillStyle = '#f5a04a'; cx.beginPath(); cx.arc(tx * c, ty * c - c * .36, c * (.1 + Math.sin(time * 14 + ty) * .02), 0, 7); cx.fill(); cx.fillStyle = '#fff0a0'; cx.beginPath(); cx.arc(tx * c, ty * c - c * .34, c * .05, 0, 7); cx.fill(); }
   // reach of the selected tower
@@ -1149,6 +1330,12 @@ function draw(time) {
   }
   // fallen raiders and tumbleweeds lie under everything else
   for (const k of corpses) { const D = FOES[k.type], hgt = D.size * c, a = Math.min(1, k.t * 2.5), fall = Math.min(1, (.8 - k.t) * 6); cx.globalAlpha = a; cx.save(); cx.translate(X(k.x), Y(k.y) + hgt * .1 * fall); cx.rotate(k.dir * fall * 1.45); sp(cx, k.type, 0, -hgt * .2, hgt); cx.restore(); }
+  cx.globalAlpha = 1;
+  for (const d of drops) {
+    const a = Math.min(1, d.t * 3), spin = Math.abs(Math.cos(d.t * 12)), s = c * .26;
+    cx.globalAlpha = a * .3; cx.fillStyle = '#28180e'; cx.beginPath(); cx.ellipse(d.x * c, d.y * c + s * .35, s * .45, s * .15, 0, 0, 7); cx.fill();
+    cx.globalAlpha = a; cx.drawImage(SPR.coin, d.x * c - s * spin / 2, (d.y - d.z) * c - s / 2, Math.max(1, s * spin), s);
+  }
   cx.globalAlpha = 1;
   for (const w of weeds) { const bounce = Math.abs(Math.sin(w.a * 1.3 + w.ph)) * c * .22; cx.fillStyle = 'rgba(40,24,14,.2)'; cx.beginPath(); cx.ellipse(w.x * c, (w.y + .3) * c, c * .22, c * .06, 0, 0, 7); cx.fill(); cx.save(); cx.translate(w.x * c, w.y * c - bounce); cx.rotate(w.a); sp(cx, 'tumble', 0, 0, c * .5); cx.restore(); }
   for (const b of bombs) { const pr = 1 - b.t / .7, sx0 = X(VAULT[0]), sy0 = Y(VAULT[1]), bx = sx0 + (X(b.x) - sx0) * pr, by_ = sy0 + (Y(b.y) - sy0) * pr - Math.sin(pr * Math.PI) * c * 2; cx.save(); cx.translate(bx, by_); cx.rotate(pr * 9); sp(cx, 'dynamite', 0, 0, c * .55); cx.restore(); cx.fillStyle = Math.floor(time * 24) % 2 ? '#fff0a0' : '#f5a04a'; cx.beginPath(); cx.arc(bx, by_ - c * .3, c * .07, 0, 7); cx.fill(); }
@@ -1179,7 +1366,7 @@ function draw(time) {
       else if (f.stun > 0) { for (let i = 0; i < 3; i++) { const a = time * 6 + i * 2.1; cx.fillStyle = '#f2d04a'; cx.fillRect(x + Math.cos(a) * hgt * .35 - c * .03, y - hgt * .55 + Math.sin(a) * hgt * .1, c * .06, c * .06); } }
       if (f.brit > 0) { cx.strokeStyle = '#c7a0ff'; cx.lineWidth = Math.max(1, c * .025); cx.beginPath(); cx.moveTo(x - hgt * .2, y - hgt * .3); cx.lineTo(x, y - hgt * .05); cx.lineTo(x - hgt * .1, y + hgt * .2); cx.moveTo(x + hgt * .2, y - hgt * .2); cx.lineTo(x + hgt * .05, y); cx.stroke(); }
       if (f.fuse > 0) { const fx_ = x + f.dir * hgt * .3, fy = y - hgt * .45; cx.fillStyle = Math.floor(time * 20) % 2 ? '#fff0a0' : '#f5a04a'; cx.beginPath(); cx.arc(fx_, fy, c * (.06 + Math.random() * .04), 0, 7); cx.fill(); }
-      if (f.hp < f.max) { const bw = Math.max(c * .5, hgt * .8); cx.fillStyle = '#2a1c22'; cx.fillRect(x - bw / 2 - 1, y - hgt * .62 - 1, bw + 2, c * .09 + 2); cx.fillStyle = '#f07067'; cx.fillRect(x - bw / 2, y - hgt * .62, bw, c * .09); cx.fillStyle = '#7fd992'; cx.fillRect(x - bw / 2, y - hgt * .62, bw * Math.max(0, f.hp / f.max), c * .09); }
+      if (f.hp < f.max && f.type !== 'boss') { const bw = Math.max(c * .5, hgt * .8); cx.fillStyle = '#2a1c22'; cx.fillRect(x - bw / 2 - 1, y - hgt * .62 - 1, bw + 2, c * .09 + 2); cx.fillStyle = '#f07067'; cx.fillRect(x - bw / 2, y - hgt * .62, bw, c * .09); cx.fillStyle = '#7fd992'; cx.fillRect(x - bw / 2, y - hgt * .62, bw * Math.max(0, f.hp / f.max), c * .09); }
     }
   }
   for (const s of shots) {
@@ -1216,18 +1403,57 @@ function draw(time) {
     for (const t of S.towers) if (t.type === 'frost') glow(X(t.c), Y(t.r) - c * .2, c * 1.1, 'rgba(143,232,255,' + .4 * a + ')'); else if (t.type === 'tesla') glow(X(t.c), Y(t.r) - c * .4, c * (1 + (t.kick > 0 ? .6 : 0)), (t.br === 'b' ? 'rgba(255,90,120,' : 'rgba(242,208,74,') + .45 * a + ')');
     for (const id of ['smelt', 'mill']) if (blv(id) && ACT[id] > .08) glow((SLOT[id][0] + 1) * c, (SLOT[id][1] + 1.3) * c, c * 1.1, 'rgba(245,160,74,' + .45 * a + ')');
     for (const s of shots) glow(X(s.x), Y(s.y), c * .45, 'rgba(255,220,140,' + .35 * a + ')');
+    // lamps come on in every working building
+    for (const b of BUILD) if (blv(b.def.id)) { const [sx, sy] = SLOT[b.def.id]; glow((sx + 1) * c, (sy + 1.45) * c, c * .75, 'rgba(255,196,110,' + .32 * a * (.9 + Math.sin(time * 3 + sx) * .1) + ')'); }
+    for (const id of ['market', 'hall', 'office']) glow((SLOT[id][0] + 1) * c, (SLOT[id][1] + 1.45) * c, c * .75, 'rgba(255,196,110,' + .3 * a + ')');
     for (const e of fx) if (e.k === 'boom') glow(X(e.x), Y(e.y), e.r * c * 2, 'rgba(255,150,60,' + .6 * a * Math.min(1, e.t * 4) + ')');
     if (FXS.flies && !REDUCED) for (const q of FXS.flies) { const tw = .5 + .5 * Math.sin(time * 3 + q.ph); glow(q.x * c, q.y * c, c * .35, 'rgba(210,255,130,' + .55 * a * tw + ')'); cx.fillStyle = 'rgba(240,255,190,' + a * tw + ')'; cx.fillRect(q.x * c - 1, q.y * c - 1, 2, 2); }
     cx.globalCompositeOperation = 'source-over';
   }
+  // weather on top of the light
+  if (FXS.wxA > .02 && FXS.wxK) {
+    const a = FXS.wxA, k = FXS.wxK;
+    cx.fillStyle = k === 'dust' ? 'rgba(214,170,110,' + .3 * a + ')' : k === 'rain' ? 'rgba(55,75,115,' + .26 * a + ')' : k === 'heat' ? 'rgba(255,150,60,' + .14 * a + ')' : 'rgba(190,210,255,' + .1 * a + ')';
+    cx.fillRect(-c, -c, cv.width + 2 * c, cv.height + 2 * c);
+    for (const q of FXS.wxp) {
+      if (q.k === 'rain') { cx.strokeStyle = 'rgba(200,222,255,' + .55 * a + ')'; cx.lineWidth = Math.max(1, c * .03); cx.beginPath(); cx.moveTo(q.x * c, q.y * c); cx.lineTo((q.x + .05) * c, (q.y - .45) * c); cx.stroke(); }
+      else if (q.k === 'splash') { cx.strokeStyle = 'rgba(200,222,255,' + a * q.t * 2 + ')'; cx.lineWidth = Math.max(1, c * .025); cx.beginPath(); cx.ellipse(q.x * c, q.y * c, c * (.22 - q.t * .4), c * (.08 - q.t * .15), 0, 0, 7); cx.stroke(); }
+      else if (q.k === 'dust') { cx.fillStyle = 'rgba(244,222,180,' + .55 * a + ')'; cx.fillRect(q.x * c, q.y * c, q.l * c, Math.max(1, c * .035)); }
+      else if (q.k === 'heat') { cx.fillStyle = 'rgba(255,236,200,' + .1 * a * Math.min(1, q.t) + ')'; for (let i = 0; i < 8; i++) cx.fillRect((q.x + i * .18) * c, (q.y + Math.sin(q.ph + i * .9 + time * 4) * .08) * c, c * .18, Math.max(1, c * .05)); }
+    }
+    if (k === 'moon') {
+      const mx = cv.width - c * .9, my = c * .9;
+      cx.globalCompositeOperation = 'lighter'; const g = cx.createRadialGradient(mx, my, 0, mx, my, c * 2.2); g.addColorStop(0, 'rgba(220,230,255,' + .35 * a + ')'); g.addColorStop(1, 'rgba(0,0,0,0)'); cx.fillStyle = g; cx.fillRect(mx - c * 2.2, my - c * 2.2, c * 4.4, c * 4.4); cx.globalCompositeOperation = 'source-over';
+      cx.globalAlpha = a; sp(cx, 'w_moon', mx, my, c * .9); cx.globalAlpha = 1;
+    }
+  }
   // drifting cloud shadows, and a darker edge at night
   if (FXS.clouds) for (const cl of FXS.clouds) { const g = cx.createRadialGradient(cl.x * c, cl.y * c, 0, cl.x * c, cl.y * c, cl.r * c); g.addColorStop(0, 'rgba(40,30,60,.13)'); g.addColorStop(1, 'rgba(40,30,60,0)'); cx.fillStyle = g; cx.fillRect((cl.x - cl.r) * c, (cl.y - cl.r) * c, cl.r * 2 * c, cl.r * 2 * c); }
   if (FXS.night > .02) { const g = cx.createRadialGradient(cv.width / 2, cv.height * .6, cv.width * .35, cv.width / 2, cv.height * .6, cv.width * .85); g.addColorStop(0, 'rgba(10,8,30,0)'); g.addColorStop(1, 'rgba(10,8,30,' + .45 * FXS.night + ')'); cx.fillStyle = g; cx.fillRect(-c, -c, cv.width + 2 * c, cv.height + 2 * c); }
+  // vultures circle high over the road, their shadows far below
+  if (FXS.birds && !REDUCED) for (const b of FXS.birds) {
+    const bx = (b.cx + Math.cos(b.a) * b.r) * c, by = (b.cy + Math.sin(b.a) * b.r * .6) * c, ang = b.a + (b.v > 0 ? Math.PI / 2 : -Math.PI / 2);
+    cx.fillStyle = 'rgba(40,24,14,.16)'; cx.beginPath(); cx.ellipse(bx + c * .9, by + c * 1.6, c * .32, c * .1, 0, 0, 7); cx.fill();
+    cx.save(); cx.translate(bx, by); cx.rotate(Math.cos(ang) * .3); sp(cx, Math.floor(time * 3 + b.r) % 4 === 0 ? 'bird_b' : 'bird', 0, 0, c * .32, b.v < 0); cx.restore();
+  }
   if (FXS.flash > 0) { cx.fillStyle = 'rgba(240,112,103,' + FXS.flash + ')'; cx.fillRect(-c, -c, cv.width + 2 * c, cv.height + 2 * c); }
   cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.lineJoin = 'round';
   for (const f of floats) { cx.globalAlpha = Math.min(1, f.t * 3); cx.font = '700 ' + Math.max(9, f.z * c * (1 + .55 * Math.max(0, 1 - (f.a || 0) / .16))) + 'px "Barlow Semi Condensed", sans-serif'; cx.lineWidth = Math.max(2, c * .08); cx.strokeStyle = '#2a1c22'; cx.strokeText(f.s, f.x * c, f.y * c); cx.fillStyle = f.c; cx.fillText(f.s, f.x * c, f.y * c); }
   cx.globalAlpha = 1;
   cx.restore();
+  // the war wagon gets a proper health bar across the top of the map
+  const boss = foes.find(f => f.type === 'boss' && f.hp > 0);
+  if (boss) {
+    const bx = c * .45, bw = cv.width - c * .9, by = c * .5, bh = c * .24, fr = Math.max(0, boss.hp / boss.max);
+    cx.fillStyle = 'rgba(22,26,42,.88)'; cx.fillRect(bx - c * .12, by - c * .42, bw + c * .24, bh + c * .56);
+    cx.textAlign = 'left'; cx.textBaseline = 'middle'; cx.font = '700 ' + Math.max(9, c * .26) + 'px "Barlow Semi Condensed", "Arial Narrow", sans-serif';
+    cx.fillStyle = '#ff8fb0'; cx.fillText('WAR WAGON' + (boss.rage ? ' · FULL STEAM' : boss.ph1 ? ' · CREW OFF' : ''), bx, by - c * .2);
+    cx.textAlign = 'right'; cx.fillStyle = '#ece6d8'; cx.fillText(fmt(Math.max(0, boss.hp)), bx + bw, by - c * .2); cx.textAlign = 'center';
+    cx.fillStyle = '#3a1c26'; cx.fillRect(bx, by, bw, bh);
+    const g = cx.createLinearGradient(bx, 0, bx + bw, 0); g.addColorStop(0, '#f07067'); g.addColorStop(1, '#ff4f8b'); cx.fillStyle = g; cx.fillRect(bx, by, bw * fr, bh);
+    cx.fillStyle = 'rgba(255,255,255,.25)'; cx.fillRect(bx, by, bw * fr, bh * .3);
+    cx.fillStyle = 'rgba(236,230,216,.7)'; for (const m of [.5, .25]) cx.fillRect(bx + bw * m - 1, by - c * .04, Math.max(2, c * .04), bh + c * .08);
+  }
   if (FXS.banner && !paused) {
     // the band opens from its middle, the words slide in from the left and leave to the right
     const b = FXS.banner; b.T = b.T || b.t;
@@ -1317,13 +1543,26 @@ function useAbility(id) {
 const TOWER_TIPS = 'Tap an empty plot beside the road to build. Tap a tower to upgrade it or change its aim.';
 function card() {
   const box = $('card'); box.hidden = !sel; if (!sel) { box._k = box._e = null; return; }
-  const key = sel.t ? 't' + S.towers.indexOf(sel.t) + '/' + sel.t.lvl + sel.t.br : sel.b ? 'b' + sel.b.def.id : 'p' + sel.plot.join(',');
+  const key = sel.t ? 't' + S.towers.indexOf(sel.t) + '/' + sel.t.lvl + sel.t.br : sel.b ? 'b' + sel.b.def.id : sel.vault ? 'v' : 'p' + sel.plot.join(',');
   if (box._k !== key) {
     const ent = key.split('/')[0], opening = !box._k, other = box._e !== ent;
     box._k = key; box._e = ent; box.textContent = ''; cardUps = []; $('sheet').scrollTop = 0;
     if (other && box.animate && !REDUCED) box.animate(opening ? [{ opacity: 0, transform: 'translateY(-10px) scale(.97)' }, { opacity: 1, transform: 'none' }] : [{ opacity: .3 }, { opacity: 1 }], { duration: opening ? 280 : 160, easing: 'cubic-bezier(.2,.9,.3,1.15)' });
     const close = h('button', { cls: 'small x', 'aria-label': 'Close', on: () => { sel = null; } }, '✕');
-    if (sel.plot) {
+    if (sel.vault) {
+      S.stats.vaultSeen = 1;
+      const info = h('small'), bar = h('i'), note = h('small'), one = h('button', { cls: 'grow1', on: () => repair(1) }, 'Repair +1 ', costEl(() => repairCost(), null, cardUps));
+      const full = h('button', { cls: 'primary grow1', on: () => repair(vaultMax() - S.vaultHp) }, 'Repair to full ', costEl(() => repairCost() * Math.max(1, vaultMax() - S.vaultHp), null, cardUps));
+      box.append(h('div', { cls: 'cardhead' }, ico('vault'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'The vault'), info), close),
+        h('div', { cls: 'prog vbar' }, bar), note, h('div', { cls: 'bar' }, one, full));
+      cardUps.push(() => {
+        const hp = Math.max(0, S.vaultHp), mx = vaultMax(), miss = mx - hp;
+        info.textContent = 'Strength ' + hp + ' / ' + mx + ' · heals ' + (1 + lv('mason')) + ' per cleared wave';
+        bar.style.width = hp / mx * 100 + '%'; bar.style.background = hp / mx > .5 ? 'var(--good)' : hp / mx > .25 ? 'var(--gold)' : 'var(--bad)';
+        note.textContent = W.active ? 'Raiders are on the road. Repair between waves.' : miss ? 'Each point costs ' + fmt(repairCost()) + ' coins. A raider that gets through takes 1 to 5 strength and 5% of your coins.' : 'The vault is at full strength.';
+        one.disabled = W.active || !miss || S.coins < repairCost(); full.disabled = W.active || !miss || S.coins < repairCost() * miss;
+      });
+    } else if (sel.plot) {
       const [c, r] = sel.plot;
       box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower here'), h('small', null, 'Grey costs mean you are short of coins or goods.')), close));
       for (const id in TOWERS) {
@@ -1389,6 +1628,7 @@ cv.addEventListener('click', ev => {
   }
   const c = Math.floor(gx), rw = Math.floor(gy), t = S.towers.find(t => t.c === c && t.r === rw);
   if (t) { sel = sel && sel.t === t ? null : { t }; return; }
+  if (c === VAULT[0] && rw === VAULT[1]) { sel = sel && sel.vault ? null : { vault: 1 }; return; }
   if (onRoad(c, rw)) { sel = null; return say('Towers go beside the road, not on it.'); }
   sel = sel && sel.plot && sel.plot[0] === c && sel.plot[1] === rw ? null : { plot: [c, rw] };
 });
@@ -1423,14 +1663,16 @@ const PANELS = {
       bar.style.width = Math.min(100, g.cur / g.need * 100) + '%'; goal.classList.toggle('done', done);
       claim.disabled = !done; claim.classList.toggle('primary', done); swap.hidden = !g.gen || done;
     });
-    const nxT = h('h2'), nx = h('div', { cls: 'next' }); let sig = null;
-    p.append(nxT, nx);
+    const nxT = h('h2'), nx = h('div', { cls: 'next' }), wxl = h('div', { cls: 'wxline' }); let sig = null;
+    p.append(nxT, nx, wxl);
     ups.push(() => {
-      const q = W.active ? W.queue : W.next || [], s = (W.active ? 'a' : 'n') + S.wave + ':' + q.length + W.ntype;
+      const q = W.active ? W.queue : W.next || [], wk = W.active ? W.weather : W.nweather, s = (W.active ? 'a' : 'n') + S.wave + ':' + q.length + W.ntype + wk;
       nxT.textContent = W.active ? 'Still to come' : 'Next: ' + (S.wave % 10 === 0 ? 'war wagon' : WTYPES[W.ntype].n.toLowerCase());
       if (s === sig) return; sig = s; nx.textContent = ''; const n = {}; for (const t of q) n[t] = (n[t] || 0) + 1;
       for (const t in FOES) if (n[t]) nx.append(h('span', { title: FOES[t].n }, ico(t, FOES[t].n), '×' + n[t]));
       if (!q.length) nx.append(h('small', null, 'The road is clear.'));
+      wxl.textContent = ''; wxl.hidden = !wk;
+      if (wk) wxl.append(ico(WEATHER[wk].icon, ''), h('span', null, h('b', null, WEATHER[wk].n + (W.active ? ' now' : ' coming') + '. '), WEATHER[wk].d));
     });
     p.append(h('h2', null, 'Powers'));
     for (const id in ABIL) {
@@ -1445,9 +1687,7 @@ const PANELS = {
     }
     p.append(h('h2', null, 'Raiders seen so far'));
     for (const k in FOES) if (k === 'boss' ? S.best >= 10 : S.best >= UNLOCK[k]) p.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, FOES[k].n), h('small', null, FOE_TIPS[k]))));
-    const auto = h('button', { cls: 'small', on: toggleAuto }), sound = h('button', { cls: 'small', on: () => { S.sound = !S.sound; snd('coin', 880, .08, 'square', .04, 440); } });
-    p.append(h('h2', null, 'Settings'), h('div', { cls: 'bar' }, auto, sound));
-    ups.push(() => { auto.textContent = 'Auto waves ' + (S.autoWave ? 'on' : 'off'); auto.classList.toggle('on', S.autoWave); sound.textContent = 'Sound ' + (S.sound ? 'on' : 'off'); sound.classList.toggle('on', !!S.sound); });
+    p.append(h('p', null, 'Settings are at the bottom of the Charter tab.'));
   },
   works(p) {
     const chopN = h('span'), digN = h('span');
@@ -1502,12 +1742,13 @@ const PANELS = {
       h('h2', null, 'New charter'), h('p', null, 'Sell the gulch and start a new one. You lose coins, stock, buildings, research and towers. You keep deeds, perks and goals.'), offer, signs);
     for (const id in MAPS) {
       const M = MAPS[id], b = h('button', { cls: 'primary', on: () => prestige(id) }, 'Sign for ' + M.n);
-      signs.append(b); ups.push(() => { b.disabled = !deedsOnOffer(); b.hidden = id !== 'gulch' && !S.maps[id] && !deedsOnOffer(); });
+      signs.append(b); ups.push(() => { b.disabled = !deedsOnOffer(); b.hidden = id === 'bridge' ? !S.maps.bridge : id !== 'gulch' && !S.maps[id] && !deedsOnOffer(); });
     }
     ups.push(() => {
       held.textContent = S.deeds; freeL.textContent = freeDeeds() + ' to spend';
       const g = deedsOnOffer();
-      offer.innerHTML = g ? 'Signing now earns <strong>' + g + ' deed' + (g > 1 ? 's' : '') + '</strong>' + (MAP.deed ? ', including the Forked Canyon bonus' : '') + '. Forked Canyon has two roads; raiders there pay 50% more and each charter signed there earns an extra deed.'
+      offer.innerHTML = g ? 'Signing now earns <strong>' + g + ' deed' + (g > 1 ? 's' : '') + '</strong>' + (MAP.deed ? ', including the ' + MAP.n + ' bonus' : '') + '. Forked Canyon has two roads; raiders there pay 50% more and each charter signed there earns an extra deed.'
+          + (S.maps.bridge ? ' Trestle Bridge crosses a ravine: raiders on its bridges take 25% more damage, pay double, and charters there earn two extra deeds.' : ' Sign a charter on Forked Canyon to open a third map.')
         : 'Reach <strong>wave 35</strong> to earn your first deed. Best so far: wave ' + S.best + '. You are on ' + MAP.n + '.';
     });
     p.append(h('h2', null, 'Perks'));
@@ -1521,6 +1762,31 @@ const PANELS = {
         b.disabled = fin || locked || freeDeeds() < pk.cost(l);
       });
     }
+    // badges and lifetime records
+    const got = h('small'); p.append(h('h2', null, 'Badges ', got));
+    const grid = h('div', { cls: 'badges' }); p.append(grid);
+    for (const b of BADGES) { const tile = h('div', { cls: 'badge', title: b.d }, ico(b.icon, ''), h('b', null, b.n), h('small', null, b.d)); grid.append(tile); ups.push(() => tile.classList.toggle('got', !!S.badges[b.id])); }
+    ups.push(() => { got.textContent = Object.keys(S.badges).length + ' of ' + BADGES.length; });
+    const recs = h('div', { cls: 'records' }); p.append(h('h2', null, 'Records'), recs);
+    const hm = s => { s = Math.floor(s); const hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60; return hh ? hh + 'h ' + mm + 'm' : mm + 'm'; };
+    for (const [n, f] of [['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['War wagons destroyed', () => fmt(S.stats.bosses)],
+      ['Waves with no leaks', () => fmt(S.stats.flawless)], ['Goods made', () => fmt(S.stats.made)], ['Contracts filled', () => fmt(S.stats.contracts)],
+      ['Charters signed', () => S.charters], ...Object.keys(MAPS).map(id => ['Best wave · ' + MAPS[id].n, () => S.bestMap[id] ? S.bestMap[id] : '—']), ['Time played', () => hm(S.stats.played)]]) {
+      const v = h('b'); recs.append(h('div', null, h('span', null, n), v)); ups.push(() => { v.textContent = f(); });
+    }
+    // settings
+    const setRow = (label, opts, get, put) => {
+      const seg = h('div', { cls: 'seg' });
+      for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { put(v); refresh(); } }, n); seg.append(b); ups.push(() => b.classList.toggle('on', get() === v)); }
+      p.append(h('div', { cls: 'row setrow' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, label)), seg));
+    };
+    p.append(h('h2', null, 'Settings'));
+    setRow('Sound', [[true, 'On'], [false, 'Off']], () => !!S.sound, v => { S.sound = v; snd('coin', 880, .08, 'square', .04, 440); });
+    setRow('Volume', [[.25, 'Low'], [.6, 'Medium'], [1, 'High']], () => S.opt.vol, v => { S.opt.vol = v; S.sound = true; snd('coin', 880, .08, 'square', .04, 440); });
+    setRow('Waves', [[true, 'Come on their own'], [false, 'Held']], () => !!S.autoWave, v => { if (S.autoWave !== v) toggleAuto(); });
+    setRow('Motion', [['auto', 'Like my device'], ['calm', 'Calm'], ['full', 'Full']], () => S.opt.calm, v => { S.opt.calm = v; applyMotion(); });
+    setRow('Damage numbers', [[true, 'Show'], [false, 'Hide']], () => S.opt.nums !== false, v => { S.opt.nums = v; });
+    setRow('When I switch away', [[false, 'Keep running'], [true, 'Pause']], () => !!S.opt.autoPause, v => { S.opt.autoPause = v; });
     const ta = h('textarea', { id: 'saveBox', 'aria-label': 'Save code', placeholder: 'Save code appears here. Paste one to load it.' });
     let armed = false; const wipe = h('button', { cls: 'danger small', on: () => { if (!armed) { armed = true; wipe.textContent = 'Tap again to erase everything'; return; } S = fresh(); setMap(S.map); bakeGround(); wipeField(); save(); say('Started over.'); } }, 'Erase save');
     p.append(h('h2', null, 'Save'), h('p', null, 'The game saves in this browser every few seconds and keeps working for up to 8 hours while you are away. Copy a save code to move to another device.'), ta,
@@ -1548,8 +1814,22 @@ function buildFixed() {
     if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
   });
   const hold = $('bHold'); hold.addEventListener('click', toggleAuto);
+  const hv = $('hVaultWrap'), openVault = () => { sel = { vault: 1 }; $('sheet').scrollTop = 0; refresh(); };
+  hv.addEventListener('click', openVault); hv.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openVault(); } });
+  fixedUps.push(() => hv.classList.toggle('low', S.vaultHp < vaultMax() / 2));
   fixedUps.push(() => { hold.classList.toggle('held', !S.autoWave); hold.setAttribute('aria-pressed', String(!S.autoWave)); hold.lastChild.textContent = S.autoWave ? 'Hold' : 'Held'; });
-  $('bSpeed').addEventListener('click', () => { S.speed = S.speed % 3 + 1; });
+  // speed: tap cycles 1×/2×/3×; hold (or right-click) opens a menu that also offers pause
+  const spB = $('bSpeed'); let lpT = null, lpFired = false;
+  const menu = h('div', { cls: 'speedmenu', role: 'menu', hidden: '' });
+  for (const [v, n] of [[1, '1×'], [2, '2×'], [3, '3×'], [0, 'Pause']]) menu.append(h('button', { cls: 'small', role: 'menuitem', on: e => { e.stopPropagation(); menu.hidden = true; if (v) { S.speed = v; setPaused(false); } else setPaused(true); refresh(); } }, n));
+  spB.parentNode.append(menu);
+  const openMenu = () => { menu.hidden = false; menu.firstChild.focus(); };
+  spB.addEventListener('pointerdown', () => { lpFired = false; clearTimeout(lpT); lpT = setTimeout(() => { lpFired = true; openMenu(); }, 450); });
+  for (const e of ['pointerup', 'pointerleave', 'pointercancel']) spB.addEventListener(e, () => clearTimeout(lpT));
+  spB.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(); });
+  spB.addEventListener('click', () => { if (lpFired) { lpFired = false; return; } S.speed = S.speed % 3 + 1; });
+  document.addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== spB) menu.hidden = true; });
+  spB.title = 'Game speed. Hold for more.';
   for (const id in ABIL) {
     const b = $('ab-' + id), A = ABIL[id], shade = h('i', { cls: 'cd' }), num = h('b', { cls: 'cdn' });
     b.append(ico(A.icon, A.n), shade, num); b.setAttribute('aria-label', A.n + ': ' + A.d); b.addEventListener('click', () => useAbility(id));
@@ -1584,7 +1864,7 @@ function buildDynamic() {
   shownTab = tab;
 }
 let shownTab = null;
-function refresh() { if (rebuild) buildDynamic(); for (const f of fixedUps) f(); for (const f of ups) f(); card(); }
+function refresh() { checkBadges(); if (rebuild) buildDynamic(); for (const f of fixedUps) f(); for (const f of ups) f(); card(); }
 function welcome(away, coins, gains) {
   const m = $('modal'), m_ = Math.round(away / 60), dur = m_ >= 60 ? Math.floor(m_ / 60) + 'h ' + m_ % 60 + 'm' : m_ + ' minutes';
   const list = h('div', { cls: 'away' });
@@ -1621,7 +1901,7 @@ function frame(now) {
   if (!paused) {
     econ(dt);
     let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; }
-    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT);
+    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); S.stats.played += Math.min(dt, 1);
   }
   draw(playT); tickHud(Math.min(dt, .1));
   uiT -= dt; if (uiT <= 0) { uiT = .2; refresh(); }
@@ -1632,6 +1912,7 @@ function frame(now) {
 function start(data) {
   paintSprites(); paintSprites2(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
+  checkBadges(true); applyMotion();
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); window.addEventListener('resize', fit);
   if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * Math.min(window.devicePixelRatio || 1, 2) - cv.width) > 2) fit(); }).observe(cv);
@@ -1640,7 +1921,7 @@ function start(data) {
     const gains = {}; for (const k in ITEMS) gains[k] = S.res[k] - r0[k];
     welcome(away, S.life - before, gains);
   } else if (!S.life && !S.towers.length) say('Tap a plot beside the road to build a crossbow. Hold the trees and rocks to gather. Raiders arrive in 30 seconds.');
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (S.opt.autoPause) setPaused(true); save(); } });
   window.addEventListener('pagehide', save);
   if (document.fonts && document.fonts.load) document.fonts.load('20px Rye').catch(() => {});
   prev = performance.now(); refresh(); requestAnimationFrame(frame);
