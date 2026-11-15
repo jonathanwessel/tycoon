@@ -1,5 +1,7 @@
 # Copper Gulch: next-phase plan
 
+**Status (all four phases built):** test scripts in `scripts/`, balance tuned with the bot (first deed now at wave 35), goals, milestones, deed perks, tower paths and targeting, four new raiders and named wave types, Forked Canyon, moving prices, coal/steel/clockwork/automatons with the Gatling tower, foremen, and hold-to-gather. Saves from the first version migrate automatically.
+
 Written for whoever executes next. Read "Where things stand" first, then do the phases in order. Each phase is shippable on its own; stop after any of them.
 
 ## Where things stand
