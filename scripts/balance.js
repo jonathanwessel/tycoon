@@ -1,14 +1,16 @@
 // Balance bot: node scripts/balance.js [minutes=120] [seed runs=1]
 // Plays the real game logic with a simple greedy policy, with no drawing,
 // and reports how long it takes to reach each milestone.
-const { chromium } = require('playwright');
+// Uses Playwright if it is installed, otherwise an installed Edge or Chrome (scripts/cdp.js).
+const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('./cdp'); } })();
 const path = require('path');
-const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const URL = require('url').pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href;
 const MINUTES = +process.argv[2] || 120;
 const RUNS = +process.argv[3] || 1;
 
 function bot(MINUTES) {
   const log = [], marks = {}, mark = (k, t) => { if (!(k in marks)) marks[k] = Math.round(t); };
+  S.stats.vaultSeen = 1; // a player taps the vault when the goal asks; the bot has no hands
   const free = () => PLOTS.find(p => !S.towers.some(t => t.c === p.x && t.r === p.y));
   let goals = 0, t = 0, lastBuy = 0, longestWait = 0, breaches = 0, lastWave = S.wave, leakedThisWave = false, vaultSeen = S.vaultHp;
   const eff = st => st.splash || st.cone ? 2.2 : st.chain ? 1 + st.chain * .5 : st.slow ? 3 : 1;

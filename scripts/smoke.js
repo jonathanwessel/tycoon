@@ -1,9 +1,10 @@
 // Smoke test: node scripts/smoke.js [screenshot-dir]
-// Loads the game at phone and desktop widths, plays through a boss wave,
-// taps everything, and fails on console errors or sideways scrolling.
-const { chromium } = require('playwright');
+// Loads the game at phone and desktop widths, plays through a boss wave, taps everything, checks the
+// vault, weather, pause, hold, badges, settings and the bridge map, and fails on console errors or
+// sideways scrolling. Uses Playwright if it is installed, otherwise an installed Edge or Chrome (scripts/cdp.js).
+const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('./cdp'); } })();
 const path = require('path');
-const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const URL = require('url').pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href;
 const shots = process.argv[2];
 
 (async () => {
@@ -14,9 +15,8 @@ const shots = process.argv[2];
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
     p.on('console', m => m.type() === 'error' && errs.push(m.text()));
+    await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
     await p.goto(URL);
-    await p.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
-    await p.reload();
     await p.waitForTimeout(500);
     const r = await p.evaluate(() => {
       const rect = document.getElementById('cv').getBoundingClientRect();
@@ -38,11 +38,25 @@ const shots = process.argv[2];
       for (const w of [8, 12, 15, 20]) { S.wave = w; planWave(); startWave(); for (let j = 0; j < 20 * 70; j++) { combat(.05); econ(.05); } }
       sell('wood', S.res.wood); deliver(0);
       S.wave = 9; planWave(); startWave(); for (let j = 0; j < 20 * 4; j++) combat(.05); spawn('brute'); spawn('brute'); useAbility('dyn'); const bombThrown = bombs.length === 1 || S.cd.dyn > 0;
-      return { otOn, bombThrown, towers: S.towers.length, branched: S.towers.filter(t => t.br).length, wave: S.wave, tapped, kills: S.stats.kills, priceAfterSell: +dem('wood').toFixed(3), foremanBought: S.ext.camp };
+      // war wagon phases
+      foes = []; W.queue = []; spawn('boss'); const boss = foes[foes.length - 1];
+      hurt(boss, boss.max * .55); combat(.05); const ph1 = !!boss.ph1 && foes.filter(f => f.type === 'brute').length >= 2;
+      hurt(boss, boss.max * .25); combat(.05); const rage = !!boss.rage; const b0 = S.stats.bosses; hurt(boss, boss.max); const bossPaid = S.stats.bosses === b0 + 1;
+      foes = []; W.queue = []; combat(.05);
+      // weather changes tower reach
+      const t0 = S.towers.find(t => t.type === 'crossbow'), r0 = towerStats(t0).range; S.wave = 13; planWave(); W.nweather = 'dust'; startWave();
+      const dust = towerStats(t0).range < r0; foes = []; W.queue = []; combat(.05);
+      // the vault: repairs only between waves
+      S.vaultHp = 3; W.active = true; const refused = !repair(1); W.active = false; foes = []; W.queue = [];
+      tap(VAULT[0], VAULT[1]); refresh(); const vaultCard = /The vault/.test(document.getElementById('card').textContent);
+      const repaired = repair(2) && S.vaultHp === 5;
+      return { otOn, bombThrown, towers: S.towers.length, branched: S.towers.filter(t => t.br).length, wave: S.wave, tapped, kills: S.stats.kills, priceAfterSell: +dem('wood').toFixed(3),
+        foremanBought: S.ext.camp, ph1, rage, bossPaid, dust, refused, vaultCard, repaired };
     });
-    if (!r.otOn) errs.push('overtime did not start');
-    if (!r.bombThrown) errs.push('dynamite did not fire');
-    if (!r.tapped) errs.push('holding the trees gathered nothing');
+    const want = { otOn: 'overtime did not start', bombThrown: 'dynamite did not fire', tapped: 'holding the trees gathered nothing', ph1: 'war wagon did not drop brutes at half health',
+      rage: 'war wagon did not reach full steam', bossPaid: 'war wagon did not pay out', dust: 'dust storm did not shorten tower reach', refused: 'vault repair was allowed during a wave',
+      vaultCard: 'tapping the vault did not open its card', repaired: 'vault repair did not add strength' };
+    for (const k in want) if (!r[k]) errs.push(want[k]);
     if (r.branched < 5) errs.push('expected 5 branched towers, got ' + r.branched);
     if (!(r.priceAfterSell < 1)) errs.push('selling did not move the price');
     if (r.towers < 6) { errs.push('expected 6 towers, got ' + r.towers); }
@@ -56,13 +70,32 @@ const shots = process.argv[2];
     const cardOpen = await p.evaluate(() => !document.getElementById('card').hidden);
     if (!cardOpen) errs.push('building card did not open');
     for (const t of await p.$$eval('#tabs button', bs => bs.map(b => b.id))) { await p.click('#' + t); await p.waitForTimeout(200); }
+    // badges, settings, hold, pause, speed menu
+    const ui = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      goTab('charter'); const badges = document.querySelectorAll('.badge').length, got = document.querySelectorAll('.badge.got').length;
+      const calmBtn = [...document.querySelectorAll('.setrow button')].find(b => b.textContent === 'Calm'); calmBtn.click(); const calm = document.documentElement.classList.contains('calm');
+      [...document.querySelectorAll('.setrow button')].find(b => b.textContent === 'Like my device').click();
+      document.getElementById('bHold').click(); const held = !S.autoWave; document.getElementById('bHold').click();
+      document.getElementById('bPause').click(); const w0 = S.res.wood; await wait(400); const frozen = paused && S.res.wood === w0; document.getElementById('pauseCover').click(); const resumed = !paused;
+      document.getElementById('bSpeed').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); const menu = !document.querySelector('.speedmenu').hidden;
+      document.querySelector('.speedmenu button').click();
+      goTab('works');
+      return { badges, got, calm, held, frozen, resumed, menu };
+    });
+    if (ui.badges < 18) errs.push('expected 18 badges, got ' + ui.badges);
+    if (!ui.got) errs.push('no badges earned after a war wagon');
+    for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
+    // the bridge map draws and keeps the ravine clear of plots
+    const br = await p.evaluate(() => { setMap('bridge'); bakeGround(); const ok = !PLOTS.some(q => MAP.ravine.includes(q.x)); setMap(S.map); bakeGround(); return ok; });
+    if (!br) errs.push('Trestle Bridge has plots in the ravine');
     await p.click('#tab-works');
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight + 1);
     const navVisible = await p.evaluate(() => { const r = document.getElementById('tabs').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.height > 30; });
     if (!navVisible) errs.push('tab bar is off screen');
     if (overflow) errs.push('page scrolls outside the app shell');
     if (shots) await p.screenshot({ path: path.join(shots, name + '.png'), fullPage: true });
-    console.log(name, JSON.stringify(r), errs.length ? 'FAIL ' + errs.join(' | ') : 'ok');
+    console.log(name, JSON.stringify(Object.assign(r, ui)), errs.length ? 'FAIL ' + errs.join(' | ') : 'ok');
     if (errs.length) failed = true;
     await p.close();
   }
