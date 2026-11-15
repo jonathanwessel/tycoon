@@ -2,6 +2,37 @@
 
 Written for whoever executes next. Read "Where things stand" first, then do the phases in order. Each phase is shippable on its own; stop after any of them.
 
+## Copper Gulch 2.0 roadmap (current direction)
+
+The user's goals: a game good enough that people would pay for it (it stays free: no ads, no purchases, no outside requests), a **voxel 3D** engine, **several towns that all run at once** with goods **shipped between them**, coins per second for each town, and real depth. Ship every stage as its own published update, and migrate saves.
+
+| Stage | What ships | Status |
+|---|---|---|
+| 1. Quick wins | Coins per second (live and potential); foremen paid a share of income, with a reserve; payback-ranked and chain-aware upgrades; selling-strategy panel; cheaper top tier | **Done** (see below) |
+| 2. Foundations | Split `index.html` into ES modules (`src/sim`, `src/render2d`, `src/render3d`, `src/ui`, `src/app`); simulation importable and tested in Node (`node --test`); save v4 `{ empire, towns, active }` with automatic v3 backup and migration (Gulch becomes the first town); no visual change | next |
+| 3. Empire | Empire screen (town cards with coins/s, total), background towns (economy runs, waves on hold), shipping routes with carriers (wagon → rail → barge → airship) and visible convoys, **Iron Ridge** (steam and rail era, armoured-train boss) on the 2D renderer | |
+| 4. Voxel engine v1 | three.js vendored and pinned (served from the repo), `voxelize()` that extrudes the existing `mk()` sprites with depth profiles, greedy meshing and vertex ambient occlusion, heightfield terrain, sun shadow map, up to 8 dynamic lights picked by `gatherLights()`, bloom, orbit/zoom camera, raycast picking. Copper Gulch in 3D behind a "3D (preview)" setting | |
+| 5. 3D by default | All models, animation and effects in 3D, weather particles, water, boss cameras; Low preset = today's 2D as the fallback | |
+| 6. Silver Falls | Electric era: power grid, river raids by boat, barges, research tree interface | |
+| 7. Thunder Mesa and polish | Aether era with air waves and airships; title screen flyover, procedural Western music, tutorial, gamepad, save slots, final balance | |
+
+Depth to fold in along the way: per-good auto-sell modes, market booms and busts, orders with deadlines and reputation, townsfolk (workers and happiness), a branching research tree per era, tower veterancy and third-tier paths, terrain height giving tower range, player road tools (barricades, caltrops, flares), an era boss per town, an empire-wide perk tree, re-charter one town at a time, empire level and cosmetics, about 60 badges.
+
+**Stage 1 results** (simulation: 40 minutes, every building starting at level 5, auto-sell everything):
+
+| | Coins earned | Cash at the end | Engine / Steel / Clock / Automaton Works |
+|---|---|---|---|
+| Old foremen (25% of coins per step) | 1.62M | 107K | 11 / 8 / 5 / 5 |
+| New, paid 50% of income (default) | 1.36M | 714K | 15 / 7 / 5 / 6 |
+| New, paid all income | 1.66M | 23K | 17 / 10 / 8 / 10 |
+| No foremen | 574K | 594K | 5 / 5 / 5 / 5 |
+
+Two lessons for later stages:
+- **Keep the chain ratios together.** Raising only the top-tier rates starved the Clockworks of gears and cut no-foreman income to a third. The top tier was made cheaper (Engine Works 2.5K, Steel Mill 4K, Clockworks 8K, Automaton Works 40K) instead.
+- **The balance bot after Stage 1:** wave 10 at about 6.6 minutes, wave 30 at about 21.5, first deed at about 35 (the bot now invests in the chain before pushing waves), best wave about 50 (was about 46), lifetime coins about 2e7 (was about 1.1e7), Tesla Coil at about 14 minutes (was 28).
+
+Economy code: `steadyIncome(extra, mode)` (coins per second with workshops limited by their inputs, upstream first), `foremenWork()` (purse = share of income; save up for the best payback; chain upgrades value a starved workshop together with its bottleneck supplier), `liveIncome()` / `sampleIncome()` (the last minute's real income).
+
 ## Where things stand
 
 - The whole game is `index.html` (one file, no build, no dependencies). All work lives on `main`; there are no other branches.

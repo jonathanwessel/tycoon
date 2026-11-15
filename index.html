@@ -270,6 +270,12 @@ p strong { color: var(--fg); }
 .badge.got img.px { filter: none; }
 .badge.got b { color: var(--gold); }
 .records { display: grid; gap: 2px; }
+.chip.income { border-color: #6a5a24; }
+.chip.income .v { color: var(--gold); }
+.panelin { display: grid; gap: 6px; background: var(--bg); border: 2px solid var(--line); border-radius: 3px; padding: 8px 10px; }
+.strat { display: grid; gap: 4px; }
+.strat div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 2px dotted var(--line); color: var(--muted); }
+.strat b { color: var(--gold); }
 .records div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--muted); }
 .records b { color: var(--fg); }
 .updatebar { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 65; display: grid; gap: 2px; text-align: left;
@@ -378,12 +384,15 @@ const EXT = [
 const SHOPS = [
   { id: 'saw',    n: 'Sawmill',         in: { wood: 2 },                        out: 'plank',  rate: .25, cost: 50 },
   { id: 'smelt',  n: 'Smelter',         in: { ore: 2 },                         out: 'ingot',  rate: .25, cost: 60 },
+  // The rates keep the chain's input ratios balanced at equal levels; don't change one without its suppliers.
+  // Top-tier build costs were lowered so climbing the chain pays: before, an Automaton Works level earned about a
+  // hundredth as much per coin as a Lumber Camp level, so nobody (and no foreman) built it up.
   { id: 'glass',  n: 'Glassworks',      in: { crystal: 2 },                     out: 'lens',   rate: .15, cost: 800 },
   { id: 'mach',   n: 'Machine Shop',    in: { plank: 1, ingot: 1 },             out: 'gear',   rate: .15, cost: 500 },
-  { id: 'eng',    n: 'Engine Works',    in: { gear: 2, lens: 1 },               out: 'engine', rate: .05, cost: 5000 },
-  { id: 'mill',   n: 'Steel Mill',      in: { ingot: 1, coal: 2 },              out: 'steel',  rate: .12, cost: 9000 },
-  { id: 'clockw', n: 'Clockworks',      in: { gear: 1, lens: 1 },               out: 'clock',  rate: .08, cost: 20000 },
-  { id: 'autow',  n: 'Automaton Works', in: { engine: 1, clock: 1, steel: 2 },  out: 'auto',   rate: .03, cost: 120000 },
+  { id: 'eng',    n: 'Engine Works',    in: { gear: 2, lens: 1 },               out: 'engine', rate: .05, cost: 2500 },
+  { id: 'mill',   n: 'Steel Mill',      in: { ingot: 1, coal: 2 },              out: 'steel',  rate: .12, cost: 4000 },
+  { id: 'clockw', n: 'Clockworks',      in: { gear: 1, lens: 1 },               out: 'clock',  rate: .08, cost: 8000 },
+  { id: 'autow',  n: 'Automaton Works', in: { engine: 1, clock: 1, steel: 2 },  out: 'auto',   rate: .03, cost: 40000 },
 ];
 const RESEARCH = [
   { id: 'tools',  n: 'Sharper Tools',    d: 'Doubles what each tap gathers.',            cost: 40,  g: 3,   max: 12 },
@@ -660,7 +669,7 @@ function fresh() {
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
-    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0 }, GX_PRESETS.high) },
+    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, fb: { share: .5, keep: 0, purse: 0 }, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0 }, GX_PRESETS.high) },
     autoWave: true, speed: 1, sound: false, last: Date.now(),
   };
 }
@@ -764,12 +773,72 @@ function econStep(dt) {
   const rec = 1 - Math.exp(-(perk('trade') ? .04 : .02) * dt);
   for (const k in S.demand) { S.demand[k] += (1 - S.demand[k]) * rec; if (S.demand[k] > .999) delete S.demand[k]; }
   if (lv('ledger')) for (const k in ITEMS) if (S.auto[k] && S.res[k] > KEEP && dem(k) >= S.sellAbove) sell(k, S.res[k] - KEEP);
-  for (const id in S.mgr) if (S.mgr[id] === 1) {
-    const b = BY_ID[id];
-    for (let i = 0; i < 4; i++) { const have = blv(id), c = bCost(b, have); if (c > S.coins * .25) break; S.coins -= c; S[b.kind][id] = have + 1; levelled(b, have, have + 1, true); }
-  }
+  foremenWork();
 }
 function econ(dt) { while (dt > 0) { const s = Math.min(dt, 5); econStep(s); dt -= s; } }
+
+/* Steady income: coins per second this town makes once production settles, if surplus goods are sold at full price.
+   Workshops are limited by their inputs, taken upstream first (SHOPS is listed in chain order), so a workshop short of
+   inputs adds nothing and the camp that would feed it shows its real worth. extraId counts one more level of that
+   building, which is how foremen value an upgrade. mode 'top' sells only goods no built workshop uses. */
+function steadyIncome(extra, mode) {
+  const pm = prodMult(), cm = craftMult(), have = {}, used = {}, ex = typeof extra === 'string' ? { [extra]: 1 } : extra || {};
+  for (const k in ITEMS) have[k] = 0;
+  const lvl = id => blv(id) + (ex[id] || 0);
+  for (const e of EXT) { const l = lvl(e.id); if (l) have[e.out] += l * e.rate * pm * Math.pow(2, MS(l)); }
+  for (const s of SHOPS) {
+    const l = lvl(s.id); if (!l || S.off[s.id]) continue;
+    let n = l * s.rate * cm * Math.pow(2, MS(l)); for (const k in s.in) { used[k] = 1; n = Math.min(n, have[k] / s.in[k]); }
+    if (n > 0) { for (const k in s.in) have[k] -= n * s.in[k]; have[s.out] += n; }
+  }
+  let v = 0; for (const k in ITEMS) if (mode !== 'top' || !used[k]) v += Math.max(0, have[k]) * ITEMS[k].p * sellMult();
+  return v;
+}
+/* Foremen. They are paid a share of what you earn (Works tab: 25, 50, 75 or 100 percent), saved in a purse, and never
+   take you below your reserve (none, or 1 or 5 minutes of income). The rest of your income is yours to keep, so savings
+   always grow. From the purse they buy the upgrade that pays for itself fastest (cost ÷ extra steady income): that
+   favours levels reaching a ×2 milestone, values the top of the chain properly, and skips workshops short of inputs. */
+function foremenWork() {
+  const fb = S.fb || (S.fb = { share: .5, keep: 0, purse: 0, last: S.stats.coins });
+  if (fb.last === undefined || fb.last > S.stats.coins) fb.last = S.stats.coins;
+  const inc = steadyIncome();
+  fb.purse = Math.min((fb.purse || 0) + (S.stats.coins - fb.last) * fb.share, Math.max(1e3, inc * 600)); fb.last = S.stats.coins;
+  if (!Object.keys(S.mgr).some(id => S.mgr[id] === 1)) return;
+  const reserve = fb.keep * 60 * inc;
+  // they save up for the best-value upgrade rather than spending on whatever is cheap right now
+  // (anything costing more than the purse can ever hold, about 10 minutes of income, is left for you)
+  const cap = Math.max(1e3, inc * 600);
+  for (let i = 0; i < 6; i++) {
+    const base = steadyIncome(); let best = null, budget = Math.min(fb.purse, S.coins - reserve);
+    for (const id in S.mgr) {
+      if (S.mgr[id] !== 1) continue; const b = BY_ID[id], c = bCost(b, blv(id)); if (c > cap) continue;
+      const gain = steadyIncome(id) - base;
+      if (gain > 1e-9) { const sc = c / gain; if (!best || sc < best.sc) best = { b, id, c, sc }; continue; }
+      // a workshop short of an input is worth nothing alone; value it together with a level on the building that
+      // makes its scarcest input (if a foreman runs that one too), and buy the supplier's level first
+      if (b.kind !== 'shops') continue;
+      for (const k in b.def.in) {
+        const sup = BUILD.find(o => o.def.out === k); if (!sup || S.mgr[sup.def.id] !== 1) continue;
+        const sc2 = bCost(sup, blv(sup.def.id)), g2 = steadyIncome({ [id]: 1, [sup.def.id]: 1 }) - base;
+        if (!(g2 > 1e-9) || c + sc2 > cap) continue;
+        const sc = (c + sc2) / g2; if (!best || sc < best.sc) best = { b: sup, id: sup.def.id, c: sc2, sc };
+      }
+    }
+    fb.goal = best ? best.id : null;
+    if (!best || best.c > budget) break;
+    const have = blv(best.id); fb.purse -= best.c; S.coins -= best.c; S[best.b.kind][best.id] = have + 1; levelled(best.b, have, have + 1, true);
+  }
+}
+/* Income actually earned, averaged over the last minute (every coin source counts). */
+const INC = { t: 0, samples: [] };
+function sampleIncome(dt) {
+  INC.t += dt; if (INC.t < 1) return; INC.t = 0;
+  INC.samples.push([performance.now(), S.stats.coins]); if (INC.samples.length > 61) INC.samples.shift();
+}
+function liveIncome() {
+  const s = INC.samples; if (s.length < 3) return 0;
+  const [t0, c0] = s[0], [t1, c1] = s[s.length - 1]; return Math.max(0, (c1 - c0) / Math.max(1, (t1 - t0) / 1000));
+}
 let buyMode = 1;
 function buyPlan(b) {
   const have = blv(b.def.id);
@@ -822,7 +891,7 @@ function gather(k) {
 /* A foreman costs 100 times the building's base price, and every foreman after the first two costs 60% more again,
    so the Crystal Drill's (40K at the start) is well above the first two (1.5K each for the camp and mine). */
 const mgrCost = id => Math.ceil(BY_ID[id].def.cost * 100 * Math.pow(1.6, Math.max(0, Object.keys(S.mgr).length - 2)));
-function hire(id) { const c = mgrCost(id); if (S.coins < c || S.mgr[id]) return; S.coins -= c; S.mgr[id] = 1; say('A foreman now runs the ' + BY_ID[id].def.n + '. They spend up to a quarter of your coins on its upgrades.'); snd('build', 440, .15, 'triangle', .05, 220); }
+function hire(id) { const c = mgrCost(id); if (S.coins < c || S.mgr[id]) return; S.coins -= c; S.mgr[id] = 1; say('A foreman now runs the ' + BY_ID[id].def.n + '. Foremen pick the upgrades that pay back fastest, within the budget set in the Works tab.'); snd('build', 440, .15, 'triangle', .05, 220); }
 
 /* =========================================================
    Goals
@@ -1166,7 +1235,7 @@ function prestige(mapId) {
   const g = deedsOnOffer(); if (!g) return;
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, maps: Object.assign(S.maps, { fork: 1 }, S.map === 'fork' ? { bridge: 1 } : {}), goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
-    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {} };
+    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {}, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 } };
   if (S.map === 'fork' && !S.maps.bridgeSeen) { S.maps.bridgeSeen = 1; setTimeout(() => say('Trestle Bridge is open. Pick it next time you sign a charter.'), 2600); }
   S = fresh(); Object.assign(S, keep); S.map = MAPS[mapId] ? mapId : 'gulch'; setMap(S.map); bakeGround();
   const st = perk('start'); if (st) { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; }
@@ -2016,7 +2085,18 @@ const PANELS = {
     const modes = h('div', { cls: 'seg' }, h('small', null, 'Buy'));
     for (const m of [1, 10, 'ms', 'max']) { const b = h('button', { cls: 'small', on: () => { buyMode = m; } }, m === 'max' ? 'Max' : m === 'ms' ? 'To next ★' : '×' + m); modes.append(b); ups.push(() => b.classList.toggle('on', buyMode === m)); }
     p.append(h('div', { cls: 'taps' }, h('button', { on: () => gather('wood') }, ico('wood'), chopN), h('button', { on: () => gather('ore') }, ico('ore'), digN)),
-      h('p', null, 'Hold the trees or rocks on the map to keep gathering. Every building doubles its output at levels 10, 25, 50 and each 100.'), modes, h('h2', null, 'Gathering'));
+      h('p', null, 'Hold the trees or rocks on the map to keep gathering. Every building doubles its output at levels 10, 25, 50 and each 100.'), modes);
+    // foreman budget: their share of income, and a reserve they never touch
+    const fbInfo = h('small'), fbBox = h('div', { cls: 'panelin' }, h('div', { cls: 'name' }, 'Foremen'), fbInfo);
+    const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } fbBox.append(s); };
+    fseg('Pay them', [[.25, '25%'], [.5, '50%'], [.75, '75%'], [1, 'All']], 'share');
+    fseg('Keep', [[0, 'No reserve'], [1, '1 min'], [5, '5 min']], 'keep');
+    p.append(fbBox, h('h2', null, 'Gathering'));
+    ups.push(() => {
+      const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length;
+      fbInfo.textContent = n ? n + ' at work. They get ' + pct(S.fb.share) + ' of what you earn and save up for the upgrade that pays back fastest' + (S.fb.goal && BY_ID[S.fb.goal] ? ' (now: ' + BY_ID[S.fb.goal].def.n + ' level ' + (blv(S.fb.goal) + 1) + ', ' + fmt(bCost(BY_ID[S.fb.goal], blv(S.fb.goal))) + ')' : '') + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.')
+        : 'Hire a foreman with the button next to any building. They get a share of what you earn and keep upgrading for you.';
+    });
     for (const b of BUILD) { if (b.def === SHOPS[0]) p.append(h('h2', null, 'Workshops')); p.append(buyRow(b, ups)); }
   },
   market(p) {
@@ -2027,6 +2107,16 @@ const PANELS = {
       const skip = h('button', { cls: 'small', on: () => { S.contracts[i] = newContract(); rebuild = true; } }, 'Swap');
       p.append(h('div', { cls: 'row' }, ico(c.k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, fmt(c.qty) + ' ' + ITEMS[c.k].n.toLowerCase()), info), h('div', { cls: 'acts' }, skip, go)));
       ups.push(() => { info.textContent = 'You have ' + fmt(S.res[c.k]); pay.textContent = fmt(contractPay(c)); go.disabled = S.res[c.k] < c.qty; });
+    });
+    // selling strategy: the two sensible auto-sell setups, with what each earns here
+    const sAll = h('b'), sTop = h('b'), sNow = h('small');
+    const setAuto = top => { const used = {}; for (const s of SHOPS) if (blv(s.id)) for (const k in s.in) used[k] = 1; for (const k in ITEMS) if (S.seen[k]) S.auto[k] = top ? !used[k] : true; refresh(); say(top ? 'Auto-selling only goods no workshop needs.' : 'Auto-selling every surplus good.'); };
+    const bAll = h('button', { cls: 'small', on: () => setAuto(false) }, 'Sell all surplus'), bTop = h('button', { cls: 'small', on: () => setAuto(true) }, 'Top products only');
+    p.append(h('h2', null, 'Selling strategy'), h('div', { cls: 'strat' }, h('div', null, h('span', null, 'Every surplus good sold'), sAll), h('div', null, h('span', null, 'Only goods no workshop needs'), sTop)), sNow, h('div', { cls: 'bar' }, bAll, bTop));
+    ups.push(() => {
+      const a = steadyIncome(null), t = steadyIncome(null, 'top'); sAll.textContent = '+' + rate(a) + '/s'; sTop.textContent = '+' + rate(t) + '/s';
+      bAll.disabled = bTop.disabled = !lv('ledger');
+      sNow.textContent = !lv('ledger') ? 'Research the Trading Ledger to sell automatically.' : a > t * 1.02 ? 'Selling every surplus earns more: workshops take what they need first and 20 of each good are kept back, so nothing starves. Set "only above 80% price" below so dumping does not crash prices.' : 'Both earn the same here.';
     });
     p.append(h('h2', null, 'Sell goods'), h('p', null, 'Selling a lot at once pushes the price down. Prices recover over a minute or two.'));
     for (const k in ITEMS) {
@@ -2090,7 +2180,7 @@ const PANELS = {
     ups.push(() => { got.textContent = Object.keys(S.badges).length + ' of ' + BADGES.length; });
     const recs = h('div', { cls: 'records' }); p.append(h('h2', null, 'Records'), recs);
     const hm = s => { s = Math.floor(s); const hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60; return hh ? hh + 'h ' + mm + 'm' : mm + 'm'; };
-    for (const [n, f] of [['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['War wagons destroyed', () => fmt(S.stats.bosses)],
+    for (const [n, f] of [['Coins per second now', () => '+' + rate(liveIncome())], ['Potential coins per second (all surplus sold)', () => '+' + rate(steadyIncome())], ['Best coins per second', () => '+' + rate(S.bestRate || 0)], ['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['War wagons destroyed', () => fmt(S.stats.bosses)],
       ['Waves with no leaks', () => fmt(S.stats.flawless)], ['Goods made', () => fmt(S.stats.made)], ['Contracts filled', () => fmt(S.stats.contracts)],
       ['Charters signed', () => S.charters], ...Object.keys(MAPS).map(id => ['Best wave · ' + MAPS[id].n, () => S.bestMap[id] ? S.bestMap[id] : '—']), ['Time played', () => hm(S.stats.played)]]) {
       const v = h('b'); recs.append(h('div', null, h('span', null, n), v)); ups.push(() => { v.textContent = f(); });
@@ -2179,6 +2269,9 @@ function buildDynamic() {
   ups = []; rebuild = false;
   while (S.contracts.length < 3) S.contracts.push(newContract());
   const st = $('stock'); st.textContent = '';
+  // income first: what the town earns per second now, and what it would with every surplus sold
+  { const v = h('div', { cls: 'v' }), r = h('div', { cls: 'r' }); st.append(h('div', { cls: 'chip income', title: 'Coins per second: earned over the last minute, and what this town makes with every surplus good sold at full price' }, ico('coin', 'Income'), h('div', null, v, r)));
+    ups.push(() => { v.textContent = '+' + rate(liveIncome()) + '/s'; r.textContent = 'potential ' + rate(steadyIncome()) + '/s'; }); }
   for (const k in ITEMS) {
     if (!S.seen[k]) continue; const v = h('div', { cls: 'v' }), r = h('div', { cls: 'r' });
     CHIP[k] = h('div', { cls: 'chip', title: ITEMS[k].n }, ico(k, ITEMS[k].n), h('div', null, v, r)); st.append(CHIP[k]);
@@ -2290,7 +2383,8 @@ function frame(now) {
   if (!paused) {
     econ(dt);
     let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; }
-    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); S.stats.played += Math.min(dt, 1);
+    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); S.stats.played += Math.min(dt, 1); sampleIncome(Math.min(dt, 1));
+    if (S.bestRate === undefined || INC.samples.length > 30) S.bestRate = Math.max(S.bestRate || 0, liveIncome());
   }
   // the 30 fps setting keeps the simulation running every frame but draws every other one or so (saves battery)
   const cap = GX().fps === 30 ? 1 / 31 : 0; drawAcc += dt;
@@ -2327,8 +2421,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-7'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'War wagons now smash the vault outright if they reach it, however strong it is: you have to destroy them to get past their wave.';
+const GAME_VERSION = '2026.11.15-8'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Coins per second for your town, smarter foremen (paid a share of income, save up for the best upgrades, build up the top of the chain), a selling-strategy guide, and cheaper top-tier workshops.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
