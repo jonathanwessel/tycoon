@@ -81,11 +81,19 @@ const shots = process.argv[2];
       document.getElementById('bSpeed').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); const menu = !document.querySelector('.speedmenu').hidden;
       document.querySelector('.speedmenu button').click();
       goTab('works');
-      return { badges, got, calm, held, frozen, resumed, menu };
+      // foremen: any built building, the third costs more than the first two
+      S.ext.drill = 3; const firstTwo = Math.max(mgrCost('camp'), mgrCost('mine')); hire('mine'); const drillCost = mgrCost('drill'); hire('drill');
+      const foreman = S.mgr.drill === 1 && drillCost > firstTwo;
+      // full-screen map grows the map and keeps the controls
+      const mw0 = document.querySelector('.mapwrap').getBoundingClientRect().width; setMapFull(true); await wait(300);
+      const fr = document.querySelector('.mapwrap').getBoundingClientRect(), ctl = document.querySelector('.controls').getBoundingClientRect();
+      const full = document.body.classList.contains('mapfull') && fr.width >= mw0 && ctl.bottom <= innerHeight + 1 && ctl.top >= fr.bottom - 1;
+      setMapFull(false); await wait(200);
+      return { badges, got, calm, held, frozen, resumed, menu, foreman, full };
     });
     if (ui.badges < 18) errs.push('expected 18 badges, got ' + ui.badges);
     if (!ui.got) errs.push('no badges earned after a war wagon');
-    for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
+    for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu', 'foreman', 'full']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
     // the lighting engine: renders frames with lights, and simple mode still works (no WebGL here is a warning, not a failure)
     const lit = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

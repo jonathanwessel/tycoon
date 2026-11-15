@@ -89,6 +89,17 @@ canvas#cv {
 /* the lighting engine's output sits exactly over the map canvas, inside its frame; taps go through to the map */
 #glv { position: absolute; left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 6px); pointer-events: none; border-radius: 1px; image-rendering: pixelated; }
 .mapbtn { position: absolute; left: 8px; bottom: 8px; width: 38px; height: 38px; min-height: 38px; padding: 0; display: grid; place-items: center; background: rgba(22, 26, 42, .78); border-color: rgba(236, 230, 216, .25); }
+#bFull { left: 54px; }
+#bFull .back, body.mapfull #bFull .go { display: none; }
+body.mapfull #bFull .back { display: block; }
+/* full-screen map: the stage covers the page, the map fills the height, controls stay underneath, cards float over the map */
+body.mapfull .stage { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px;
+  padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+body.mapfull .mapwrap { width: min(100%, calc((100vh - 84px) * 12 / 14)); width: min(100%, calc((100dvh - 84px) * 12 / 14)); align-self: center; }
+body.mapfull .stock { display: none; }
+@media (orientation: portrait) { body.mapfull .mapwrap { align-self: start; } }
+body.mapfull .controls { width: 100%; max-width: 760px; margin: 0 auto; }
+body.mapfull #card:not([hidden]) { position: fixed; z-index: 50; left: 0; right: 0; margin: 0 auto; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); width: min(94vw, 460px); max-height: 48vh; max-height: 48dvh; overflow-y: auto; }
 .mapbtn .ic { width: 12px; height: 14px; display: block; background: linear-gradient(90deg, currentColor 0 34%, transparent 34% 66%, currentColor 66%); }
 .pausecover { position: absolute; inset: 0; border-radius: 2px; border: 0; box-shadow: none; background: rgba(14, 16, 30, .62); display: grid; place-content: center; gap: 6px; text-align: center; animation: fadein .2s ease-out; }
 .pausecover:hover:not(:disabled) { border-color: transparent; }
@@ -302,6 +313,7 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
       <canvas id="cv" aria-label="Map of the gulch. Hold trees and rocks to gather, tap a building to upgrade it, tap an empty plot by the road to build a tower."></canvas>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>
+      <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>
       <button class="pausecover" id="pauseCover" hidden><b>Paused</b><span>Tap to carry on</span></button>
     </div>
     <div class="controls">
@@ -767,7 +779,9 @@ function gather(k) {
   for (let i = 0; i < 5; i++) parts.push({ x: sx + .6 + Math.random() * .8, y: sy + .8 + Math.random() * .5, vx: (Math.random() - .5) * 2, vy: -1.5 - Math.random(), g: 6, t: .5, c: k === 'wood' ? P.woodL : P.greyL, s: .07 });
   k === 'wood' ? snd('chop', 180, .06, 'square', .05, -90) : snd('dig', 520, .05, 'triangle', .06, -200);
 }
-const mgrCost = id => BY_ID[id].def.cost * 100;
+/* A foreman costs 100 times the building's base price, and every foreman after the first two costs 60% more again,
+   so the Crystal Drill's (40K at the start) is well above the first two (1.5K each for the camp and mine). */
+const mgrCost = id => Math.ceil(BY_ID[id].def.cost * 100 * Math.pow(1.6, Math.max(0, Object.keys(S.mgr).length - 2)));
 function hire(id) { const c = mgrCost(id); if (S.coins < c || S.mgr[id]) return; S.coins -= c; S.mgr[id] = 1; say('A foreman now runs the ' + BY_ID[id].def.n + '. They spend up to a quarter of your coins on its upgrades.'); snd('build', 440, .15, 'triangle', .05, 220); }
 
 /* =========================================================
@@ -1739,7 +1753,7 @@ function buyRow(b, list) {
     msl.textContent = have ? 'Output ×2 at level ' + nextMs(have) + (S.mgr[id] === 1 ? ' · foreman working' : S.mgr[id] === 2 ? ' · foreman resting' : '') : '';
     lab.textContent = have ? '+' + p.n : 'Build'; btn.disabled = !p.ok;
     if (tog) { tog.hidden = !have; tog.textContent = S.off[id] ? 'Off' : 'On'; tog.classList.toggle('on', !S.off[id]); tog.title = S.off[id] ? 'Workshop paused. Tap to run it.' : 'Workshop running. Tap to pause it.'; tog.setAttribute('aria-label', tog.title); }
-    mg.hidden = !(S.mgr[id] || have >= 10); mgL.textContent = S.mgr[id] ? (S.mgr[id] === 1 ? 'On' : 'Off') : ''; mgL.hidden = !S.mgr[id]; mgC.hidden = !!S.mgr[id];
+    mg.hidden = !(S.mgr[id] || have >= 1); mgL.textContent = S.mgr[id] ? (S.mgr[id] === 1 ? 'On' : 'Off') : ''; mgL.hidden = !S.mgr[id]; mgC.hidden = !!S.mgr[id];
     mg.title = S.mgr[id] ? (S.mgr[id] === 1 ? 'Foreman working. Tap to rest them.' : 'Foreman resting. Tap to put them to work.') : 'Hire a foreman for ' + fmt(mgrCost(id)) + ' coins'; mg.setAttribute('aria-label', mg.title);
     mg.classList.toggle('on', S.mgr[id] === 1); mg.disabled = !S.mgr[id] && S.coins < mgrCost(id);
     mini.hidden = (!tog || tog.hidden) && mg.hidden;
@@ -1847,7 +1861,7 @@ cv.addEventListener('click', ev => {
     if (id === 'trees' || id === 'rocks') return;
     if (id === 'market' || id === 'caravan') { sel = null; return goTab('market'); }
     if (id === 'office') { sel = null; return goTab('charter'); }
-    if (id === 'hall') { sel = null; goTab('works'); return say('Foremen can be hired for any building at level 10 or higher. They keep upgrading it for you.'); }
+    if (id === 'hall') { sel = null; goTab('works'); return say('Hire a foreman for any building with the foreman button next to it. They keep upgrading it for you. Each foreman after the first two costs more.'); }
     const b = BY_ID[id]; if (b) sel = sel && sel.b === b ? null : { b }; return;
   }
   const c = Math.floor(gx), rw = Math.floor(gy), t = S.towers.find(t => t.c === c && t.r === rw);
@@ -2021,8 +2035,10 @@ const PANELS = {
         h('button', { cls: 'small', on: saveFile }, 'Save to file'), h('button', { cls: 'small', on: loadFile }, 'Load from file'), wipe));
     // the app: install, storage protection, version
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !APP.installed;
-    const appNote = h('p'), inst = h('button', { cls: 'primary', on: installApp }, 'Install Copper Gulch');
-    p.append(h('h2', null, 'App'), appNote, h('div', { cls: 'bar' }, inst), h('p', null, 'Version ' + GAME_VERSION + '. No ads. No purchases. Nothing leaves this page.'));
+    const appNote = h('p'), inst = h('button', { cls: 'primary', on: installApp }, 'Install Copper Gulch'), ver = h('p');
+    const chk = h('button', { cls: 'small', on: () => checkUpdates(true) }, 'Check for updates');
+    p.append(h('h2', null, 'App'), appNote, h('div', { cls: 'bar' }, inst, chk), ver, h('p', null, 'No ads. No purchases. Nothing leaves this page.'));
+    ups.push(() => { ver.textContent = 'Version ' + GAME_VERSION + (APP.status ? ' · ' + APP.status : '') + (GAME_NEWS ? ' What is new: ' + GAME_NEWS : ''); chk.hidden = !APP.reg; });
     ups.push(() => {
       inst.hidden = !APP.prompt;
       appNote.textContent = (APP.installed ? 'Installed as an app. ' : APP.prompt ? 'Install it to play full screen from your home screen, even offline. ' : ios ? 'To install on iPhone or iPad: tap Share, then Add to Home Screen. ' : 'To install, open your browser menu and choose Install app or Add to Home screen. ')
@@ -2043,10 +2059,14 @@ function buildFixed() {
   }
   $('bWave').addEventListener('click', startWave);
   $('bPause').addEventListener('click', () => setPaused(true));
+  $('bFull').addEventListener('click', () => setMapFull(!document.body.classList.contains('mapfull')));
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && FULL.asked) { FULL.asked = false; setMapFull(false); } });
   $('pauseCover').addEventListener('click', () => setPaused(false));
   document.addEventListener('keydown', e => {
     if (e.target.closest && e.target.closest('textarea, input')) return;
     if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setMapFull(!document.body.classList.contains('mapfull')); }
+    else if (e.key === 'Escape' && document.body.classList.contains('mapfull')) setMapFull(false);
   });
   const hold = $('bHold'); hold.addEventListener('click', toggleAuto);
   const hv = $('hVaultWrap'), openVault = () => { sel = { vault: 1 }; $('sheet').scrollTop = 0; refresh(); };
@@ -2116,6 +2136,17 @@ function welcome(away, coins, gains) {
    Loop
    ========================================================= */
 let prev = 0, uiT = 0, saveT = 0, shownCoins = null, coinTxt = '', waveP = '', paused = false, playT = 0;
+/* Full-screen map. The page layout does the work; the browser's own full screen is asked for on top
+   (hides the address bar on phones) where it is allowed, and leaving it also leaves the full-screen map. */
+const FULL = { asked: false };
+function setMapFull(on) {
+  document.body.classList.toggle('mapfull', on);
+  const b = $('bFull'); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Leave full-screen map' : 'Full-screen map'); b.title = on ? 'Leave full screen (F or Esc)' : 'Full-screen map (F)';
+  const de = document.documentElement;
+  if (on && !document.fullscreenElement && de.requestFullscreen) { de.requestFullscreen({ navigationUI: 'hide' }).then(() => { FULL.asked = true; }).catch(() => {}); }
+  if (!on && document.fullscreenElement && FULL.asked) { FULL.asked = false; document.exitFullscreen().catch(() => {}); }
+  requestAnimationFrame(() => { fit(); refresh(); });
+}
 /* A full stop: production, raiders, timers and animations all wait. Not saved, so a reload always resumes. */
 function setPaused(on) {
   if (paused === on) return; paused = on; stopHold();
@@ -2152,7 +2183,7 @@ function frame(now) {
 function start(data) {
   paintSprites(); paintSprites2(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
-  checkBadges(true); applyMotion(); protectSave();
+  checkBadges(true); applyMotion(); protectSave(); announceVersion();
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); applyGfx(); window.addEventListener('resize', fit);
   if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * Math.min(window.devicePixelRatio || 1, 2) - cv.width) > 2) fit(); }).observe(cv);
@@ -2169,7 +2200,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-4'; // keep in step with VERSION in sw.js
+const GAME_VERSION = '2026.11.15-5'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Full-screen map button, foremen for every building (each after the first two costs more), and sturdier updates for the installed app.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
@@ -2183,17 +2215,40 @@ function showUpdate() {
   const bar = h('button', { cls: 'updatebar', id: 'updateBar', on: () => { save(); if (APP.waiting) APP.waiting.postMessage('skip'); else location.reload(); } }, h('b', null, 'Update ready'), h('span', null, 'Tap to load the new version. Your save is kept.'));
   document.body.append(bar);
 }
+/* Updates, two ways so an installed copy can never get stuck:
+   1. the service worker: a new sw.js installs in the background and waits; "Update ready" swaps to it and reloads;
+   2. version.json, fetched past every cache: if the published version differs from this page, "Update ready" reloads.
+   Both run when the app opens, whenever it comes back to the front, every 15 minutes, and from the Check button. */
+APP.status = '';
+async function checkUpdates(manual) {
+  APP.status = 'Checking…'; rebuild = true;
+  try { if (APP.reg) await APP.reg.update(); } catch (e) {}
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    // only a newer published version counts (a CDN briefly serving an older version.json must not nag)
+    const newer = (a, b) => { const [ad, an] = a.split('-'), [bd, bn] = b.split('-'); return ad !== bd ? ad > bd : (+an || 0) > (+bn || 0); };
+    if (r.ok) { const j = await r.json(); APP.latest = j.version; if (j.version && newer(j.version, GAME_VERSION)) showUpdate(); }
+  } catch (e) {}
+  APP.status = $('updateBar') ? 'A new version is ready.' : APP.latest ? 'Up to date.' : manual ? 'Could not reach the server. You may be offline.' : '';
+  rebuild = true;
+}
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   window.addEventListener('load', async () => {
     try {
-      const reg = await navigator.serviceWorker.register('sw.js');
+      const reg = APP.reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
       const watch = w => { if (!w) return; const done = () => { if (w.state === 'installed' && navigator.serviceWorker.controller) { APP.waiting = w; showUpdate(); } }; done(); w.addEventListener('statechange', done); };
       watch(reg.waiting); reg.addEventListener('updatefound', () => watch(reg.installing));
       let reloading = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
-      const check = () => reg.update().catch(() => {});
-      setInterval(check, 15 * 60 * 1000); document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
     } catch (e) {}
+    checkUpdates();
+    setInterval(checkUpdates, 15 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdates(); });
   });
+}
+/* After an update, say once what changed. */
+function announceVersion() {
+  const seen = S.seenVersion; S.seenVersion = GAME_VERSION;
+  if (seen && seen !== GAME_VERSION) setTimeout(() => say('Updated to version ' + GAME_VERSION + '.' + (GAME_NEWS ? ' ' + GAME_NEWS : '')), 1200);
 }
 function saveFile() {
   save(); const blob = new Blob([JSON.stringify(S)], { type: 'application/json' }), a = document.createElement('a');

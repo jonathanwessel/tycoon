@@ -1,7 +1,7 @@
 // Service worker: lets Copper Gulch install as an app and run offline.
 // The page is fetched from the network first so new versions arrive as soon as they are published;
 // the cached copy is only used when offline. Bump VERSION with every release so old caches are cleared.
-const VERSION = '2026.11.15-4';
+const VERSION = '2026.11.15-5';
 const CACHE = 'copper-gulch-' + VERSION;
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'];
 
@@ -13,6 +13,7 @@ self.addEventListener('message', e => { if (e.data === 'skip') self.skipWaiting(
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (new URL(req.url).pathname.endsWith('/version.json')) return; // always straight from the network: it is how the page spots new releases
   const page = req.mode === 'navigate' || req.url.endsWith('/index.html');
   if (page) {
     e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return res; })
