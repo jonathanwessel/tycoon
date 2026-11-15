@@ -63,6 +63,14 @@ canvas#cv {
   font-weight: 600; font-size: .9rem; line-height: 1.25; opacity: 0; transform: translateY(-6px); transition: opacity .2s, transform .2s;
 }
 .toast.show { opacity: 1; transform: none; }
+.mapbtn { position: absolute; left: 8px; bottom: 8px; width: 38px; height: 38px; min-height: 38px; padding: 0; display: grid; place-items: center; background: rgba(22, 26, 42, .78); border-color: rgba(236, 230, 216, .25); }
+.mapbtn .ic { width: 12px; height: 14px; display: block; background: linear-gradient(90deg, currentColor 0 34%, transparent 34% 66%, currentColor 66%); }
+.pausecover { position: absolute; inset: 0; border-radius: 8px; border: 0; background: rgba(14, 16, 30, .62); display: grid; place-content: center; gap: 6px; text-align: center; animation: fadein .2s ease-out; -webkit-backdrop-filter: saturate(.6); backdrop-filter: saturate(.6); }
+.pausecover:hover:not(:disabled) { border-color: transparent; }
+.pausecover:focus-visible { outline-offset: -4px; }
+.pausecover b { font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--copper); }
+.pausecover span { color: var(--fg); font-weight: 600; }
+.pausecover b::before { content: ''; display: block; width: 0; height: 0; margin: 0 auto 10px; border-style: solid; border-width: 18px 0 18px 30px; border-color: transparent transparent transparent var(--copper); }
 .controls { display: flex; gap: 6px; align-items: stretch; }
 .controls #bWave { flex: 1; min-width: 0; min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .controls #bSpeed { width: 48px; padding: 0; }
@@ -104,7 +112,7 @@ nav .dot { position: absolute; top: 5px; right: calc(50% - 20px); width: 10px; h
   nav.tabs { padding-bottom: 0; }
   nav.tabs button { grid-auto-flow: column; gap: 6px; min-height: 42px; font-size: .95rem; }
   nav.tabs img.px { width: 20px; height: 20px; }
-  nav .dot { top: 4px; right: 4px; }
+  nav .dot { top: -4px; right: -4px; }
 }
 button {
   font: inherit; font-weight: 600; color: var(--fg); background: var(--panel-2);
@@ -226,6 +234,8 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
     <div class="mapwrap">
       <canvas id="cv" aria-label="Map of the gulch. Hold trees and rocks to gather, tap a building to upgrade it, tap an empty plot by the road to build a tower."></canvas>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>
+      <button class="pausecover" id="pauseCover" hidden><b>Paused</b><span>Tap to carry on</span></button>
     </div>
     <div class="controls">
       <button id="bWave" class="primary">Call wave</button>
@@ -1218,7 +1228,7 @@ function draw(time) {
   for (const f of floats) { cx.globalAlpha = Math.min(1, f.t * 3); cx.font = '700 ' + Math.max(9, f.z * c * (1 + .55 * Math.max(0, 1 - (f.a || 0) / .16))) + 'px "Barlow Semi Condensed", sans-serif'; cx.lineWidth = Math.max(2, c * .08); cx.strokeStyle = '#2a1c22'; cx.strokeText(f.s, f.x * c, f.y * c); cx.fillStyle = f.c; cx.fillText(f.s, f.x * c, f.y * c); }
   cx.globalAlpha = 1;
   cx.restore();
-  if (FXS.banner) {
+  if (FXS.banner && !paused) {
     // the band opens from its middle, the words slide in from the left and leave to the right
     const b = FXS.banner; b.T = b.T || b.t;
     const inP = Math.min(1, (b.T - b.t) / .4), outP = Math.min(1, b.t / .35), ease = 1 - Math.pow(1 - inP, 3), back = 1 + 2.2 * Math.pow(inP - 1, 3) + 1.2 * Math.pow(inP - 1, 2);
@@ -1531,6 +1541,12 @@ function buildFixed() {
     fixedUps.push(() => b.setAttribute('aria-selected', String(tab === id)));
   }
   $('bWave').addEventListener('click', startWave);
+  $('bPause').addEventListener('click', () => setPaused(true));
+  $('pauseCover').addEventListener('click', () => setPaused(false));
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('textarea, input')) return;
+    if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
+  });
   const hold = $('bHold'); hold.addEventListener('click', toggleAuto);
   fixedUps.push(() => { hold.classList.toggle('held', !S.autoWave); hold.setAttribute('aria-pressed', String(!S.autoWave)); hold.lastChild.textContent = S.autoWave ? 'Hold' : 'Held'; });
   $('bSpeed').addEventListener('click', () => { S.speed = S.speed % 3 + 1; });
@@ -1584,7 +1600,14 @@ function welcome(away, coins, gains) {
 /* =========================================================
    Loop
    ========================================================= */
-let prev = 0, uiT = 0, saveT = 0, shownCoins = null, coinTxt = '', waveP = '';
+let prev = 0, uiT = 0, saveT = 0, shownCoins = null, coinTxt = '', waveP = '', paused = false, playT = 0;
+/* A full stop: production, raiders, timers and animations all wait. Not saved, so a reload always resumes. */
+function setPaused(on) {
+  if (paused === on) return; paused = on; stopHold();
+  $('pauseCover').hidden = !on; $('bPause').hidden = on;
+  if (on) $('pauseCover').focus(); else $('bPause').focus({ preventScroll: true });
+  snd(on ? 'pause' : 'go', on ? 330 : 440, .08, 'triangle', .04, on ? -110 : 220);
+}
 /* Every frame: the coin counter rolls towards the real total and the wave button fills as raiders fall. */
 function tickHud(dt) {
   if (shownCoins === null || REDUCED || !isFinite(shownCoins)) shownCoins = S.coins;
@@ -1595,9 +1618,12 @@ function tickHud(dt) {
 }
 function frame(now) {
   const dt = Math.min(OFFLINE_CAP, Math.max(0, (now - prev) / 1000)); prev = now;
-  econ(dt);
-  let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; }
-  cosmetics(Math.min(dt, .1), now / 1000); draw(now / 1000); tickHud(Math.min(dt, .1));
+  if (!paused) {
+    econ(dt);
+    let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; }
+    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT);
+  }
+  draw(playT); tickHud(Math.min(dt, .1));
   uiT -= dt; if (uiT <= 0) { uiT = .2; refresh(); }
   if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('show');
   saveT += dt; if (saveT > 10) { saveT = 0; save(); }

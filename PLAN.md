@@ -6,9 +6,9 @@ Written for whoever executes next. Read "Where things stand" first, then do the 
 
 ## Where things stand
 
-- The whole game is `index.html` (one file, no build, no dependencies). It is committed and pushed on `ccr-a19b3264-v1f4zg`.
-- Published at https://claude.ai/artifact/VPjuNmTz3ebRB959u4RW1P. To republish, strip the wrapper lines (`<!DOCTYPE>`, `<html>`, `<head>`, `</head>`, `<body>`, `</body>`, `</html>`, charset and viewport metas) into a separate file and publish that with the Artifact tool, passing the URL above as `url`. Read the artifact first if the session has not published it.
-- Hard rules from the user: no ads, no purchases, nothing that phones home. They like tycoon, tower defence and incremental games, and found the first text-heavy version "too basic". Anything new should be visible on the map, not just a new row in a list.
+- The whole game is `index.html` (one file, no build, no dependencies). All work lives on `main`; there are no other branches.
+- Published with GitHub Pages from `main` (root folder) at https://jonathanwessel.github.io/tycoon/. Pushing to `main` publishes; Pages rebuilds in about a minute.
+- Hard rules from the user: no ads, no purchases, nothing that phones home. That includes web fonts and CDNs: the page must make no request to any other host. They like tycoon, tower defence and incremental games, and found the first text-heavy version "too basic". Anything new should be visible on the map, not just a new row in a list.
 - Code map inside the `<script>`:
   - Definitions: `ITEMS`, `EXT`, `SHOPS`, `RESEARCH`, `TOWERS`, `FOES`, `WAY` (road), `SLOT` (yard layout).
   - Art: `paintSprites()` draws every sprite with `mk(name, w, h, p => ...)`; outlines and white hit-flash copies are generated automatically.
@@ -59,7 +59,8 @@ Incremental games need a "next thing" on screen at all times.
 
 ## Working rules
 
-- Keep it one self-contained file; the artifact host blocks other requests.
-- Viewer cannot use `alert`/`confirm`/`prompt`, downloads, or clipboard reads; keep confirmations in the page.
+- Keep it one self-contained file with no outside requests.
+- Keep confirmations in the page rather than `alert`/`confirm`/`prompt`.
 - Must work at 400px wide with no sideways scroll; touch targets at least 30px.
-- After each phase: run `scripts/smoke.js`, look at one phone screenshot mid-wave, commit, push to `ccr-a19b3264-v1f4zg`, republish the artifact. No pull request unless asked.
+- Respect `prefers-reduced-motion` (the `REDUCED` flag) for any new animation.
+- After each change: run `scripts/smoke.js`, look at one phone screenshot mid-wave, commit, push to `main`. No pull request unless asked.
