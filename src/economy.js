@@ -16,6 +16,7 @@ function econStep(dt) {
   }
   const rec = 1 - Math.exp(-(perk('trade') ? .04 : .02) * dt);
   for (const k in S.demand) { S.demand[k] += (1 - S.demand[k]) * rec; if (S.demand[k] > .999) delete S.demand[k]; }
+  shipGoods(dt); // shipments leave before auto-sell, and deliveries for this town are collected
   if (lv('ledger')) for (const k in ITEMS) if (S.auto[k] && S.res[k] > KEEP && dem(k) >= S.sellAbove) sell(k, S.res[k] - KEEP);
   foremenWork();
 }
@@ -74,15 +75,19 @@ function foremenWork() {
   }
 }
 /* Income actually earned, averaged over the last minute (every coin source counts). */
-const INC = { t: 0, samples: [] };
+/* liveIncome() is the whole empire; liveIncome(id) one town, from that town's lifetime earnings. */
+const INC = { t: 0, samples: [], town: {} };
 function sampleIncome(dt) {
-  INC.t += dt; if (INC.t < 1) return; INC.t = 0;
-  INC.samples.push([performance.now(), S.stats.coins]); if (INC.samples.length > 61) INC.samples.shift();
+  INC.t += dt; if (INC.t < 1) return; INC.t = 0; const now = performance.now();
+  const push = (arr, v) => { arr.push([now, v]); if (arr.length > 61) arr.shift(); };
+  push(INC.samples, S.stats.coins);
+  for (const id of townIds()) push(INC.town[id] = INC.town[id] || [], id === S.town ? S.life : S.towns[id].life);
 }
-function liveIncome() {
-  const s = INC.samples; if (s.length < 3) return 0;
+function liveIncome(id) {
+  const s = id ? INC.town[id] || [] : INC.samples; if (s.length < 3) return 0;
   const [t0, c0] = s[0], [t1, c1] = s[s.length - 1]; return Math.max(0, (c1 - c0) / Math.max(1, (t1 - t0) / 1000));
 }
+const townIncome = id => withTown(id, () => steadyIncome()); // potential coins per second of any town
 let buyMode = 1;
 function buyPlan(b) {
   const have = blv(b.def.id);
@@ -102,6 +107,8 @@ function buyBuilding(b) {
   levelled(b, have, have + p.n); return true;
 }
 function levelled(b, from, to, quiet) {
+  if (b.def.id === 'locow' && to >= 1) S.railOpen = 1; // the first Locomotive Works brings trains to every route
+  if (TOWN_ID !== S.town) { if (MS(to) > MS(from)) say(TOWN.n + ': ' + b.def.n + ' reached level ' + to + ', output doubled.'); return; } // a town working in the background: no effects on this map
   const [sx, sy] = SLOT[b.def.id];
   if (!quiet) { FXS.pop[b.def.id] = .45; snd('build', 330, .12, 'triangle', .05, 330); for (let i = 0; i < 10; i++) parts.push({ x: sx + .3 + Math.random() * 1.4, y: sy + 1.6, vx: (Math.random() - .5) * 2, vy: -2 - Math.random() * 2, g: 6, t: .6, c: P.yelL, s: .08 }); }
   if (MS(to) > MS(from)) {
@@ -126,8 +133,9 @@ function deliver(i) {
   for (let j = 0; j < 5; j++) setTimeout(() => fly('coin', 11, 3, $('hCoinWrap')), 900 + j * 90);
   snd('coin', 660, .15, 'square', .04, 660); return true;
 }
-function gather(k) {
-  add(k, tapYield()); S.stats.taps++; const src = k === 'wood' ? 'trees' : 'rocks'; FXS.shake[src] = .25;
+/* Tap the trees or rocks (src is the yard slot); each town decides what they give (Iron Ridge: stone and iron ore). */
+function gather(src) {
+  const k = TOWN.tap[src]; add(k, tapYield()); S.stats.taps++; FXS.shake[src] = .25;
   const [sx, sy] = SLOT[src]; fly(k, sx + 1, sy + 1, CHIP[k]);
   for (let i = 0; i < 5; i++) parts.push({ x: sx + .6 + Math.random() * .8, y: sy + .8 + Math.random() * .5, vx: (Math.random() - .5) * 2, vy: -1.5 - Math.random(), g: 6, t: .5, c: k === 'wood' ? P.woodL : P.greyL, s: .07 });
   k === 'wood' ? snd('chop', 180, .06, 'square', .05, -90) : snd('dig', 520, .05, 'triangle', .06, -200);

@@ -24,7 +24,7 @@ const RATE = {}, lastRes = {}, HIST = {}; let rateT = 0, histT = 0;
 function maker(k) {
   const b = BUILD.find(b => b.def.out === k);
   if (b && blv(b.def.id)) return b.def.id;
-  return k === 'wood' ? 'trees' : k === 'ore' ? 'rocks' : b ? b.def.id : 'market';
+  return Object.keys(TOWN.tap).find(s => TOWN.tap[s] === k) || (b ? b.def.id : 'market'); // goods shipped in come from the market
 }
 function cosmetics(dt, time) {
   for (const k in FXS.shake) FXS.shake[k] = Math.max(0, FXS.shake[k] - dt);
@@ -54,8 +54,8 @@ function cosmetics(dt, time) {
   const pcap = PCAP[GX().parts] || 320; parts = parts.filter(p => p.t > 0); if (parts.length > pcap) parts.splice(0, parts.length - pcap);
   for (const f of floats) { f.t -= dt; f.y -= dt * .9; } floats = floats.filter(f => f.t > 0);
   // smoke from working chimneys and jammed towers
-  for (const [id, cxo, cyo] of [['smelt', 1.42, .25], ['eng', .55, .2], ['eng', 1.32, .2], ['mach', 1.5, .3], ['mill', 1.55, .1], ['autow', 1, .3]])
-    if (blv(id) && ACT[id] > .1 && Math.random() < dt * 5) parts.push({ x: SLOT[id][0] + cxo, y: SLOT[id][1] + cyo, vx: .2 + Math.random() * .3, vy: -.7, g: 0, t: 1.1, c: id === 'smelt' || id === 'mill' ? '#55506a' : '#d8d2c4', s: .11, smoke: 1 });
+  for (const [id, cxo, cyo] of [['smelt', 1.42, .25], ['eng', .55, .2], ['eng', 1.32, .2], ['mach', 1.5, .3], ['mill', 1.55, .1], ['autow', 1, .3], ['blast', 1.5, .05], ['boilerw', 1.45, .25], ['locow', .5, .2]])
+    if (SLOT[id] && blv(id) && ACT[id] > .1 && Math.random() < dt * 5) parts.push({ x: SLOT[id][0] + cxo, y: SLOT[id][1] + cyo, vx: .2 + Math.random() * .3, vy: -.7, g: 0, t: 1.1, c: id === 'smelt' || id === 'mill' ? '#55506a' : '#d8d2c4', s: .11, smoke: 1 });
   for (const t of S.towers) if (t.jam > 0 && Math.random() < dt * 6) parts.push({ x: t.c + .4 + Math.random() * .3, y: t.r + .2, vx: .1, vy: -.6, g: 0, t: .9, c: '#55506a', s: .1, smoke: 1 });
   // porters carry goods along the supply chain
   const flows = [];
@@ -68,6 +68,15 @@ function cosmetics(dt, time) {
   }
   for (const w of workers) { const dx = w.tx - w.x, dy = w.ty - w.y, q = Math.hypot(dx, dy), st = 1.7 * hurry * dt; if (q <= st) w.done = true; else { w.x += dx / q * st; w.y += dy / q * st; w.dir = dx >= 0 ? 1 : -1; } }
   workers = workers.filter(w => !w.done);
+  // convoys on shipping routes that touch this town roll in and out past the market
+  FXS.convoys = FXS.convoys || [];
+  for (const r of S.routes) {
+    if (r.paused || (r.from !== S.town && r.to !== S.town) || !townOpen(r.from) || !townOpen(r.to)) continue;
+    r.cv = (r.cv === undefined ? Math.random() * 4 : r.cv) - dt;
+    if (r.cv <= 0) { r.cv = 7; if (FXS.convoys.length < 6) FXS.convoys.push({ out: r.from === S.town, k: r.k, x: r.from === S.town ? 11.3 : 13.7 }); }
+  }
+  for (const v of FXS.convoys) v.x += (v.out ? 1 : -1) * 1.2 * dt;
+  FXS.convoys = FXS.convoys.filter(v => v.out ? v.x < 13.9 : v.x > 11.1);
   // weather fades in and out with its wave; rain, dust and heat haze are particles
   const tw = wx(); if (tw) FXS.wxK = tw; FXS.wxA = (FXS.wxA || 0) + ((tw ? 1 : 0) - (FXS.wxA || 0)) * Math.min(1, dt * 1.5);
   FXS.wxp = FXS.wxp || [];

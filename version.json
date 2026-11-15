@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-9",
-  "notes": "Behind the scenes: the game is now split into parts with automatic tests, and saves are ready for an empire of several towns (your save is backed up first)."
+  "version": "2026.11.15-10",
+  "notes": "Iron Ridge and the Empire: open a second town with its own steam-and-rail economy up to locomotives, ship goods between towns by wagon and train, and see coins per second for every town in the new Empire tab."
 }

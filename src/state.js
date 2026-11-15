@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 4, town: 'gulch', towns: {}, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 4, town: 'gulch', towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
@@ -39,21 +39,55 @@ let S = fresh();
 const TOWN_KEYS = ['map', 'life', 'res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'towers', 'wave', 'best', 'vaultHp', 'contracts', 'demand', 'sellAbove', 'mgr', 'cd', 'ot', 'fb', 'bestRate'];
 const NESTED = ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'demand', 'mgr', 'cd'];
 const pickTown = o => { const t = {}; for (const k of TOWN_KEYS) if (o[k] !== undefined) t[k] = o[k]; return t; };
-function townFresh(map) { const t = pickTown(fresh()); t.map = map; return t; }
+/* A brand-new town on the given map, with that town's starting goods. */
+function townFresh(map) {
+  const t = pickTown(fresh()), T = TOWNS[townOfMap(map)]; t.map = map;
+  t.res = {}; for (const k in ITEMS) t.res[k] = 0; Object.assign(t.res, T.start.res);
+  t.seen = {}; for (const k of T.start.seen) t.seen[k] = 1;
+  return t;
+}
 function fillTown(t) { const f = townFresh(t.map || 'gulch'); const out = Object.assign(f, t); for (const k of NESTED) out[k] = Object.assign(townFresh(out.map)[k], t[k]); return out; }
-/* Run fn with town id swapped in as the active one (its fields at the top of S), then swap back. */
+/* Run fn with town id swapped in as the active one (its fields at the top of S, its buildings in BUILD), then swap back. */
 function withTown(id, fn) {
   if (id === S.town) return fn();
-  const mine = pickTown(S); Object.assign(S, S.towns[id]);
-  try { return fn(); } finally { S.towns[id] = pickTown(S); Object.assign(S, mine); }
+  const mine = pickTown(S); Object.assign(S, S.towns[id]); useTown(id);
+  try { return fn(); } finally { S.towns[id] = pickTown(S); Object.assign(S, mine); useTown(S.town); }
 }
 /* Make another town the one you play. Its map is drawn and its waves start; the town you leave keeps producing. */
 function switchTown(id) {
   if (id === S.town || !S.towns[id]) return false;
   S.towns[S.town] = pickTown(S); Object.assign(S, fillTown(S.towns[id])); delete S.towns[id]; S.town = id;
-  setMap(S.map); S.towers = S.towers.filter(t => TOWERS[t.type] && !onRoad(t.c, t.r));
+  useTown(id); setMap(S.map); S.towers = S.towers.filter(t => TOWERS[t.type] && !onRoad(t.c, t.r));
   return true;
 }
+const townIds = () => [S.town, ...Object.keys(S.towns)];
+const townOpen = id => id === S.town || !!S.towns[id];
+/* Open a new town (Empire tab). */
+function unlockTown(id) {
+  const T = TOWNS[id], u = T && T.unlock; if (!u || townOpen(id)) return false;
+  const best = Math.max(S.town === 'gulch' ? S.best : (S.towns.gulch || {}).best || 0, S.bestMap.gulch || 0);
+  if (best < u.best || S.coins < u.coins) return false;
+  S.coins -= u.coins; S.towns[id] = townFresh(T.maps[0]); S.badges.ridge = S.badges.ridge || 0; S.stats.towns = (S.stats.towns || 1) + 1;
+  return true;
+}
+/* Shipping. A route moves one good from one town to another at up to `per` a minute, paying a fee for each load.
+   Goods leave before the source town's auto-sell runs and arrive in the destination's inbox, collected on its next tick.
+   Wagons carry up to 120 a minute for 5% of the goods' value; once a Locomotive Works stands, trains carry up to
+   1200 a minute for 2%. */
+const carrier = () => S.railOpen ? { n: 'Train', max: 1200, fee: .02, spr: 'loco' } : { n: 'Wagon train', max: 120, fee: .05, spr: 'wagon' };
+function shipGoods(dt) {
+  const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
+  const cr = carrier();
+  for (const r of S.routes) {
+    if (r.from !== TOWN_ID || r.paused || !townOpen(r.to)) continue;
+    const amt = Math.min(S.res[r.k] || 0, Math.min(r.per, cr.max) * dt / 60); if (!(amt > 0)) continue;
+    const fee = amt * ITEMS[r.k].p * cr.fee; if (S.coins < fee) continue;
+    S.res[r.k] -= amt; S.coins -= fee; r.sent = (r.sent || 0) + amt; S.stats.shipped = (S.stats.shipped || 0) + amt;
+    (S.inbox[r.to] = S.inbox[r.to] || {})[r.k] = (S.inbox[r.to][r.k] || 0) + amt;
+  }
+}
+/* Every town but the one on screen works in the background (economy only: waves wait until you are there). */
+function econTowns(dt) { econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => econ(dt)); }
 const KEY = 'copper-gulch-save-v1';
 function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
@@ -78,7 +112,8 @@ function adopt(o) {
   const gx0 = fresh().opt.gx, old = o.opt && o.opt.gfx; S.opt.gx = Object.assign(gx0, o.opt && o.opt.gx);
   if (old === 'simple' && !(o.opt && o.opt.gx)) Object.assign(S.opt.gx, GX_PRESETS.low, { preset: 'low' });
   delete S.opt.gfx;
-  setMap(S.map);
+  S.routes = Array.isArray(o.routes) ? o.routes : []; S.inbox = o.inbox || {};
+  useTown(S.town); setMap(S.map);
   S.towers = (S.towers || []).filter(t => TOWERS[t.type] && t.r >= YARD && t.r < ROWS && t.c >= 0 && t.c < COLS && !onRoad(t.c, t.r));
   return true;
 }
@@ -98,7 +133,7 @@ const vaultMax = () => 20 + 5 * lv('vault');
 /* Milestones: output doubles at levels 10, 25, 50, then every 100. */
 const MS = l => (l >= 10) + (l >= 25) + (l >= 50) + (l >= 100 ? Math.floor(l / 100) : 0);
 const nextMs = l => l < 10 ? 10 : l < 25 ? 25 : l < 50 ? 50 : (Math.floor(l / 100) + 1) * 100;
-const blv = id => S[BY_ID[id].kind][id] || 0;
+const blv = id => (BY_ALL[id] ? S[BY_ALL[id].kind][id] : 0) || 0; // level of a building in the town swapped in
 const bMult = id => Math.pow(2, MS(blv(id)));
 const bCost = (b, have) => Math.ceil(b.def.cost * Math.pow(b.g, have));
 /* Market: selling pushes a price down; it drifts back up over time. */

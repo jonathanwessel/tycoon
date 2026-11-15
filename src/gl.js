@@ -104,8 +104,8 @@ function gatherLights(time) {
   for (const [tx, ty] of [[VAULT[0] - .08, VAULT[1] - .05], [VAULT[0] - .08, VAULT[1] + 1.25]]) add(tx, ty - .35, 2.4, WARM, (.35 + .75 * n) * (.9 + Math.sin(time * 9 + ty) * .1));
   for (const b of BUILD) if (blv(b.def.id)) { const [sx, sy] = SLOT[b.def.id]; add(sx + 1, sy + 1.75, 1.35, LAMP, .5 * lamp * (.92 + Math.sin(time * 3 + sx) * .08)); }
   for (const id of ['market', 'hall', 'office']) add(SLOT[id][0] + 1, SLOT[id][1] + 1.75, 1.35, LAMP, .45 * lamp);
-  for (const id of ['smelt', 'mill']) if (blv(id) && ACT[id] > .08) add(SLOT[id][0] + 1, SLOT[id][1] + 1.25, 2, FIRE, (.3 + .7 * n) * (.85 + Math.sin(time * 13 + SLOT[id][0]) * .15));
-  for (const id of ['drill', 'glass']) if (blv(id)) add(SLOT[id][0] + 1, SLOT[id][1] + 1.5, 1.4, TEAL, .55 * lamp);
+  for (const id of TOWN.forge) if (blv(id) && ACT[id] > .08) add(SLOT[id][0] + 1, SLOT[id][1] + 1.25, 2, FIRE, (.3 + .7 * n) * (.85 + Math.sin(time * 13 + SLOT[id][0]) * .15));
+  for (const id of TOWN.glow) if (blv(id)) add(SLOT[id][0] + 1, SLOT[id][1] + 1.5, 1.4, TEAL, .55 * lamp);
   for (const t of S.towers) {
     const x = t.c + .5, y = t.r + .5, kick = t.kick > 0 ? t.kick / .12 : 0;
     if (t.type === 'frost') add(x, y - .25, 1.6, ICE, .3 + .5 * n);

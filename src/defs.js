@@ -15,14 +15,24 @@ const ITEMS = {
   steel:   { n: 'Steel',      p: 40 },
   clock:   { n: 'Clockwork',  p: 110 },
   auto:    { n: 'Automatons', p: 1400 },
+  // Iron Ridge
+  iron:    { n: 'Iron ore',   p: 2 },
+  stone:   { n: 'Stone',      p: 2 },
+  pig:     { n: 'Pig iron',   p: 11 },
+  rail:    { n: 'Rails',      p: 34 },
+  boiler:  { n: 'Boilers',    p: 80 },
+  loco:    { n: 'Locomotives', p: 900 },
 };
-const EXT = [
+const EXT_ALL = [
   { id: 'camp',  n: 'Lumber Camp',   out: 'wood',    rate: .5, cost: 15 },
   { id: 'mine',  n: 'Ore Mine',      out: 'ore',     rate: .5, cost: 15 },
   { id: 'drill', n: 'Crystal Drill', out: 'crystal', rate: .3, cost: 400 },
   { id: 'pit',   n: 'Coal Pit',      out: 'coal',    rate: .4, cost: 2500 },
+  { id: 'ironmine', n: 'Iron Mine',  out: 'iron',    rate: .5, cost: 30 },
+  { id: 'coalseam', n: 'Coal Seam',  out: 'coal',    rate: .4, cost: 80 },
+  { id: 'quarry',   n: 'Stone Quarry', out: 'stone', rate: .5, cost: 40 },
 ];
-const SHOPS = [
+const SHOPS_ALL = [
   { id: 'saw',    n: 'Sawmill',         in: { wood: 2 },                        out: 'plank',  rate: .25, cost: 50 },
   { id: 'smelt',  n: 'Smelter',         in: { ore: 2 },                         out: 'ingot',  rate: .25, cost: 60 },
   // The rates keep the chain's input ratios balanced at equal levels; don't change one without its suppliers.
@@ -34,6 +44,12 @@ const SHOPS = [
   { id: 'mill',   n: 'Steel Mill',      in: { ingot: 1, coal: 2 },              out: 'steel',  rate: .12, cost: 4000 },
   { id: 'clockw', n: 'Clockworks',      in: { gear: 1, lens: 1 },               out: 'clock',  rate: .08, cost: 8000 },
   { id: 'autow',  n: 'Automaton Works', in: { engine: 1, clock: 1, steel: 2 },  out: 'auto',   rate: .03, cost: 40000 },
+  // Iron Ridge: balanced at equal levels like the Gulch chain. Boilers need planks and locomotives need gears,
+  // both shipped in from Copper Gulch.
+  { id: 'blast',   n: 'Blast Furnace',     in: { iron: 2, coal: 1 },             out: 'pig',    rate: .25, cost: 150 },
+  { id: 'rolling', n: 'Rolling Mill',      in: { pig: 2 },                       out: 'rail',   rate: .1,  cost: 900 },
+  { id: 'boilerw', n: 'Boiler Shop',       in: { pig: 1, plank: 2 },             out: 'boiler', rate: .05, cost: 3000 },
+  { id: 'locow',   n: 'Locomotive Works',  in: { boiler: 1, rail: 2, gear: 2 },  out: 'loco',   rate: .03, cost: 20000 },
 ];
 const RESEARCH = [
   { id: 'tools',  n: 'Sharper Tools',    d: 'Doubles what each tap gathers.',            cost: 40,  g: 3,   max: 12 },
@@ -99,7 +115,36 @@ const MAPS = {
            paths: [[[-.5, 10], [2, 10], [2, 7], [9, 7], [9, 10], [11, 10]], [[-.5, 10], [2, 10], [2, 13], [9, 13], [9, 10], [11, 10]]], vault: [11, 10], hp: .8, coin: 1.5, deed: 1 },
   bridge: { n: 'Trestle Bridge', d: 'The road crosses a ravine on three trestle bridges. Raiders on a bridge take 25% more damage. Raiders pay double, and charters signed here earn two extra deeds.',
            paths: [[[-.5, 7], [10, 7], [10, 10], [1, 10], [1, 13], [11, 13]]], vault: [11, 13], hp: 1.1, coin: 2, deed: 2, ravine: [5, 6] },
+  ridge: { n: 'Iron Ridge', d: 'A switchback road climbs the ridge to the vault. Raiders are tougher and pay more; charters here earn an extra deed.',
+           paths: [[[-.5, 13], [9, 13], [9, 11], [2, 11], [2, 9], [9, 9], [9, 7], [11, 7]]], vault: [11, 7], hp: 1.2, coin: 1.6, deed: 1,
+           pal: { yard: '#9c8a74', a: '#b4a28a', b: '#ab987e', road: ['#5e5048', '#7a6a5c', '#6a5a4e', '#7a6a5c'] } },
 };
+/* Towns of the empire. Each has its own map(s), buildings, yard layout, gathering taps, boss and tower materials.
+   Only the active town's buildings are in EXT / SHOPS / BUILD / BY_ID / SLOT at any moment (see useTown). */
+const SLOT_GULCH = {
+  trees: [0, 0], camp: [2, 0], saw: [4, 0], mach: [6, 0], eng: [8, 0], market: [10, 0],
+  rocks: [0, 2], mine: [2, 2], smelt: [4, 2], glass: [6, 2], drill: [8, 2], caravan: [10, 2],
+  pit: [0, 4], mill: [2, 4], clockw: [4, 4], autow: [6, 4], hall: [8, 4], office: [10, 4],
+};
+const SLOT_RIDGE = {
+  trees: [0, 0], ironmine: [2, 0], blast: [4, 0], rolling: [6, 0], market: [10, 0],
+  rocks: [0, 2], coalseam: [2, 2], quarry: [4, 2], boilerw: [6, 2], locow: [8, 2], caravan: [10, 2],
+  hall: [8, 4], office: [10, 4],
+};
+const TOWNS = {
+  gulch: { n: 'Copper Gulch', era: 'Frontier', ext: ['camp', 'mine', 'drill', 'pit'], shops: ['saw', 'smelt', 'glass', 'mach', 'eng', 'mill', 'clockw', 'autow'],
+           slot: SLOT_GULCH, tap: { trees: 'wood', rocks: 'ore' }, tapN: { trees: 'Chop', rocks: 'Dig' }, trees: true, maps: ['gulch', 'fork', 'bridge'],
+           boss: { n: 'War wagon', spr: 'boss' }, goods: {}, start: { res: { plank: 10 }, seen: ['wood', 'ore', 'plank'] }, forge: ['smelt', 'mill'], glow: ['drill', 'glass'] },
+  ridge: { n: 'Iron Ridge', era: 'Steam and rail', ext: ['ironmine', 'coalseam', 'quarry'], shops: ['blast', 'rolling', 'boilerw', 'locow'],
+           slot: SLOT_RIDGE, tap: { trees: 'stone', rocks: 'iron' }, tapN: { trees: 'Quarry', rocks: 'Dig' }, trees: false, maps: ['ridge'],
+           boss: { n: 'Armoured train', spr: 'train' },
+           goods: { crossbow: { stone: 6 }, cannon: { pig: 10 }, frost: { rail: 4 }, tesla: { boiler: 2, rail: 6 }, gatling: { boiler: 3, loco: 1 } },
+           start: { res: { stone: 30 }, seen: ['iron', 'stone', 'coal'] }, forge: ['blast', 'boilerw'], glow: [],
+           unlock: { best: 20, coins: 1e5 } },
+};
+const townOfMap = m => Object.keys(TOWNS).find(t => TOWNS[t].maps.includes(m)) || 'gulch';
+const towerGoods = type => TOWN.goods[type] || TOWERS[type].goods;
+const bossName = () => TOWN.boss.n;
 const onBridge = f => MAP.ravine && MAP.ravine.includes(Math.round(f.x));
 const PERKS = [
   { id: 'start',   n: 'Head Start',     d: 'Each charter starts with the Lumber Camp and Ore Mine at level 5 per rank, and a Sawmill.', max: 3, cost: l => 1 + l },
@@ -111,12 +156,15 @@ const PERKS = [
   { id: 'trade',   n: 'Trade Charter',  d: 'Contracts pay 25% more per rank, and prices recover twice as fast.',                     max: 3, cost: l => 2 + l, req: 'teams' },
 ];
 const KEEP = 20, COLS = 12, ROWS = 14, YARD = 6, OFFLINE_CAP = 8 * 3600;
-/* Yard slots: top-left corner of a 2x2 block, in cells. */
-const SLOT = {
-  trees: [0, 0], camp: [2, 0], saw: [4, 0], mach: [6, 0], eng: [8, 0], market: [10, 0],
-  rocks: [0, 2], mine: [2, 2], smelt: [4, 2], glass: [6, 2], drill: [8, 2], caravan: [10, 2],
-  pit: [0, 4], mill: [2, 4], clockw: [4, 4], autow: [6, 4], hall: [8, 4], office: [10, 4],
-};
-const BUILD = [...EXT.map(def => ({ def, kind: 'ext', g: 1.17 })), ...SHOPS.map(def => ({ def, kind: 'shops', g: 1.19 }))];
-const BY_ID = {}; for (const b of BUILD) BY_ID[b.def.id] = b;
+/* Every building in every town; the active town's are picked out by useTown. Yard slots: top-left of a 2x2 block. */
+const BUILD_ALL = [...EXT_ALL.map(def => ({ def, kind: 'ext', g: 1.17 })), ...SHOPS_ALL.map(def => ({ def, kind: 'shops', g: 1.19 }))];
+const BY_ALL = {}; for (const b of BUILD_ALL) BY_ALL[b.def.id] = b;
+let TOWN, TOWN_ID, EXT, SHOPS, BUILD, BY_ID, SLOT;
+function useTown(id) {
+  TOWN_ID = TOWNS[id] ? id : 'gulch'; TOWN = TOWNS[TOWN_ID];
+  EXT = EXT_ALL.filter(e => TOWN.ext.includes(e.id)); SHOPS = SHOPS_ALL.filter(s => TOWN.shops.includes(s.id));
+  BUILD = BUILD_ALL.filter(b => TOWN.ext.includes(b.def.id) || TOWN.shops.includes(b.def.id));
+  BY_ID = {}; for (const b of BUILD) BY_ID[b.def.id] = b; SLOT = TOWN.slot;
+}
+useTown('gulch');
 const door = id => [SLOT[id][0] + 1, SLOT[id][1] + 1.8];

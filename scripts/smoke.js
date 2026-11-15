@@ -124,6 +124,22 @@ const shots = process.argv[2];
     });
     if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');
     else { if (!(lit.lights > 0)) errs.push('lighting engine gathered no lights'); if (lit.glErr) errs.push('WebGL error ' + lit.glErr); if (!lit.simpleOk) errs.push('simple graphics did not switch off lighting'); }
+    // the empire: open Iron Ridge, play a wave there with its boss, ship goods, look at the Empire tab, come home
+    const emp = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      S.coins = 1e9; S.best = Math.max(S.best, 25); const opened = unlockTown('ridge');
+      goTab('empire'); await wait(250); const cards = document.querySelectorAll('.town').length, sugg = document.querySelectorAll('.sugs .row').length;
+      const shipBtn = document.querySelector('.sugs button'); if (shipBtn) shipBtn.click();
+      goTown('ridge'); await wait(300);
+      const inRidge = TOWN_ID === 'ridge' && document.querySelector('h1').textContent === 'Iron Ridge';
+      for (const k in S.res) add(k, 500); buildTower('crossbow', PLOTS[0].x, PLOTS[0].y); buildTower('cannon', PLOTS[1].x, PLOTS[1].y);
+      S.wave = 10; planWave(); startWave(); await wait(800); W.queue = []; spawn('boss'); await wait(800);
+      const trainBar = !!foes.find(f => f.type === 'boss'); foes = []; W.queue = []; W.active = false;
+      goTab('works'); await wait(200); const ridgeRows = document.querySelectorAll('.row.bld').length;
+      goTown('gulch'); await wait(300);
+      return { opened, cards, sugg, routes: S.routes.length, inRidge, trainBar, ridgeRows, home: TOWN_ID === 'gulch' };
+    });
+    if (!emp.opened || emp.cards < 2 || !emp.inRidge || !emp.trainBar || emp.ridgeRows !== 7 || !emp.home || emp.routes < 1) errs.push('empire check failed: ' + JSON.stringify(emp));
     // the bridge map draws and keeps the ravine clear of plots
     const br = await p.evaluate(() => { setMap('bridge'); bakeGround(); const ok = !PLOTS.some(q => MAP.ravine.includes(q.x)); setMap(S.map); bakeGround(); return ok; });
     if (!br) errs.push('Trestle Bridge has plots in the ravine');

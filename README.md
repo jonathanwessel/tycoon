@@ -17,7 +17,8 @@ No ads, no purchases, no tracking. The page makes no requests to any other site,
 - Five towers, each with two upgrade paths and a choice of target, against seven kinds of raider and a war wagon every tenth wave.
 - Weather that changes the fight: dust storms, rain, heat waves and clear nights.
 - Moving market prices, caravan contracts, research, goals and badges.
-- Charters to start over with deeds and perks, across three maps: Copper Gulch, Forked Canyon and Trestle Bridge.
+- An empire of towns that all keep working: Copper Gulch (with Forked Canyon and Trestle Bridge charters) and Iron Ridge, a steam-and-rail town with its own goods chain up to locomotives. Ship goods between towns by wagon and later by train, and see coins per second for every town and the whole empire.
+- Charters to start a town over with deeds and perks.
 - Pixel art lit by a small hand-written WebGL engine: a moving sun with cast shadows, drifting clouds, lamps, forges, muzzle flashes and explosions that light the ground, and dusk falling as raiders arrive. Graphics settings (gear button on the map) offer Low to Ultra presets, separate controls for shadows, glow, resolution, effects, weather, shake and frame rate, and five colour looks with optional film grain and scanlines.
 - Install it as an app from your browser (Install app / Add to Home Screen). It works offline and updates itself when a new version is published.
 - Works on phones and computers, keeps working for up to 8 hours while you are away, and can hold waves or pause completely.

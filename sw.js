@@ -1,7 +1,7 @@
 // Service worker: lets Copper Gulch install as an app and run offline.
 // The page is fetched from the network first so new versions arrive as soon as they are published;
 // the cached copy is only used when offline. Bump VERSION with every release so old caches are cleared.
-const VERSION = '2026.11.15-9';
+const VERSION = '2026.11.15-10';
 const CACHE = 'copper-gulch-' + VERSION;
 const SHELL = ["./","./index.html","./manifest.webmanifest","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./icons/icon-maskable-512.png","./src/app.js","./src/art.js","./src/combat.js","./src/defs.js","./src/economy.js","./src/fx.js","./src/gl.js","./src/goals.js","./src/map.js","./src/render2d.js","./src/state.js","./src/ui.js"];
 

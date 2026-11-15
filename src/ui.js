@@ -88,7 +88,7 @@ function card() {
         const hp = Math.max(0, S.vaultHp), mx = vaultMax(), miss = mx - hp;
         info.textContent = 'Strength ' + hp + ' / ' + mx + ' · heals ' + (1 + lv('mason')) + ' per cleared wave';
         bar.style.width = hp / mx * 100 + '%'; bar.style.background = hp / mx > .5 ? 'var(--good)' : hp / mx > .25 ? 'var(--gold)' : 'var(--bad)';
-        note.textContent = W.active ? 'Raiders are on the road. Repair between waves.' : miss ? 'Each point costs ' + fmt(repairCost()) + ' coins. A raider that gets through takes 1 or 2 strength and 5% of your coins; a war wagon smashes the vault outright.' : 'The vault is at full strength.';
+        note.textContent = W.active ? 'Raiders are on the road. Repair between waves.' : miss ? 'Each point costs ' + fmt(repairCost()) + ' coins. A raider that gets through takes 1 or 2 strength and 5% of your coins; a ' + bossName().toLowerCase() + ' smashes the vault outright.' : 'The vault is at full strength.';
         one.disabled = W.active || !miss || S.coins < repairCost(); full.disabled = W.active || !miss || S.coins < repairCost() * miss;
       });
     } else if (sel.plot) {
@@ -99,8 +99,8 @@ function card() {
           if (!buildTower(id, c, r)) return;
           const t = S.towers[S.towers.length - 1]; t.born = .35; sel = { t }; snd('build', 330, .12, 'triangle', .05, 330);
           for (let i = 0; i < 12; i++) parts.push({ x: c + .5 + (Math.random() - .5) * .8, y: r + .8, vx: (Math.random() - .5) * 2.5, vy: -1 - Math.random() * 2, g: 6, t: .5, c: '#e9d2a8', s: .08 });
-        } }, ico(id), h('span', { cls: 'grow' }, h('span', { cls: 'name' }, d.n), h('small', null, d.d)), costEl(() => buildCost(id), d.goods, cardUps));
-        box.append(b); cardUps.push(() => { b.disabled = S.coins < buildCost(id) || !hasGoods(d.goods); });
+        } }, ico(id), h('span', { cls: 'grow' }, h('span', { cls: 'name' }, d.n), h('small', null, d.d)), costEl(() => buildCost(id), towerGoods(id), cardUps));
+        box.append(b); cardUps.push(() => { b.disabled = S.coins < buildCost(id) || !hasGoods(towerGoods(id)); });
       }
     } else if (sel.t) {
       const t = sel.t, d = TOWERS[t.type], back = Math.ceil(d.coins * .5), stats = h('small');
@@ -134,11 +134,17 @@ const stopHold = () => { clearInterval(holdT); holdT = null; };
 cv.addEventListener('pointerdown', ev => {
   const [gx, gy] = gridAt(ev), id = slotAt(gx, gy);
   if (id !== 'trees' && id !== 'rocks') return;
-  const k = id === 'trees' ? 'wood' : 'ore'; gather(k); stopHold(); holdT = setInterval(() => gather(k), 170);
+  gather(id); stopHold(); holdT = setInterval(() => gather(id), 170);
 });
 for (const e of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListener(e, stopHold);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 function goTab(id) { tab = id; rebuild = true; $('sheet').scrollTop = 0; refresh(); }
+/* Travel to another town of the empire: its map, buildings and waves; the town you leave keeps producing. */
+function goTown(id) {
+  if (!switchTown(id)) return; wipeField(); bakeGround(); FXS.convoys = []; save();
+  say('Welcome to ' + TOWN.n + '. ' + (Object.keys(S.towns).length ? 'Your other towns keep working while you are here.' : ''));
+  goTab('defend');
+}
 function toggleAuto() {
   S.autoWave = !S.autoWave;
   if (S.autoWave) { W.countdown = Math.max(W.countdown, 10); say('Waves come on their own again.'); }
@@ -193,12 +199,12 @@ const PANELS = {
       claim.disabled = !done; claim.classList.toggle('primary', done); swap.hidden = !g.gen || done;
     });
     const nxT = h('h2'), nx = h('div', { cls: 'next' }), wxl = h('div', { cls: 'wxline' }); let sig = null;
-    const bw = h('div', { cls: 'wxline warn' }, ico('boss', ''), h('span', null, h('b', null, 'War wagon wave. '), 'If the wagon reaches the vault, the vault falls however strong it is. Destroy it to move on.'));
+    const bw = h('div', { cls: 'wxline warn' }, ico(TOWN.boss.spr, ''), h('span', null, h('b', null, bossName() + ' wave. '), 'If it reaches the vault, the vault falls however strong it is. Destroy it to move on.'));
     p.append(nxT, nx, bw, wxl);
     ups.push(() => {
       bw.hidden = S.wave % 10 !== 0;
       const q = W.active ? W.queue : W.next || [], wk = W.active ? W.weather : W.nweather, s = (W.active ? 'a' : 'n') + S.wave + ':' + q.length + W.ntype + wk;
-      nxT.textContent = W.active ? 'Still to come' : 'Next: ' + (S.wave % 10 === 0 ? 'war wagon' : WTYPES[W.ntype].n.toLowerCase());
+      nxT.textContent = W.active ? 'Still to come' : 'Next: ' + (S.wave % 10 === 0 ? bossName().toLowerCase() : WTYPES[W.ntype].n.toLowerCase());
       if (s === sig) return; sig = s; nx.textContent = ''; const n = {}; for (const t of q) n[t] = (n[t] || 0) + 1;
       for (const t in FOES) if (n[t]) nx.append(h('span', { title: FOES[t].n }, ico(t, FOES[t].n), '×' + n[t]));
       if (!q.length) nx.append(h('small', null, 'The road is clear.'));
@@ -214,7 +220,7 @@ const PANELS = {
     p.append(h('h2', null, 'Towers'), h('p', null, TOWER_TIPS));
     for (const id in TOWERS) {
       const d = TOWERS[id];
-      p.append(h('div', { cls: 'row' }, ico(id), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, d.n), h('small', null, d.d + ' Paths at level 5: ' + BRANCH[id].a.n + ' or ' + BRANCH[id].b.n + '.')), costEl(() => buildCost(id), d.goods, ups)));
+      p.append(h('div', { cls: 'row' }, ico(id), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, d.n), h('small', null, d.d + ' Paths at level 5: ' + BRANCH[id].a.n + ' or ' + BRANCH[id].b.n + '.')), costEl(() => buildCost(id), towerGoods(id), ups)));
     }
     p.append(h('h2', null, 'Raiders seen so far'));
     for (const k in FOES) if (k === 'boss' ? S.best >= 10 : S.best >= UNLOCK[k]) p.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, FOES[k].n), h('small', null, FOE_TIPS[k]))));
@@ -222,11 +228,11 @@ const PANELS = {
   },
   works(p) {
     const chopN = h('span'), digN = h('span');
-    ups.push(() => { chopN.textContent = 'Chop +' + fmt(tapYield()); digN.textContent = 'Dig +' + fmt(tapYield()); });
+    ups.push(() => { chopN.textContent = TOWN.tapN.trees + ' +' + fmt(tapYield()); digN.textContent = TOWN.tapN.rocks + ' +' + fmt(tapYield()); });
     const modes = h('div', { cls: 'seg' }, h('small', null, 'Buy'));
     for (const m of [1, 10, 'ms', 'max']) { const b = h('button', { cls: 'small', on: () => { buyMode = m; } }, m === 'max' ? 'Max' : m === 'ms' ? 'To next ★' : '×' + m); modes.append(b); ups.push(() => b.classList.toggle('on', buyMode === m)); }
-    p.append(h('div', { cls: 'taps' }, h('button', { on: () => gather('wood') }, ico('wood'), chopN), h('button', { on: () => gather('ore') }, ico('ore'), digN)),
-      h('p', null, 'Hold the trees or rocks on the map to keep gathering. Every building doubles its output at levels 10, 25, 50 and each 100.'), modes);
+    p.append(h('div', { cls: 'taps' }, h('button', { on: () => gather('trees') }, ico(TOWN.tap.trees), chopN), h('button', { on: () => gather('rocks') }, ico(TOWN.tap.rocks), digN)),
+      h('p', null, 'Hold the ' + (TOWN.trees ? 'trees or rocks' : 'boulders or iron rocks') + ' on the map to keep gathering. Every building doubles its output at levels 10, 25, 50 and each 100.'), modes);
     // foreman budget: their share of income, and a reserve they never touch
     const fbInfo = h('small'), fbBox = h('div', { cls: 'panelin' }, h('div', { cls: 'name' }, 'Foremen'), fbInfo);
     const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } fbBox.append(s); };
@@ -287,14 +293,77 @@ const PANELS = {
       ups.push(() => { const l = lv(r.id), fin = l >= r.max; name.textContent = r.n; if (r.max > 1) name.append(h('i', null, l ? 'Lv ' + l : '')); ce.hidden = fin; done.hidden = !fin; btn.disabled = fin || S.coins < cost(); });
     }
   },
+  empire(p) {
+    const tot = h('b'), pot = h('small'), car = h('small');
+    p.append(h('h2', null, 'Empire'), h('div', { cls: 'emp' }, h('div', null, h('span', null, 'Coins per second, all towns'), tot), pot, car));
+    ups.push(() => {
+      tot.textContent = '+' + rate(liveIncome()) + '/s';
+      pot.textContent = 'Potential with every surplus sold: +' + rate(townIds().reduce((a, id) => a + townIncome(id), 0)) + '/s';
+      const cr = carrier(); car.textContent = 'Shipping by ' + cr.n.toLowerCase() + ': up to ' + cr.max + ' a minute on each route, ' + pct(cr.fee) + ' of the goods\' value per load.' + (S.railOpen ? '' : ' A Locomotive Works in Iron Ridge brings trains.');
+    });
+    // a card for every town
+    for (const id in TOWNS) {
+      const T = TOWNS[id], live = h('b'), info = h('small'), act = h('div', { cls: 'bar' });
+      const card = h('div', { cls: 'town' }, h('div', { cls: 'cardhead' }, ico(id === 'gulch' ? 'vault' : 'loco'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, T.n, h('i', null, T.era)), info), live), act);
+      p.append(card);
+      let shown = '';
+      ups.push(() => {
+        const open = townOpen(id), here = id === S.town;
+        card.classList.toggle('here', here); card.classList.toggle('locked', !open);
+        if (open) {
+          const t = here ? S : S.towns[id], mg = Object.keys(t.mgr || {}).filter(k => t.mgr[k] === 1).length;
+          live.textContent = '+' + rate(liveIncome(id)) + '/s';
+          info.textContent = 'Potential +' + rate(townIncome(id)) + '/s · wave ' + t.wave + ' (best ' + t.best + ')' + (mg ? ' · ' + mg + ' foremen' : '') + (here ? ' · you are here' : ' · working in the background, waves on hold');
+        } else {
+          const u = T.unlock, best = Math.max(S.town === 'gulch' ? S.best : (S.towns.gulch || {}).best || 0, S.bestMap.gulch || 0);
+          live.textContent = ''; info.textContent = 'Opens after wave ' + u.best + ' in Copper Gulch (best so far ' + best + ') for ' + fmt(u.coins) + ' coins.';
+        }
+        const key = (open ? 'o' : 'l') + (here ? 'h' : '');
+        if (key !== shown) {
+          shown = key; act.textContent = '';
+          if (!open) { const b = h('button', { cls: 'primary', on: () => { if (unlockTown(id)) { say(T.n + ' is open! It needs goods it cannot make: set up a shipping route below.'); snd('badge', 784, .35, 'triangle', .06, 392); rebuild = true; } } }, 'Open ' + T.n + ' ', costEl(() => T.unlock.coins, null, ups)); act.append(b); ups.push(() => { b.disabled = S.coins < T.unlock.coins || Math.max(S.town === 'gulch' ? S.best : (S.towns.gulch || {}).best || 0, S.bestMap.gulch || 0) < T.unlock.best; }); }
+          else if (!here) act.append(h('button', { cls: 'primary', on: () => goTown(id) }, 'Play ' + T.n));
+        }
+      });
+    }
+    // shipping routes
+    p.append(h('h2', null, 'Shipping routes'));
+    const sug = h('div', { cls: 'sugs' }), list = h('div'), form = h('div', { cls: 'bar routeform' });
+    p.append(sug, list, form);
+    const made = id => new Set([...TOWNS[id].ext, ...TOWNS[id].shops].map(b => BY_ALL[b].def.out));
+    const needs = id => { const m = made(id), n = new Set(); for (const s of TOWNS[id].shops) for (const k in BY_ALL[s].def.in) if (!m.has(k)) n.add(k); for (const ty in TOWNS[id].goods) for (const k in TOWNS[id].goods[ty]) if (!m.has(k)) n.add(k); return [...n]; };
+    const addRoute = (from, to, k, per) => { if (from === to) return; S.routes.push({ id: Date.now() + Math.random(), from, to, k, per: per || 60, sent: 0 }); rebuild = true; say('Shipping ' + ITEMS[k].n.toLowerCase() + ' from ' + TOWNS[from].n + ' to ' + TOWNS[to].n + '.'); };
+    const ids = townIds().filter(townOpen);
+    for (const to of ids) for (const k of needs(to)) {
+      const from = ids.find(f => f !== to && made(f).has(k)); if (!from || S.routes.some(r => r.to === to && r.k === k)) continue;
+      sug.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, TOWNS[to].n + ' needs ' + ITEMS[k].n.toLowerCase()), h('small', null, 'Made in ' + TOWNS[from].n + '.')), h('button', { cls: 'small primary', on: () => addRoute(from, to, k, 60) }, 'Ship it')));
+    }
+    if (!S.routes.length) list.append(h('p', null, ids.length > 1 ? 'No routes yet. Goods leave before auto-sell, so a route takes what the town makes before it is sold.' : 'Open a second town to ship goods between towns.'));
+    for (const r of S.routes) {
+      const info = h('small'), seg = h('div', { cls: 'seg' });
+      const rates = S.railOpen ? [30, 120, 300, 1200] : [10, 30, 60, 120];
+      for (const v of rates) { const b = h('button', { cls: 'small', on: () => { r.per = v; refresh(); } }, v + '/min'); seg.append(b); ups.push(() => b.classList.toggle('on', r.per === v)); }
+      const pause = h('button', { cls: 'small', on: () => { r.paused = !r.paused; refresh(); } }), del = h('button', { cls: 'small danger', on: () => { S.routes = S.routes.filter(q => q !== r); rebuild = true; } }, 'Remove');
+      list.append(h('div', { cls: 'row' }, ico(r.k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, ITEMS[r.k].n + ': ' + TOWNS[r.from].n + ' → ' + TOWNS[r.to].n), info), seg, h('div', { cls: 'acts' }, pause, del)));
+      ups.push(() => { info.textContent = (r.paused ? 'Paused · ' : '') + fmt(r.sent || 0) + ' shipped so far'; pause.textContent = r.paused ? 'Resume' : 'Pause'; });
+    }
+    if (ids.length > 1) {
+      const sel = (opts, val) => { const s = h('select'); for (const [v, n] of opts) { const o = h('option', { value: v }, n); if (v === val) o.selected = true; s.append(o); } return s; };
+      const fromS = sel(ids.map(i => [i, TOWNS[i].n]), ids[0]), toS = sel(ids.map(i => [i, TOWNS[i].n]), ids[1]);
+      const goods = () => Object.keys(ITEMS).filter(k => made(fromS.value).has(k) || k === TOWNS[fromS.value].tap.trees || k === TOWNS[fromS.value].tap.rocks);
+      let kS = sel(goods().map(k => [k, ITEMS[k].n]));
+      fromS.onchange = () => { const n = sel(goods().map(k => [k, ITEMS[k].n])); kS.replaceWith(n); kS = n; };
+      form.append(h('small', null, 'New route'), fromS, h('small', null, 'to'), toS, kS, h('button', { cls: 'small', on: () => addRoute(fromS.value, toS.value, kS.value, 60) }, 'Add'));
+    }
+  },
   charter(p) {
     const held = h('b'), freeL = h('small'), offer = h('p'), signs = h('div', { cls: 'bar' });
     p.append(h('h2', null, 'Deeds'), h('div', { cls: 'deeds' }, held, freeL),
       h('p', null, 'Every deed you hold adds 20% to gathering, workshop speed and tower damage for good. Spend deeds on perks below; spending does not lose the bonus.'),
       h('h2', null, 'New charter'), h('p', null, 'Sell the gulch and start a new one. You lose coins, stock, buildings, research and towers. You keep deeds, perks and goals.'), offer, signs);
-    for (const id in MAPS) {
+    for (const id of TOWN.maps) { // a charter restarts the town you are in, on one of its maps
       const M = MAPS[id], b = h('button', { cls: 'primary', on: () => prestige(id) }, 'Sign for ' + M.n);
-      signs.append(b); ups.push(() => { b.disabled = !deedsOnOffer(); b.hidden = id === 'bridge' ? !S.maps.bridge : id !== 'gulch' && !S.maps[id] && !deedsOnOffer(); });
+      signs.append(b); ups.push(() => { b.disabled = !deedsOnOffer(); b.hidden = id === 'bridge' ? !S.maps.bridge : id === 'fork' ? !S.maps[id] && !deedsOnOffer() : false; });
     }
     ups.push(() => {
       held.textContent = S.deeds; freeL.textContent = freeDeeds() + ' to spend';
@@ -321,7 +390,7 @@ const PANELS = {
     ups.push(() => { got.textContent = Object.keys(S.badges).length + ' of ' + BADGES.length; });
     const recs = h('div', { cls: 'records' }); p.append(h('h2', null, 'Records'), recs);
     const hm = s => { s = Math.floor(s); const hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60; return hh ? hh + 'h ' + mm + 'm' : mm + 'm'; };
-    for (const [n, f] of [['Coins per second now', () => '+' + rate(liveIncome())], ['Potential coins per second (all surplus sold)', () => '+' + rate(steadyIncome())], ['Best coins per second', () => '+' + rate(S.bestRate || 0)], ['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['War wagons destroyed', () => fmt(S.stats.bosses)],
+    for (const [n, f] of [['Coins per second now', () => '+' + rate(liveIncome())], ['Potential coins per second (all surplus sold)', () => '+' + rate(steadyIncome())], ['Best coins per second', () => '+' + rate(S.bestRate || 0)], ['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['Bosses destroyed', () => fmt(S.stats.bosses)],
       ['Waves with no leaks', () => fmt(S.stats.flawless)], ['Goods made', () => fmt(S.stats.made)], ['Contracts filled', () => fmt(S.stats.contracts)],
       ['Charters signed', () => S.charters], ...Object.keys(MAPS).map(id => ['Best wave · ' + MAPS[id].n, () => S.bestMap[id] ? S.bestMap[id] : '—']), ['Time played', () => hm(S.stats.played)]]) {
       const v = h('b'); recs.append(h('div', null, h('span', null, n), v)); ups.push(() => { v.textContent = f(); });
@@ -349,7 +418,7 @@ const PANELS = {
     });
   },
 };
-const TABS = [['defend', 'Defend', 'crossbow'], ['works', 'Works', 'camp'], ['market', 'Market', 'market'], ['research', 'Research', 'flask'], ['charter', 'Charter', 'office']];
+const TABS = [['defend', 'Defend', 'crossbow'], ['works', 'Works', 'camp'], ['market', 'Market', 'market'], ['research', 'Research', 'flask'], ['empire', 'Empire', 'loco'], ['charter', 'Charter', 'office']];
 const fixedUps = [];
 function buildFixed() {
   $('hCoinIcon').src = iconURL('coin'); $('hWaveIcon').src = iconURL('raider'); $('hVaultIcon').src = iconURL('vault'); $('hDeedIcon').src = iconURL('star');
@@ -394,7 +463,9 @@ function buildFixed() {
     b.append(ico(A.icon, A.n), shade, num); b.setAttribute('aria-label', A.n + ': ' + A.d); b.addEventListener('click', () => useAbility(id));
     fixedUps.push(() => { const f = Math.max(0, S.cd[id]) / A.cd; shade.style.transform = 'scaleY(' + f + ')'; num.textContent = S.cd[id] > 0 ? Math.ceil(S.cd[id]) : ''; b.classList.toggle('ready', !(S.cd[id] > 0)); b.classList.toggle('active', id === 'ot' && S.ot > 0); });
   }
+  const h1 = document.querySelector('h1');
   fixedUps.push(() => {
+    if (h1.textContent !== TOWN.n) h1.textContent = TOWN.n; // the header names the town you are in
     $('hWave').textContent = S.wave; $('hVault').textContent = Math.max(0, S.vaultHp); $('hVault').append(h('span', { cls: 'mx' }, '/' + vaultMax()));
     $('hDeedsWrap').hidden = !S.deeds; $('hDeeds').textContent = S.deeds;
     const bw = $('bWave'); bw.disabled = W.active;

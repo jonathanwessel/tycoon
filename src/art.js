@@ -122,3 +122,31 @@ function paintSprites2() {
   for (const f of [0, 1]) mk('bird' + (f ? '_b' : ''), 13, 7, p => { p(P.dark, 5, 2, 3, 2); p(P.redD, 6, 1, 1, 1); if (f) { p(P.dark, 0, 0, 2, 1); p(P.dark, 2, 1, 3, 1); p(P.dark, 8, 1, 3, 1); p(P.dark, 11, 0, 2, 1); } else { p(P.dark, 0, 4, 2, 1); p(P.dark, 2, 3, 3, 1); p(P.dark, 8, 3, 3, 1); p(P.dark, 11, 4, 2, 1); } });
   mk('tumble', 12, 12, p => { p.disc('#a88a5a', 6, 6, 5.5); p.disc(null, 6, 6, 4); p.disc('#8a6a40', 6, 6, 3.4); p.disc(null, 6, 6, 2); for (const [x, y] of [[2, 3], [9, 2], [3, 9], [8, 8], [5, 5], [6, 1], [1, 6], [10, 6]]) p('#c9a476', x, y, 1, 1); });
 }
+/* Iron Ridge: goods, buildings, quarry boulders and the armoured train. */
+function paintSprites3() {
+  const hut = (p, wall, wallD, roof, roofD) => { p(roof, 5, 2, 6, 1); p(roof, 4, 3, 8, 1); p(roof, 3, 4, 10, 1); p(roof, 2, 5, 12, 1); p(roofD, 1, 6, 14, 2); p(wall, 2, 8, 12, 6); p(wallD, 2, 13, 12, 1); p(P.dark, 7, 10, 3, 4); };
+  const RUST = '#a85a2a', IRON = '#5e5868', IRONL = '#837c8f', IROND = '#3e3a48';
+  // goods
+  mk('iron', 12, 12, p => { p.disc(IRON, 6, 6.5, 4.8); p(IROND, 2, 8, 8, 2); p(IRONL, 4, 2, 3, 1); p(RUST, 3, 4, 2, 2); p(RUST, 7, 6, 2, 1); p('#c87a3e', 6, 3, 1, 1); });
+  mk('stone', 13, 11, p => { p(P.grey, 1, 3, 11, 7); p(P.greyL, 1, 3, 11, 2); p(P.greyD, 1, 9, 11, 1); p(P.greyD, 6, 3, 1, 7); p(P.greyD, 1, 6, 5, 1); p(P.greyL, 2, 4, 3, 1); });
+  mk('pig', 14, 11, p => { p(IRONL, 4, 2, 7, 1); p(IRONL, 3, 3, 9, 1); p(IRON, 2, 4, 11, 3); p(IROND, 1, 7, 12, 2); p(P.white, 5, 2, 3, 1); p(RUST, 9, 5, 2, 1); });
+  mk('rail', 14, 12, p => { for (const x of [1, 5, 9]) p(P.woodD, x, 1, 3, 10); p(P.steelL, 0, 3, 14, 1); p(P.steel, 0, 4, 14, 1); p(P.steelL, 0, 7, 14, 1); p(P.steel, 0, 8, 14, 1); });
+  mk('boiler', 14, 13, p => { p(P.copD, 2, 2, 10, 9); p(P.cop, 2, 2, 10, 2); p('#f3b27e', 3, 3, 7, 1); p.disc(P.copD, 12, 6.5, 2); for (const [x, y] of [[3, 6], [6, 6], [9, 6], [3, 9], [6, 9], [9, 9]]) p(P.yel, x, y, 1, 1); p(P.dark, 6, 0, 2, 2); p(P.dark, 2, 11, 10, 1); });
+  mk('loco', 18, 14, p => { p(P.dark, 2, 2, 3, 4); p(P.greyD, 1, 1, 5, 1); p(P.night, 1, 5, 11, 5); p(IRON, 2, 6, 9, 3); p(P.redD, 11, 3, 6, 7); p(P.red, 11, 3, 6, 2); p(P.yelL, 13, 5, 2, 2); p(P.yel, 0, 8, 2, 1); p.disc(P.dark, 4, 11.5, 2); p.disc(P.dark, 9, 11.5, 2); p.disc(P.dark, 14, 11.5, 2); p(P.grey, 4, 11, 1, 1); p(P.grey, 9, 11, 1, 1); p(P.grey, 14, 11, 1, 1); });
+  mk('boulder', 14, 12, p => { p(P.grey, 2, 4, 10, 6); p(P.grey, 4, 2, 6, 2); p(P.greyL, 4, 2, 4, 1); p(P.greyL, 2, 4, 2, 1); p(P.greyD, 2, 9, 10, 2); p(P.greyD, 9, 3, 1, 5); p(P.greyL, 6, 6, 2, 1); });
+  // buildings (16x16)
+  mk('ironmine', 16, 16, p => { p(IRON, 4, 2, 8, 3); p(IRON, 2, 5, 12, 9); p(IRONL, 4, 2, 5, 1); p(RUST, 5, 4, 2, 1); p(RUST, 11, 6, 2, 2); p(IROND, 2, 13, 12, 1); p(P.woodL, 4, 7, 8, 1); p(P.wood, 4, 8, 1, 6); p(P.wood, 11, 8, 1, 6); p(P.night, 5, 8, 6, 6); p(RUST, 6, 11, 4, 2); p(P.greyD, 6, 13, 1, 1); p(P.greyD, 9, 13, 1, 1); });
+  mk('coalseam', 16, 16, p => { p('#3e3742', 1, 9, 14, 5); p('#2c2730', 3, 6, 10, 3); p(P.night, 5, 9, 6, 4); p(P.woodD, 4, 8, 1, 6); p(P.woodD, 11, 8, 1, 6); p(P.wood, 4, 7, 8, 1); p(P.coal, 1, 12, 5, 2); p(P.coalL, 2, 11, 3, 1); p(P.coal, 11, 11, 4, 3); p(P.coalL, 12, 10, 2, 1); });
+  mk('quarry', 16, 16, p => { p(P.greyD, 1, 10, 14, 4); p(P.grey, 2, 7, 12, 3); p(P.greyL, 3, 4, 10, 3); p(P.greyL, 3, 4, 10, 1); p(P.grey, 5, 2, 6, 2); for (const [x, y] of [[2, 12], [6, 12], [10, 12]]) { p(P.greyL, x, y, 3, 1); } p(P.wood, 12, 3, 1, 8); p(P.woodD, 9, 3, 4, 1); p(P.greyD, 9, 4, 1, 2); });
+  mk('blast', 16, 16, p => { p(P.greyD, 4, 0, 4, 6); p(P.grey, 4, 0, 1, 6); p(P.dark, 4, 1, 4, 1); p(P.grey, 2, 5, 12, 9); p(P.greyL, 2, 5, 12, 1); p(P.greyD, 2, 13, 12, 1); for (const y of [7, 10]) p(P.greyD, 2, y, 12, 1); p(P.org, 6, 9, 5, 4); p(P.yel, 7, 10, 3, 3); p(P.yelL, 8, 11, 1, 2); p(RUST, 11, 3, 3, 2); });
+  mk('rolling', 16, 16, p => { hut(p, P.steel, P.steelD, P.greyD, P.dark); p(P.steelL, 1, 12, 14, 1); p(P.steel, 1, 13, 14, 1); for (const x of [3, 7, 11]) p.disc(P.greyD, x + 1, 10, 1.5); p(P.org, 12, 9, 2, 2); });
+  mk('boilerw', 16, 16, p => { hut(p, P.woodL, P.wood, P.redD, '#6e2a2a'); p(P.copD, 9, 9, 6, 5); p(P.cop, 9, 9, 6, 1); p(P.yel, 10, 11, 1, 1); p(P.yel, 13, 11, 1, 1); p(P.greyD, 12, 2, 2, 5); });
+  mk('locow', 16, 16, p => { p(P.redD, 1, 3, 14, 3); p(P.red, 2, 2, 12, 2); p(P.woodL, 1, 6, 14, 8); p(P.wood, 1, 13, 14, 1); p(P.night, 4, 7, 8, 7); p(P.dark, 5, 8, 6, 5); p(P.yelL, 7, 9, 2, 2); p(P.greyD, 7, 0, 2, 3); p(P.steelL, 0, 14, 16, 1); p(P.steel, 0, 15, 16, 1); });
+  // the armoured train (Iron Ridge boss), two frames
+  for (const f of [0, 1]) mk('train' + (f ? '_b' : ''), 26, 18, p => {
+    p(P.dark, 4, 0, 3, 5); p(P.greyD, 3, 0, 5, 1); p(IROND, 1, 4, 20, 9); p(IRON, 2, 5, 18, 3); p(IRONL, 2, 5, 18, 1);
+    for (const x of [4, 8, 12, 16]) p(P.yel, x, 9, 1, 1); p(P.red, 1, 11, 20, 1); p(P.redD, 20, 3, 5, 10); p(P.yelL, 21, 5, 2, 2);
+    p(P.greyL, 22, 8, 4, 1); p(P.greyD, 0, 12, 2, 2);
+    for (const x of [5, 11, 17]) { p.disc(P.dark, x, 14.5, 2.6); p(P.grey, f ? x : x - 1, 14, 2, 1); }
+  });
+}

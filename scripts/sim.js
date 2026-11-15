@@ -21,7 +21,7 @@ function load(opts = {}) {
     function $() { return null; } function say() {} function refresh() {} function bakeGround() {} function medal() {}
     const GLX = { groundDirty: false };`, ctx);
   for (const f of SIM_FILES) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8'), ctx, { filename: 'src/' + f });
-  vm.runInContext(`setMap('gulch');`, ctx);
+  vm.runInContext(`useTown('gulch'); setMap('gulch');`, ctx);
   return { ctx, store, run: code => vm.runInContext(String(code), ctx), call: (fn, ...args) => vm.runInContext(`(${fn})(...${JSON.stringify(args)})`, ctx) };
 }
 

@@ -86,6 +86,62 @@ test('towns keep their own buildings; the empire shares coins; background work s
   assert.strictEqual(round.run('S.towns.gulch.ext.camp'), 3, 'stored towns survive a save and load');
 });
 
+test('Iron Ridge opens only after wave 20 in Copper Gulch and costs 100K', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 2e5; S.best = 12;`);
+  assert.strictEqual(g.run(`unlockTown('ridge')`), false, 'too early');
+  g.run('S.best = 21;');
+  assert.strictEqual(g.run(`unlockTown('ridge')`), true);
+  assert.strictEqual(g.run('S.coins'), 1e5);
+  assert.strictEqual(g.run('S.towns.ridge.map'), 'ridge');
+  assert.strictEqual(g.run('S.towns.ridge.res.stone'), 30, 'starting stone');
+});
+
+test('Iron Ridge works in the background on its own chain, fed by a shipping route', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e6; S.best = 25; unlockTown('ridge');
+    S.res.plank = 500; S.ext.camp = 10;
+    Object.assign(S.towns.ridge.ext, { ironmine: 10, coalseam: 10 }); Object.assign(S.towns.ridge.shops, { blast: 8, boilerw: 4 });
+    S.routes.push({ from: 'gulch', to: 'ridge', k: 'plank', per: 60 });`);
+  const coins0 = g.run('S.coins');
+  g.run('for (let i = 0; i < 120; i++) econTowns(.5);');
+  assert.ok(g.run('S.towns.ridge.res.pig') > 0 || g.run('S.towns.ridge.res.boiler') > 0, 'ridge made pig iron');
+  assert.ok(g.run('S.towns.ridge.res.boiler') > 0, 'boilers made from shipped planks');
+  const sent = g.run('S.routes[0].sent');
+  assert.ok(sent > 55 && sent <= 60.5, 'about 60 planks a minute shipped, got ' + sent);
+  assert.ok(g.run('S.coins') < coins0, 'shipping fees were paid');
+  assert.strictEqual(g.run('BUILD.map(b => b.def.id).join()'), 'camp,mine,drill,pit,saw,smelt,glass,mach,eng,mill,clockw,autow', 'back to Gulch buildings');
+});
+
+test('a route never ships more than the source has', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e6; S.towns.ridge = townFresh('ridge'); S.res.gear = 3;
+    S.routes.push({ from: 'gulch', to: 'ridge', k: 'gear', per: 120 }); for (let i = 0; i < 20; i++) econTowns(.5);`);
+  assert.ok(Math.abs(g.run('S.towns.ridge.res.gear') - 3) < 1e-9);
+  assert.ok(g.run('S.res.gear') >= 0);
+});
+
+test('switching to Iron Ridge brings its buildings, map, taps and boss', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.towns.ridge = townFresh('ridge'); switchTown('ridge');`);
+  assert.strictEqual(g.run('TOWN_ID'), 'ridge');
+  assert.ok(g.run(`BY_ID.locow && !BY_ID.camp`));
+  assert.strictEqual(g.run('MAP.n'), 'Iron Ridge');
+  assert.strictEqual(g.run(`TOWN.tap.rocks`), 'iron');
+  assert.strictEqual(g.run('bossName()'), 'Armoured train');
+  assert.deepStrictEqual(JSON.parse(g.run('JSON.stringify(towerGoods("crossbow"))')), { stone: 6 });
+  g.run(`S.res.stone = 6; S.coins = 100; buildTower('crossbow', PLOTS[0].x, PLOTS[0].y);`);
+  assert.strictEqual(g.run('S.towers.length'), 1, 'a crossbow built from stone');
+});
+
+test('the first Locomotive Works opens rail for every route', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.towns.ridge = townFresh('ridge'); switchTown('ridge'); S.coins = 1e9; S.shops.locow = 0;`);
+  assert.strictEqual(g.run('carrier().max'), 120);
+  g.run(`buyBuilding(BY_ID.locow);`);
+  assert.strictEqual(g.run('carrier().max'), 1200);
+});
+
 test('a dust storm shortens tower reach except frost and tesla', () => {
   const g = load();
   g.run(`S = fresh(); setMap('gulch'); W.active = false;`);

@@ -17,8 +17,9 @@ function sp(g, name, x, y, hgt, flip) {
 }
 function bake(g, c) {
   g.imageSmoothingEnabled = false; let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  g.fillStyle = '#b99468'; g.fillRect(0, 0, c * COLS, c * YARD);
-  for (let y = YARD; y < ROWS; y++) for (let x = 0; x < COLS; x++) { g.fillStyle = (x + y) % 2 ? '#d0aa76' : '#c9a26c'; g.fillRect(x * c, y * c, c + 1, c + 1); }
+  const pal = MAP.pal || { yard: '#b99468', a: '#d0aa76', b: '#c9a26c', road: ['#7a5a3e', '#9b7552', '#8a6645', '#9b7552'] }; // each map can recolour its ground
+  g.fillStyle = pal.yard; g.fillRect(0, 0, c * COLS, c * YARD);
+  for (let y = YARD; y < ROWS; y++) for (let x = 0; x < COLS; x++) { g.fillStyle = (x + y) % 2 ? pal.a : pal.b; g.fillRect(x * c, y * c, c + 1, c + 1); }
   // broad patches of lighter and darker earth so the ground does not read as a flat board
   for (let i = 0; i < 14; i++) { const x = rnd() * COLS * c, y = (YARD + rnd() * (ROWS - YARD)) * c, r = (1.2 + rnd() * 2) * c, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, i % 2 ? 'rgba(232,196,140,.35)' : 'rgba(150,104,62,.2)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
   for (let i = 0; i < 600; i++) { const x = rnd() * COLS * c, y = rnd() * ROWS * c, s = Math.max(1, c * .05); g.fillStyle = i % 3 ? 'rgba(120,84,48,.28)' : 'rgba(255,236,190,.3)'; g.fillRect(Math.round(x), Math.round(y), s * (1 + (i % 2)), s); }
@@ -50,7 +51,7 @@ function bake(g, c) {
     for (let y = y0; y < y1; y += c * .45) g.fillRect(mid - c * .1 + (Math.floor(y / c) % 2) * c * .08, y, c * .1, Math.max(1, c * .04));
     for (let y = y0; y < y1; y += px) { const j1 = Math.floor(rnd() * 3), j2 = Math.floor(rnd() * 3); g.fillStyle = '#9a6e4a'; g.fillRect(x0 - j1 * px, y, px * (1 + j1), px); g.fillRect(x1 - px, y, px * (1 + j2), px); g.fillStyle = 'rgba(30,18,12,.35)'; g.fillRect(x0 + px, y, px * 2, px); g.fillRect(x1 - px * 3, y, px * 2, px); }
   }
-  line(c * 1.04, 'rgba(70,46,28,.35)'); line(c * .96, '#7a5a3e'); line(c * .84, '#9b7552'); line(c * .44, '#8a6645'); line(c * .34, '#9b7552');
+  line(c * 1.04, 'rgba(70,46,28,.35)'); line(c * .96, pal.road[0]); line(c * .84, pal.road[1]); line(c * .44, pal.road[2]); line(c * .34, pal.road[3]);
   // wheel ruts and the stones kicked to the road's edge
   for (const P_ of PATHS) for (const s of P_.segs) {
     const hz = s.y1 === s.y2, ax = Math.min(s.x1, s.x2), bx = Math.max(s.x1, s.x2), ay = Math.min(s.y1, s.y2), by = Math.max(s.y1, s.y2);
@@ -113,7 +114,8 @@ function draw(time) {
   if (!LIT) cx.drawImage(ground, 0, 0);
   // town yard
   const tsh = FXS.shake.trees > 0 ? Math.sin(time * 70) * c * .05 : 0, rsh = FXS.shake.rocks > 0 ? Math.sin(time * 80) * c * .04 : 0;
-  for (const [x, y, s] of TREES) sp(cx, 'tree', x * c + tsh, y * c, s * c);
+  if (TOWN.trees) for (const [x, y, s] of TREES) sp(cx, 'tree', x * c + tsh, y * c, s * c);
+  else for (const [x, y, s] of [[.5, .8, .85], [1.45, .7, 1], [1, 1.45, .95]]) sp(cx, 'boulder', x * c + tsh, y * c, s * c); // Iron Ridge quarries boulders
   if (rsh) sp(cx, 'rock', 1.45 * c + rsh, 2.6 * c, .95 * c);
   cx.font = '700 ' + Math.max(9, c * .3) + 'px "Barlow Semi Condensed", sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
   // name tags are labels, not scenery: in lit mode they go on the unlit overlay so they stay readable and cast no shadow
@@ -154,6 +156,8 @@ function draw(time) {
   const ct = FXS.car, moving = ct < 1 || ct > 2.6, carX = ct < 1 ? 13.2 - 2.2 * ct : ct < 2.6 ? 11 : 11 + (ct - 2.6) * 2.4;
   if (carX < 13.3) sp(cx, Math.floor(time * 8) % 2 && moving ? 'wagon_b' : 'wagon', carX * c, 2.95 * c + (moving ? Math.sin(time * 20) * c * .02 : 0), c * 1.2, ct < 2.6);
   else sp(cx, 'sign', 11 * c, 3.1 * c, c * .9);
+  // shipping convoys: a wagon (or a train once rail is open) with the load riding on top
+  if (FXS.convoys) { const spr = carrier().spr; for (const v of FXS.convoys) { const y = 3.55 * c + Math.sin(time * 18 + v.x) * c * .02; sp(cx, Math.floor(time * 8) % 2 && spr === 'wagon' ? 'wagon_b' : spr, v.x * c, y, c * (spr === 'loco' ? .8 : 1), !v.out); sp(cx, v.k, v.x * c, y - c * .5, c * .34); } }
   for (const w of workers) { const wy = w.y * c - Math.abs(Math.sin(time * 12 + w.tx)) * c * .04; sp(cx, Math.floor(time * 8 + w.tx) % 2 ? 'worker_b' : 'worker', w.x * c, wy, c * .5, w.dir < 0); sp(cx, w.k, w.x * c, wy - c * .38, c * .34); }
   // cacti, unless a tower stands there
   for (const [x, y] of CACTI) if (!S.towers.some(t => t.c === x && t.r === y)) { cx.fillStyle = 'rgba(40,24,14,.2)'; cx.beginPath(); cx.ellipse((x + .36) * c, (y + .58) * c, c * .2, c * .06, 0, 0, 7); cx.fill(); sp(cx, 'cactus', (x + .3) * c, (y + .34) * c, c * .5); }
@@ -197,7 +201,7 @@ function draw(time) {
     else if (!onRoad(Math.floor(hx), Math.floor(hy))) cx.strokeRect(Math.floor(hx) * c + c * .08, Math.floor(hy) * c + c * .08, c * .84, c * .84);
   }
   // fallen raiders and tumbleweeds lie under everything else
-  for (const k of corpses) { const D = FOES[k.type], hgt = D.size * c, a = Math.min(1, k.t * 2.5), fall = Math.min(1, (.8 - k.t) * 6); cx.globalAlpha = a; cx.save(); cx.translate(X(k.x), Y(k.y) + hgt * .1 * fall); cx.rotate(k.dir * fall * 1.45); sp(cx, k.type, 0, -hgt * .2, hgt); cx.restore(); }
+  for (const k of corpses) { const D = FOES[k.type], hgt = D.size * c, a = Math.min(1, k.t * 2.5), fall = Math.min(1, (.8 - k.t) * 6); cx.globalAlpha = a; cx.save(); cx.translate(X(k.x), Y(k.y) + hgt * .1 * fall); cx.rotate(k.dir * fall * 1.45); sp(cx, k.type === 'boss' ? TOWN.boss.spr : k.type, 0, -hgt * .2, hgt); cx.restore(); }
   cx.globalAlpha = 1;
   for (const d of drops) {
     const a = Math.min(1, d.t * 3), spin = Math.abs(Math.cos(d.t * 12)), s = c * .26;
@@ -232,7 +236,7 @@ function draw(time) {
       cx.fillStyle = 'rgba(40,24,14,.28)'; cx.beginPath(); cx.ellipse(x, Y(f.y) + hgt * .28, hgt * .36, hgt * .1, 0, 0, 7); cx.fill();
       if (D.heal) { cx.fillStyle = 'rgba(127,217,146,' + (.18 + Math.sin(time * 4 + f.d) * .08) + ')'; cx.beginPath(); cx.arc(x, y, hgt * .7, 0, 7); cx.fill(); }
       const tint = f.flash > 0 ? '_w' : f.slow > 0 || (f.stun > 0 && f.ice) ? '_i' : '';
-      sp(cx, f.type + fr + tint, x, y, hgt, f.dir < 0);
+      sp(cx, (f.type === 'boss' ? TOWN.boss.spr : f.type) + fr + tint, x, y, hgt, f.dir < 0);
       if (f.sh > 0) { sp(cx, 'buckler' + (f.flash > 0 ? '_w' : ''), x + f.dir * hgt * .32, y + hgt * .08, hgt * .62, f.dir < 0); }
       if (f.stun > 0 && f.ice) { cx.fillStyle = 'rgba(220,245,255,.4)'; cx.strokeStyle = 'rgba(255,255,255,.8)'; cx.lineWidth = Math.max(1, c * .03); cx.fillRect(x - hgt * .45, y - hgt * .5, hgt * .9, hgt); cx.strokeRect(x - hgt * .45, y - hgt * .5, hgt * .9, hgt); }
       else if (f.stun > 0) { for (let i = 0; i < 3; i++) { const a = time * 6 + i * 2.1; cx.fillStyle = '#f2d04a'; cx.fillRect(x + Math.cos(a) * hgt * .35 - c * .03, y - hgt * .55 + Math.sin(a) * hgt * .1, c * .06, c * .06); } }
@@ -274,7 +278,7 @@ function draw(time) {
     const a = FXS.night;
     for (const [tx, ty] of torches) glow(tx * c, ty * c - c * .3, c * (1.5 + Math.sin(time * 9 + ty) * .1), 'rgba(245,160,74,' + .5 * a + ')');
     for (const t of S.towers) if (t.type === 'frost') glow(X(t.c), Y(t.r) - c * .2, c * 1.1, 'rgba(143,232,255,' + .4 * a + ')'); else if (t.type === 'tesla') glow(X(t.c), Y(t.r) - c * .4, c * (1 + (t.kick > 0 ? .6 : 0)), (t.br === 'b' ? 'rgba(255,90,120,' : 'rgba(242,208,74,') + .45 * a + ')');
-    for (const id of ['smelt', 'mill']) if (blv(id) && ACT[id] > .08) glow((SLOT[id][0] + 1) * c, (SLOT[id][1] + 1.3) * c, c * 1.1, 'rgba(245,160,74,' + .45 * a + ')');
+    for (const id of TOWN.forge) if (blv(id) && ACT[id] > .08) glow((SLOT[id][0] + 1) * c, (SLOT[id][1] + 1.3) * c, c * 1.1, 'rgba(245,160,74,' + .45 * a + ')');
     for (const s of shots) glow(X(s.x), Y(s.y), c * .45, 'rgba(255,220,140,' + .35 * a + ')');
     // lamps come on in every working building
     for (const b of BUILD) if (blv(b.def.id)) { const [sx, sy] = SLOT[b.def.id]; glow((sx + 1) * c, (sy + 1.45) * c, c * .75, 'rgba(255,196,110,' + .32 * a * (.9 + Math.sin(time * 3 + sx) * .1) + ')'); }
@@ -325,7 +329,7 @@ function draw(time) {
     const bx = c * .45, bw = cv.width - c * .9, by = c * .5, bh = c * .24, fr = Math.max(0, boss.hp / boss.max);
     cx.fillStyle = 'rgba(22,26,42,.88)'; cx.fillRect(bx - c * .12, by - c * .42, bw + c * .24, bh + c * .56);
     cx.textAlign = 'left'; cx.textBaseline = 'middle'; cx.font = '700 ' + Math.max(9, c * .26) + 'px "Barlow Semi Condensed", "Arial Narrow", sans-serif';
-    cx.fillStyle = '#ff8fb0'; cx.fillText('WAR WAGON' + (boss.rage ? ' · FULL STEAM' : boss.ph1 ? ' · CREW OFF' : ' · STOP IT BEFORE THE VAULT'), bx, by - c * .2);
+    cx.fillStyle = '#ff8fb0'; cx.fillText(bossName().toUpperCase() + (boss.rage ? ' · FULL STEAM' : boss.ph1 ? ' · CREW OFF' : ' · STOP IT BEFORE THE VAULT'), bx, by - c * .2);
     cx.textAlign = 'right'; cx.fillStyle = '#ece6d8'; cx.fillText(fmt(Math.max(0, boss.hp)), bx + bw, by - c * .2); cx.textAlign = 'center';
     cx.fillStyle = '#3a1c26'; cx.fillRect(bx, by, bw, bh);
     const g = cx.createLinearGradient(bx, 0, bx + bw, 0); g.addColorStop(0, '#f07067'); g.addColorStop(1, '#ff4f8b'); cx.fillStyle = g; cx.fillRect(bx, by, bw * fr, bh);

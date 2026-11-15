@@ -26,7 +26,7 @@ function startWave() {
   W.queue = W.next; W.next = null; W.type = W.ntype; W.hpm = T.hp; W.active = true; W.spawnT = 0; W.spawned = 0; W.total = W.queue.length;
   W.weather = W.nweather || null; W.nweather = null; W.leaks = 0;
   W.gap = Math.max(.25, .75 - S.wave * .01) * T.gap;
-  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? 'War wagon: stop it or lose the vault' : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
+  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? bossName() + ': stop it or lose the vault' : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
   snd('wave', 220, .25, 'sawtooth', .04, 220);
 }
 function spawn(type) {
@@ -34,7 +34,7 @@ function spawn(type) {
   foes.push({ type, p, d: 0, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: 1, flash: 0, num: 0, ht: 1.5 });
   // every raider kicks up a puff of dust as it rides in; the war wagon shakes the ground
   for (let i = 0; i < (type === 'boss' ? 22 : 5); i++) parts.push({ x: x + .4 + Math.random() * .4, y: y + .5 + (Math.random() - .5) * .6, vx: Math.random() * 1.2, vy: -.3 - Math.random() * .5, g: 0, t: .7, c: '#dcc59c', s: .09, smoke: 1 });
-  if (type === 'boss') { FXS.quake = Math.max(FXS.quake, .9); FXS.bossIn = 2.5; snd('rumble', 55, .7, 'sawtooth', .08, -15); floats.push({ x: x + 1.2, y: y - .3, t: 1.6, s: 'War wagon!', c: '#ff8fb0', z: .45 }); }
+  if (type === 'boss') { FXS.quake = Math.max(FXS.quake, .9); FXS.bossIn = 2.5; snd('rumble', 55, .7, 'sawtooth', .08, -15); floats.push({ x: x + 1.2, y: y - .3, t: 1.6, s: bossName() + '!', c: '#ff8fb0', z: .45 }); }
 }
 function spawnAt(type, from, back) {
   const hp = foeHp(S.wave) * FOES[type].hp * W.hpm * MAP.hp, d = Math.max(0, from.d - back), [x, y] = posAt(d, from.p);
@@ -57,7 +57,7 @@ function hurt(f, dmg, o) {
     if (f.type === 'boss') {
       const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1;
       fx.push({ k: 'boom', x: f.x, y: f.y, r: 2.2, t: .6, d: .6 }); FXS.quake = 1; FXS.flash = .15; snd('kaboom', 60, .7, 'sawtooth', .1, -30);
-      FXS.banner = { t: 2.8, a: 'War wagon destroyed', b: '+' + fmt(bonus) + ' bonus coins', gold: 1, boss: 1 };
+      FXS.banner = { t: 2.8, a: bossName() + ' destroyed', b: '+' + fmt(bonus) + ' bonus coins', gold: 1, boss: 1 };
       for (let i = 0; i < 40; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 9, vy: -2 - Math.random() * 6, g: 9, t: 1 + Math.random() * .6, c: [P.yel, P.yelL, '#8a6a48', P.steelL, P.org][i % 5], s: .1 + Math.random() * .06 });
       for (let i = 0; i < 10; i++) setTimeout(() => fly('coin', f.x + .5 + (Math.random() - .5), f.y + .5, $('hCoinWrap')), i * 70);
     }
@@ -90,8 +90,8 @@ function upgradeTower(t) { if (needsBranch(t)) return false; const c = upCost(t)
 function branchTower(t, b) { if (!needsBranch(t)) return false; const c = branchCost(t); if (S.coins < c) return false; S.coins -= c; t.br = b; t.lvl++; snd('ms', 660, .25, 'triangle', .06, 440); for (let i = 0; i < 14; i++) parts.push({ x: t.c + .5, y: t.r + .5, vx: Math.cos(i) * 2, vy: Math.sin(i) * 2 - 1, g: 2, t: .7, c: P.yel, s: .08 }); return true; }
 function buildTower(type, c, r) {
   const d = TOWERS[type], cost = buildCost(type);
-  if (S.coins < cost || !hasGoods(d.goods)) return false;
-  S.coins -= cost; for (const k in d.goods) S.res[k] -= d.goods[k];
+  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods)) return false;
+  S.coins -= cost; for (const k in goods) S.res[k] -= goods[k];
   S.towers.push({ c, r, type, lvl: 0, tg: 'first' }); return true;
 }
 function pickTarget(t, st) {
@@ -229,8 +229,8 @@ function combat(dt) {
     S.wave = Math.max(1, S.wave - 2); S.vaultHp = vaultMax(); FXS.quake = .8; W.weather = null;
     if (W.smashed) {
       W.smashed = 0; S.stats.smashed = (S.stats.smashed || 0) + 1;
-      FXS.banner = { t: 3.2, a: 'Vault smashed', b: 'The war wagon got through · back to wave ' + S.wave };
-      say('The war wagon smashed the vault and took ' + fmt(lost) + ' coins. Back to wave ' + S.wave + '. Destroy the war wagon to get past its wave.');
+      FXS.banner = { t: 3.2, a: 'Vault smashed', b: 'The ' + bossName().toLowerCase() + ' got through · back to wave ' + S.wave };
+      say('The ' + bossName().toLowerCase() + ' smashed the vault and took ' + fmt(lost) + ' coins. Back to wave ' + S.wave + '. Destroy it to get past its wave.');
     } else {
       FXS.banner = { t: 2.6, a: 'Vault breached', b: 'Back to wave ' + S.wave };
       say('Vault breached! Raiders took ' + fmt(lost) + ' coins. Falling back to wave ' + S.wave + '.');
@@ -265,10 +265,11 @@ function prestige(mapId) {
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, maps: Object.assign(S.maps, { fork: 1 }, S.map === 'fork' ? { bridge: 1 } : {}), goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
     sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {}, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
-    town: S.town, towns: S.towns, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
+    town: S.town, towns: S.towns, routes: S.routes, inbox: S.inbox, railOpen: S.railOpen, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
   if (S.map === 'fork' && !S.maps.bridgeSeen) { S.maps.bridgeSeen = 1; setTimeout(() => say('Trestle Bridge is open. Pick it next time you sign a charter.'), 2600); }
-  S = fresh(); Object.assign(S, keep); S.map = MAPS[mapId] ? mapId : 'gulch'; setMap(S.map); bakeGround();
-  const st = perk('start'); if (st) { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; }
+  const map = TOWNS[S.town].maps.includes(mapId) ? mapId : TOWNS[S.town].maps[0];
+  S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map); bakeGround();
+  const st = perk('start'); if (st) { if (S.town === 'ridge') { S.ext.ironmine = S.ext.quarry = 5 * st; S.shops.blast = 1; } else { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; } }
   const cf = perk('coffers'); if (cf) S.coins += 500 * Math.pow(10, cf - 1);
   for (let i = 0; i < perk('fort'); i++) { const p = PLOTS[i * 2]; if (p) S.towers.push({ c: p.x, r: p.y, type: 'crossbow', lvl: 2, tg: 'first' }); }
   wipeField(); save(); say('New charter signed for ' + MAP.n + '. You hold ' + S.deeds + ' deeds.');
