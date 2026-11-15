@@ -138,7 +138,9 @@ function glRender(time) {
   // light for the time of day and the weather
   const n = Math.min(1, FXS.night), dusk = Math.sin(Math.PI * n), wa = FXS.wxA || 0, wk = FXS.wxK;
   const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-  let amb = mix([1, .98, .93], [.4, .42, .64], n); // night stays readable: raiders must be visible on the road amb = mix(amb, [1.02, .66, .46], dusk * .55);
+  // night stays readable (raiders must be visible on the road); dusk passes through a warm sunset
+  let amb = mix([1, .98, .93], [.4, .42, .64], n);
+  amb = mix(amb, [1.02, .66, .46], dusk * .55);
   const tint = wk === 'rain' ? [.74, .8, .94] : wk === 'dust' ? [1.06, .9, .72] : wk === 'heat' ? [1.08, .97, .84] : wk === 'moon' ? [1.05, 1.1, 1.3] : [1, 1, 1];
   amb = amb.map((v, i) => v * (1 + (tint[i] - 1) * wa));
   const sunK = (1 - n) * (wk === 'rain' ? 1 - .65 * wa : wk === 'dust' ? 1 - .45 * wa : 1);
