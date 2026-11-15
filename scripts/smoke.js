@@ -18,6 +18,8 @@ const shots = process.argv[2];
     await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
     await p.goto(URL);
     await p.waitForTimeout(500);
+    // the map's render must match its size on screen
+    if (!(await p.evaluate(() => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && cell > 0 && Math.abs(cell * COLS - cv.width) < 1))) errs.push('map render size does not match the map on screen');
     const r = await p.evaluate(() => {
       const rect = document.getElementById('cv').getBoundingClientRect();
       const at = (c, r) => ({ clientX: rect.left + (c + .5) * rect.width / COLS, clientY: rect.top + (r + .5) * rect.height / ROWS, bubbles: true });
@@ -74,8 +76,21 @@ const shots = process.argv[2];
     const ui = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
       goTab('charter'); const badges = document.querySelectorAll('.badge').length, got = document.querySelectorAll('.badge.got').length;
+      openSettings('game');
       const calmBtn = [...document.querySelectorAll('.setrow button')].find(b => b.textContent === 'Calm'); calmBtn.click(); const calm = document.documentElement.classList.contains('calm');
       [...document.querySelectorAll('.setrow button')].find(b => b.textContent === 'Like my device').click();
+      // graphics: every preset and every look applies without errors, and the panel buttons drive the settings
+      openSettings('gfx'); const btn = t => [...document.querySelectorAll('.setrow button')].find(b => b.textContent === t);
+      let gfx = true;
+      // each preset must also size the render to the map (catches a map drawn at the wrong scale, which throws no error)
+      const sized = () => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && (!GLX.on || GLX.canvas.width === cv.width);
+      for (const [label, key] of [['Low', 'low'], ['Medium', 'med'], ['Ultra', 'ultra'], ['High', 'high']]) { btn(label).click(); await wait(150); if (GX().preset !== key || !sized()) gfx = false; }
+      for (const k in LOOKS) { btn(LOOKS[k].n).click(); await wait(120); if (GX().look !== k) gfx = false; }
+      btn('Natural').click(); btn('Soft').click(); if (GX().preset !== 'custom') gfx = false; btn('High').click();
+      btn('Battery 30').click(); await wait(200); btn('Smooth 60').click();
+      document.getElementById('modal').hidden = true; document.getElementById('modal').className = 'modal';
+      // coal pit foreman
+      S.ext.pit = Math.max(1, S.ext.pit || 0); delete S.mgr.pit; S.coins = 1e12; hire('pit'); const coal = S.mgr.pit === 1;
       document.getElementById('bHold').click(); const held = !S.autoWave; document.getElementById('bHold').click();
       document.getElementById('bPause').click(); const w0 = S.res.wood; await wait(400); const frozen = paused && S.res.wood === w0; document.getElementById('pauseCover').click(); const resumed = !paused;
       document.getElementById('bSpeed').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); const menu = !document.querySelector('.speedmenu').hidden;
@@ -89,17 +104,17 @@ const shots = process.argv[2];
       const fr = document.querySelector('.mapwrap').getBoundingClientRect(), ctl = document.querySelector('.controls').getBoundingClientRect();
       const full = document.body.classList.contains('mapfull') && fr.width >= mw0 && ctl.bottom <= innerHeight + 1 && ctl.top >= fr.bottom - 1;
       setMapFull(false); await wait(200);
-      return { badges, got, calm, held, frozen, resumed, menu, foreman, full };
+      return { badges, got, calm, held, frozen, resumed, menu, foreman, full, gfx, coal };
     });
     if (ui.badges < 18) errs.push('expected 18 badges, got ' + ui.badges);
     if (!ui.got) errs.push('no badges earned after a war wagon');
-    for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu', 'foreman', 'full']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
+    for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu', 'foreman', 'full', 'gfx', 'coal']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
     // the lighting engine: renders frames with lights, and simple mode still works (no WebGL here is a warning, not a failure)
     const lit = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      GLX.noAuto = true; S.opt.gfx = 'lit'; applyGfx(); if (!GLX.on) return { on: false };
+      GLX.noAuto = true; setGx('preset', 'high'); if (!GLX.on) return { on: false };
       S.wave = 9; planWave(); startWave(); await wait(600); const lights = GLX.nLights, glErr = GLX.gl.getError();
-      S.opt.gfx = 'simple'; applyGfx(); await wait(200); const simpleOk = !GLX.on; S.opt.gfx = 'lit'; applyGfx(); foes = []; W.queue = [];
+      setGx('light', 0); await wait(200); const simpleOk = !GLX.on; setGx('preset', 'high'); foes = []; W.queue = [];
       return { on: true, lights, glErr, simpleOk };
     });
     if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');

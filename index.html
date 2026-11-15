@@ -90,6 +90,20 @@ canvas#cv {
 #glv { position: absolute; left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 6px); pointer-events: none; border-radius: 1px; image-rendering: pixelated; }
 .mapbtn { position: absolute; left: 8px; bottom: 8px; width: 38px; height: 38px; min-height: 38px; padding: 0; display: grid; place-items: center; background: rgba(22, 26, 42, .78); border-color: rgba(236, 230, 216, .25); }
 #bFull { left: 54px; }
+#bSet { left: 100px; }
+.fpsmeter { position: absolute; right: 8px; bottom: 8px; padding: 2px 6px; background: rgba(14, 16, 30, .8); border: 2px solid #12152a; border-radius: 3px; font: 600 .75rem ui-monospace, monospace; color: var(--good); pointer-events: none; }
+.mapwrap.scan::after { content: ''; position: absolute; inset: 3px; pointer-events: none; background: repeating-linear-gradient(180deg, rgba(0, 0, 0, .2) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; }
+/* the settings panel: a sheet over the bottom of a phone, a panel at the side of a wide screen; the map stays in view */
+.modal.sheetm { place-items: end center; padding: 0; background: rgba(10, 12, 22, .3); }
+.modal.sheetm .box.wide { width: min(100%, 560px); max-height: 58vh; max-height: 58dvh; overflow-y: auto; border-radius: 3px 3px 0 0; padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)); animation: sheetup .22s steps(4, end); }
+@media (min-width: 900px) { .modal.sheetm { place-items: center end; padding: 16px; } .modal.sheetm .box.wide { max-height: 92vh; max-height: 92dvh; border-radius: 3px; width: 460px; } }
+@keyframes sheetup { from { transform: translateY(30px); opacity: 0; } }
+.settabs { position: sticky; top: -12px; z-index: 1; background: var(--panel); padding: 4px 0 8px; }
+.settabs button { flex: 1; }
+.setbody { display: grid; gap: 2px; }
+.setbody .row.setrow { padding: 8px 0; }
+.setbody .row.setrow .seg { flex-wrap: wrap; }
+.setbody small { display: block; line-height: 1.25; }
 #bFull .back, body.mapfull #bFull .go { display: none; }
 body.mapfull #bFull .back { display: block; }
 /* full-screen map: the stage covers the page, the map fills the height, controls stay underneath, cards float over the map */
@@ -314,6 +328,8 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>
       <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <button class="mapbtn" id="bSet" aria-label="Settings" title="Settings: graphics, sound, game"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M7 0h2v2.3l1.5.6 1.6-1.6 1.4 1.4-1.6 1.6.6 1.5H16v2h-2.3l-.6 1.5 1.6 1.6-1.4 1.4-1.6-1.6-1.5.6V16H7v-2.3l-1.5-.6-1.6 1.6-1.4-1.4 1.6-1.6L2.3 9H0V7h2.3l.6-1.5-1.6-1.6 1.4-1.4 1.6 1.6L7 2.3zM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"/></svg></button>
+      <div class="fpsmeter" id="fpsMeter" hidden></div>
       <button class="pausecover" id="pauseCover" hidden><b>Paused</b><span>Tap to carry on</span></button>
     </div>
     <div class="controls">
@@ -617,6 +633,24 @@ function paintSprites2() {
 /* =========================================================
    State and saving
    ========================================================= */
+/* Graphics options. A preset fills in the detail settings; changing any detail makes the preset "custom".
+   light: the WebGL lighting engine; shadow 0-3; bloom (glow) 0-3; res: render scale; parts: particle budget 0-3;
+   weather: rain/dust/heat particles; shake: screen shake; fps: frame cap. Look, grain, scanlines are style, not quality. */
+const GX_PRESETS = {
+  low:   { light: 0, shadow: 0, bloom: 0, res: .75, parts: 0, weather: 1, shake: 1, fps: 30 },
+  med:   { light: 1, shadow: 1, bloom: 1, res: .75, parts: 1, weather: 1, shake: 1, fps: 60 },
+  high:  { light: 1, shadow: 2, bloom: 2, res: 1,   parts: 2, weather: 1, shake: 1, fps: 60 },
+  ultra: { light: 1, shadow: 3, bloom: 3, res: 1.5, parts: 3, weather: 1, shake: 1, fps: 60 },
+};
+/* Colour looks: graded in the lighting engine's final pass, or with a CSS filter in simple mode. */
+const LOOKS = {
+  natural: { n: 'Natural',        sat: 1.04, con: .16, tint: [1, 1, 1],         lift: [0, 0, 0],          vig: 1,   css: '' },
+  western: { n: 'Western film',   sat: .8,   con: .28, tint: [1.08, .97, .8],   lift: [.035, .018, 0],    vig: 1.35, css: 'sepia(.28) saturate(.85) contrast(1.08)' },
+  vivid:   { n: 'Vivid',          sat: 1.32, con: .24, tint: [1, 1, 1.02],      lift: [0, 0, 0],          vig: .9,  css: 'saturate(1.35) contrast(1.06)' },
+  cool:    { n: 'Cool dusk',      sat: .9,   con: .2,  tint: [.9, .98, 1.12],   lift: [0, .01, .035],     vig: 1.15, css: 'saturate(.9) hue-rotate(-8deg) brightness(.97)' },
+  photo:   { n: 'Old photograph', sat: .12,  con: .32, tint: [1.12, .98, .76],  lift: [.06, .035, .012],  vig: 1.7, css: 'sepia(.85) contrast(1.12) brightness(.96)' },
+};
+const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
@@ -624,7 +658,7 @@ function fresh() {
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
-    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gfx: 'lit' },
+    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0 }, GX_PRESETS.high) },
     autoWave: true, speed: 1, sound: false, last: Date.now(),
   };
 }
@@ -640,6 +674,10 @@ function adopt(o) {
   for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt']) S[k] = Object.assign(fresh()[k], o[k]);
   if (!o.stats || o.stats.coins === undefined) S.stats.coins = S.life || 0; // older saves: start the lifetime count from this charter
   if (!S.bestMap[S.map]) S.bestMap[S.map] = S.best;
+  // graphics options: fill in anything new, and carry over the old Lit/Simple switch
+  const gx0 = fresh().opt.gx, old = o.opt && o.opt.gfx; S.opt.gx = Object.assign(gx0, o.opt && o.opt.gx);
+  if (old === 'simple' && !(o.opt && o.opt.gx)) Object.assign(S.opt.gx, GX_PRESETS.low, { preset: 'low' });
+  delete S.opt.gfx;
   setMap(S.map);
   S.towers = (S.towers || []).filter(t => TOWERS[t.type] && t.r >= YARD && t.r < ROWS && t.c >= 0 && t.c < COLS && !onRoad(t.c, t.r));
   return true;
@@ -1066,7 +1104,7 @@ function combat(dt) {
         for (const f of foes) if (Math.hypot(f.x - s.f.x, f.y - s.f.y) <= s.splash) hurt(f, s.dmg, { splash: 1 });
         fx.push({ k: 'boom', x: s.f.x, y: s.f.y, r: s.splash, t: .3 });
         for (let i = 0; i < 10; i++) parts.push({ x: s.f.x + .5, y: s.f.y + .5, vx: (Math.random() - .5) * 5, vy: -Math.random() * 4, g: 8, t: .5, c: i % 3 ? '#8a6a48' : P.org, s: .09 });
-      } else { hurt(s.f, s.dmg, { pierce: s.pierce }); for (let i = 0; i < 3; i++) parts.push({ x: s.f.x + .5, y: s.f.y + .35, vx: (Math.random() - .5) * 3, vy: -Math.random() * 2, g: 6, t: .22, c: s.kind === 'bullet' ? P.yelL : '#fff', s: .05 }); }
+      } else { hurt(s.f, s.dmg, { pierce: s.pierce }); if (GX().parts) for (let i = 0; i < 3; i++) parts.push({ x: s.f.x + .5, y: s.f.y + .35, vx: (Math.random() - .5) * 3, vy: -Math.random() * 2, g: 6, t: .22, c: s.kind === 'bullet' ? P.yelL : '#fff', s: .05 }); }
     } else { s.x += dx / q * step; s.y += dy / q * step; s.ang = Math.atan2(dy, dx); }
   }
   for (const b of bombs) {
@@ -1129,6 +1167,7 @@ function prestige(mapId) {
 const SYS_REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 let REDUCED = SYS_REDUCED;
 /* The motion setting: follow the device, or force calm or full motion. */
+const GX = () => S.opt.gx;
 function applyMotion() { const m = S.opt.calm; REDUCED = m === 'calm' ? true : m === 'full' ? false : SYS_REDUCED; document.documentElement.classList.toggle('calm', REDUCED); }
 const CHIP = {}; let flyN = 0;
 function bump(el) { if (el && el.animate && !REDUCED) el.animate([{ transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 180 }); }
@@ -1157,8 +1196,8 @@ function cosmetics(dt, time) {
   // explosions leave scorch marks that fade; walking raiders kick up dust; cannonballs trail smoke
   for (const e of fx) if (e.k === 'boom' && !e.sc) { e.sc = 1; if (FXS.scorch.length < 24) FXS.scorch.push({ x: e.x, y: e.y, r: Math.min(1.2, e.r * .55), t: 5 }); }
   for (const s of FXS.scorch) s.t -= dt; FXS.scorch = FXS.scorch.filter(s => s.t > 0);
-  if (!REDUCED) {
-    for (const f of foes) if (!(f.stun > 0) && Math.random() < dt * (f.type === 'runner' || f.type === 'thief' ? 7 : 3.5)) parts.push({ x: f.x + .5 - f.dir * .18, y: f.y + .78, vx: -f.dir * .35, vy: -.15, g: 0, t: .45, c: '#dcc59c', s: .06, smoke: 1 });
+  if (!REDUCED && GX().parts > 0) {
+    for (const f of foes) if (!(f.stun > 0) && Math.random() < dt * (f.type === 'runner' || f.type === 'thief' ? 7 : 3.5) * GX().parts / 2) parts.push({ x: f.x + .5 - f.dir * .18, y: f.y + .78, vx: -f.dir * .35, vy: -.15, g: 0, t: .45, c: '#dcc59c', s: .06, smoke: 1 });
     for (const s of shots) if (s.kind === 'ball' && Math.random() < dt * 30) parts.push({ x: s.x + .5, y: s.y + .3, vx: 0, vy: -.25, g: 0, t: .4, c: '#cfc6b8', s: .05, smoke: 1 });
   }
   for (const f of floats) f.a = (f.a || 0) + dt;
@@ -1174,7 +1213,7 @@ function cosmetics(dt, time) {
   FXS.night += ((W.active ? 1 : 0) - FXS.night) * Math.min(1, dt * 1.2);
   if (FXS.banner && (FXS.banner.t -= dt) <= 0) FXS.banner = null;
   for (const p of parts) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; }
-  parts = parts.filter(p => p.t > 0); if (parts.length > 320) parts.splice(0, parts.length - 320);
+  const pcap = PCAP[GX().parts] || 320; parts = parts.filter(p => p.t > 0); if (parts.length > pcap) parts.splice(0, parts.length - pcap);
   for (const f of floats) { f.t -= dt; f.y -= dt * .9; } floats = floats.filter(f => f.t > 0);
   // smoke from working chimneys and jammed towers
   for (const [id, cxo, cyo] of [['smelt', 1.42, .25], ['eng', .55, .2], ['eng', 1.32, .2], ['mach', 1.5, .3], ['mill', 1.55, .1], ['autow', 1, .3]])
@@ -1194,7 +1233,8 @@ function cosmetics(dt, time) {
   // weather fades in and out with its wave; rain, dust and heat haze are particles
   const tw = wx(); if (tw) FXS.wxK = tw; FXS.wxA = (FXS.wxA || 0) + ((tw ? 1 : 0) - (FXS.wxA || 0)) * Math.min(1, dt * 1.5);
   FXS.wxp = FXS.wxp || [];
-  if (!REDUCED && FXS.wxA > .05 && FXS.wxp.length < 150) {
+  if (!GX().weather) FXS.wxp.length = 0;
+  if (!REDUCED && GX().weather && FXS.wxA > .05 && FXS.wxp.length < 150) {
     const k = FXS.wxK, n = k === 'rain' ? 70 : k === 'dust' ? 32 : k === 'heat' ? 4 : 0;
     for (let i = 0; i < n * dt * 4 * FXS.wxA; i++) FXS.wxp.push(k === 'rain' ? { k, x: Math.random() * (COLS + 3) - 1, y: -1, vx: -1.5, vy: 15, t: 2, land: 1 + Math.random() * (ROWS - 1) }
       : k === 'dust' ? { k, x: -1, y: Math.random() * ROWS, vx: 6 + Math.random() * 6, vy: (Math.random() - .5) * .8, t: 3, l: .3 + Math.random() * .7 }
@@ -1217,8 +1257,11 @@ function cosmetics(dt, time) {
    Drawing
    ========================================================= */
 const cv = document.getElementById('cv'), cx0 = cv.getContext('2d'); let cx = cx0, cell = 30, ground = null;
+const renderScale = () => { const rs = GX().res || 1; return Math.max(.5, Math.min((window.devicePixelRatio || 1) * rs, rs > 1 ? 3 : 2)); };
 function fit() {
-  const w = cv.clientWidth || 360, dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr * ROWS / COLS); cell = cv.width / COLS;
+  // the Resolution setting scales the render: below 1 is faster and blockier, above 1 renders sharper than the screen
+  const w = cv.clientWidth || 360, dpr = renderScale();
+  cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr * ROWS / COLS); cell = cv.width / COLS;
   bakeGround(); glResize();
 }
 function bakeGround() { if (!cv.width) return; ground = document.createElement('canvas'); ground.width = cv.width; ground.height = cv.height; bake(ground.getContext('2d'), cell); GLX.groundDirty = true; }
@@ -1320,7 +1363,7 @@ function draw(time) {
   // Lit mode draws sprites onto a transparent objects layer for the lighting engine; plain mode draws straight to the screen.
   const LIT = GLX.on, c = cell, X = x => (x + .5) * c, Y = y => (y + .5) * c;
   cx = LIT ? GLX.ox : cx0; if (LIT) { cx.clearRect(0, 0, cv.width, cv.height); GLX.ux.clearRect(0, 0, cv.width, cv.height); } cx.imageSmoothingEnabled = false;
-  cx.save(); if (!LIT && FXS.quake > 0 && !REDUCED) cx.translate((Math.random() - .5) * FXS.quake * c * .5, (Math.random() - .5) * FXS.quake * c * .5);
+  cx.save(); if (!LIT && FXS.quake > 0 && !REDUCED && GX().shake) cx.translate((Math.random() - .5) * FXS.quake * c * .5, (Math.random() - .5) * FXS.quake * c * .5);
   if (!LIT) cx.drawImage(ground, 0, 0);
   // town yard
   const tsh = FXS.shake.trees > 0 ? Math.sin(time * 70) * c * .05 : 0, rsh = FXS.shake.rocks > 0 ? Math.sin(time * 80) * c * .04 : 0;
@@ -1575,7 +1618,7 @@ const MAXL = 48;
 const GLSL = {
   vs: 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}',
   head: '#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 v;\n',
-  scene: `uniform sampler2D uG,uO;uniform vec2 uShake,uSun,uGrid;uniform float uSunK,uTime,uCloudK,uNight;uniform vec3 uAmb;
+  scene: `uniform sampler2D uG,uO;uniform vec2 uShake,uSun,uGrid;uniform float uSunK,uTime,uCloudK,uNight;uniform vec3 uAmb;uniform int uShN;
 uniform vec4 uL[${MAXL}];uniform vec3 uC[${MAXL}];uniform int uN;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
@@ -1584,7 +1627,7 @@ void main(){
   vec3 g=texture2D(uG,q).rgb;vec4 o=texture2D(uO,q);
   vec3 alb=mix(g,o.rgb,o.a);
   float occ=0.;
-  for(int i=1;i<=8;i++){float a=texture2D(uO,q+uSun*float(i)/8.).a;occ=max(occ,step(.6,a)*(1.1-float(i)/8.));}
+  for(int i=1;i<=12;i++){if(i>uShN)break;float t=float(i)/float(uShN);float a=texture2D(uO,q+uSun*t).a;occ=max(occ,step(.6,a)*(1.1-t));}
   occ*=1.-step(.6,o.a)*.75;
   float sh=1.-clamp(occ,0.,1.)*.45*uSunK;
   vec2 cp=q*uGrid*.22;
@@ -1600,13 +1643,16 @@ void main(){
 }`,
   bright: 'uniform sampler2D uS;uniform float uT;void main(){vec3 c=texture2D(uS,v).rgb;float l=max(c.r,max(c.g,c.b));gl_FragColor=vec4(c*smoothstep(uT,1.,l),1.);}',
   blur: 'uniform sampler2D uS;uniform vec2 uD;void main(){vec3 c=texture2D(uS,v).rgb*.227;c+=(texture2D(uS,v+uD*1.385).rgb+texture2D(uS,v-uD*1.385).rgb)*.316;c+=(texture2D(uS,v+uD*3.231).rgb+texture2D(uS,v-uD*3.231).rgb)*.07;gl_FragColor=vec4(c,1.);}',
-  final: `uniform sampler2D uS,uB,uU;uniform float uBloom,uVig,uNight,uSat;
+  final: `uniform sampler2D uS,uB,uU;uniform float uBloom,uVig,uNight,uSat,uCon,uGrain,uTime;uniform vec3 uTint,uLift;
+float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
 void main(){
   vec3 c=clamp(texture2D(uS,v).rgb+texture2D(uB,v).rgb*uBloom,0.,1.);
-  c=mix(c,c*c*(3.-2.*c),.16);
+  c=mix(c,c*c*(3.-2.*c),uCon);
   float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,uSat);
+  c=clamp(c*uTint+uLift*(1.-c),0.,1.);
   c=mix(c,c*vec3(.92,.97,1.12),uNight*.5);
   vec2 d=v-.5;c*=1.-uVig*dot(d,d)*1.5;
+  c+=(h(floor(v*vec2(640.,750.))+fract(uTime*7.31))-.5)*uGrain;
   vec4 u=texture2D(uU,v);c=mix(c,u.rgb,u.a);
   gl_FragColor=vec4(c,1.);
 }`,
@@ -1641,9 +1687,20 @@ function glResize() {
 }
 /* Turn lighting on or off from the Graphics setting (falls back to plain drawing without WebGL). */
 function applyGfx() {
-  GLX.on = S.opt.gfx !== 'simple' && glSetup();
+  const g = GX();
+  GLX.on = !!g.light && glSetup();
   if (GLX.canvas) GLX.canvas.hidden = !GLX.on;
+  cv.style.filter = GLX.on ? '' : (LOOKS[g.look] || LOOKS.natural).css; // simple mode grades the colour with a CSS filter
+  const mw = document.querySelector('.mapwrap'); if (mw) mw.classList.toggle('scan', !!g.scan);
+  if (cv.width && GLX.res !== g.res) { GLX.res = g.res; fit(); }
   GLX.slow = 0; GLX.frames = 0;
+}
+/* Pick a preset, or change one detail (which makes the preset "custom"). */
+function setGx(k, v) {
+  const g = GX();
+  if (k === 'preset') { Object.assign(g, GX_PRESETS[v]); g.preset = v; }
+  else { g[k] = v; if (k in GX_PRESETS.high) g.preset = Object.keys(GX_PRESETS).find(p => Object.keys(GX_PRESETS[p]).every(q => GX_PRESETS[p][q] === g[q])) || 'custom'; }
+  applyGfx(); if (k === 'light' && v && !GLX.on) say('This device cannot run the lighting engine, so lighting stays off.');
 }
 /* Every light in the scene this frame, strongest first. Positions in cells, y down. */
 function gatherLights(time) {
@@ -1692,19 +1749,29 @@ function glRender(time) {
   amb = amb.map((v, i) => v * (1 + (tint[i] - 1) * wa));
   const sunK = (1 - n) * (wk === 'rain' ? 1 - .65 * wa : wk === 'dust' ? 1 - .45 * wa : 1);
   const az = Math.sin(time * .012) * .9, len = .62, dl = Math.hypot(az, 1);
-  const shake = FXS.quake > 0 && !REDUCED ? [(Math.random() - .5) * FXS.quake * .5 / COLS, (Math.random() - .5) * FXS.quake * .5 / ROWS] : [0, 0];
+  const shake = FXS.quake > 0 && !REDUCED && GX().shake ? [(Math.random() - .5) * FXS.quake * .5 / COLS, (Math.random() - .5) * FXS.quake * .5 / ROWS] : [0, 0];
   const Ls = gatherLights(time); GLX.nLights = Ls.length;
   Ls.forEach(([x, y, r, col, k], i) => { GLX.lights.set([x, ROWS - y, r, k], i * 4); GLX.colors.set(col, i * 3); });
+  const g = GX(), shN = [0, 5, 8, 12][g.shadow] || 0, shK = [0, .75, 1, 1.12][g.shadow] || 0, shL = g.shadow >= 3 ? 1.35 : 1;
   pass(P_.scene, GLX.fS, W, H, [['uG', GLX.tG], ['uO', GLX.tO]], u => {
-    gl.uniform2f(u.uShake, shake[0], shake[1]); gl.uniform2f(u.uSun, az / dl * len / COLS, 1 / dl * len / ROWS); gl.uniform2f(u.uGrid, COLS, ROWS);
-    gl.uniform1f(u.uSunK, sunK); gl.uniform1f(u.uTime, time); gl.uniform1f(u.uCloudK, (1 - n) * (1 + (wk === 'rain' ? .8 : 0) * wa)); gl.uniform1f(u.uNight, n);
+    gl.uniform2f(u.uShake, shake[0], shake[1]); gl.uniform2f(u.uSun, az / dl * len * shL / COLS, 1 / dl * len * shL / ROWS); gl.uniform2f(u.uGrid, COLS, ROWS);
+    gl.uniform1i(u.uShN, shN); gl.uniform1f(u.uSunK, sunK * shK); gl.uniform1f(u.uTime, time); gl.uniform1f(u.uCloudK, (1 - n) * (1 + (wk === 'rain' ? .8 : 0) * wa)); gl.uniform1f(u.uNight, n);
     gl.uniform3f(u.uAmb, amb[0], amb[1], amb[2]); gl.uniform4fv(u.uL, GLX.lights); gl.uniform3fv(u.uC, GLX.colors); gl.uniform1i(u.uN, Ls.length);
   });
-  pass(P_.bright, GLX.fA, GLX.fA.w, GLX.fA.h, [['uS', GLX.fS.t]], u => gl.uniform1f(u.uT, .9 - .3 * n));
-  pass(P_.blur, GLX.fB, GLX.fB.w, GLX.fB.h, [['uS', GLX.fA.t]], u => gl.uniform2f(u.uD, 1 / GLX.fA.w, 0));
-  pass(P_.blur, GLX.fA, GLX.fA.w, GLX.fA.h, [['uS', GLX.fB.t]], u => gl.uniform2f(u.uD, 0, 1 / GLX.fA.h));
+  // glow: off skips the bloom passes; strong blurs twice for a wider halo
+  if (g.bloom > 0) {
+    pass(P_.bright, GLX.fA, GLX.fA.w, GLX.fA.h, [['uS', GLX.fS.t]], u => gl.uniform1f(u.uT, .9 - .3 * n));
+    for (let k = 0; k < (g.bloom >= 3 ? 2 : 1); k++) {
+      pass(P_.blur, GLX.fB, GLX.fB.w, GLX.fB.h, [['uS', GLX.fA.t]], u => gl.uniform2f(u.uD, (1 + k) / GLX.fA.w, 0));
+      pass(P_.blur, GLX.fA, GLX.fA.w, GLX.fA.h, [['uS', GLX.fB.t]], u => gl.uniform2f(u.uD, 0, (1 + k) / GLX.fA.h));
+    }
+  }
+  const lk = LOOKS[g.look] || LOOKS.natural, bk = [0, .55, 1, 1.3][g.bloom] || 0;
   pass(P_.final, null, W, H, [['uS', GLX.fS.t], ['uB', GLX.fA.t], ['uU', GLX.tU]], u => {
-    gl.uniform1f(u.uBloom, .3 + .7 * n); gl.uniform1f(u.uVig, .3 + .5 * n); gl.uniform1f(u.uNight, n); gl.uniform1f(u.uSat, 1.04 - .12 * n + (wk === 'heat' ? .1 * wa : wk === 'dust' ? -.15 * wa : 0));
+    gl.uniform1f(u.uBloom, (.3 + .7 * n) * bk); gl.uniform1f(u.uVig, (.3 + .5 * n) * lk.vig); gl.uniform1f(u.uNight, n);
+    gl.uniform1f(u.uSat, lk.sat - .12 * n + (wk === 'heat' ? .1 * wa : wk === 'dust' ? -.15 * wa : 0)); gl.uniform1f(u.uCon, lk.con);
+    gl.uniform3f(u.uTint, lk.tint[0], lk.tint[1], lk.tint[2]); gl.uniform3f(u.uLift, lk.lift[0], lk.lift[1], lk.lift[2]);
+    gl.uniform1f(u.uGrain, g.grain ? .075 : 0); gl.uniform1f(u.uTime, time);
   });
 }
 
@@ -2012,20 +2079,8 @@ const PANELS = {
       ['Charters signed', () => S.charters], ...Object.keys(MAPS).map(id => ['Best wave · ' + MAPS[id].n, () => S.bestMap[id] ? S.bestMap[id] : '—']), ['Time played', () => hm(S.stats.played)]]) {
       const v = h('b'); recs.append(h('div', null, h('span', null, n), v)); ups.push(() => { v.textContent = f(); });
     }
-    // settings
-    const setRow = (label, opts, get, put) => {
-      const seg = h('div', { cls: 'seg' });
-      for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { put(v); refresh(); } }, n); seg.append(b); ups.push(() => b.classList.toggle('on', get() === v)); }
-      p.append(h('div', { cls: 'row setrow' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, label)), seg));
-    };
-    p.append(h('h2', null, 'Settings'));
-    setRow('Sound', [[true, 'On'], [false, 'Off']], () => !!S.sound, v => { S.sound = v; snd('coin', 880, .08, 'square', .04, 440); });
-    setRow('Volume', [[.25, 'Low'], [.6, 'Medium'], [1, 'High']], () => S.opt.vol, v => { S.opt.vol = v; S.sound = true; snd('coin', 880, .08, 'square', .04, 440); });
-    setRow('Waves', [[true, 'Come on their own'], [false, 'Held']], () => !!S.autoWave, v => { if (S.autoWave !== v) toggleAuto(); });
-    setRow('Graphics', [['lit', 'Lit (lights and shadows)'], ['simple', 'Simple (faster)']], () => S.opt.gfx === 'simple' ? 'simple' : 'lit', v => { S.opt.gfx = v; applyGfx(); if (v === 'lit' && !GLX.on) say('This device cannot run the lighting engine, so the game stays on simple graphics.'); });
-    setRow('Motion', [['auto', 'Like my device'], ['calm', 'Calm'], ['full', 'Full']], () => S.opt.calm, v => { S.opt.calm = v; applyMotion(); });
-    setRow('Damage numbers', [[true, 'Show'], [false, 'Hide']], () => S.opt.nums !== false, v => { S.opt.nums = v; });
-    setRow('When I switch away', [[false, 'Keep running'], [true, 'Pause']], () => !!S.opt.autoPause, v => { S.opt.autoPause = v; });
+    // settings live in their own panel (gear button on the map)
+    p.append(h('h2', null, 'Settings'), h('div', { cls: 'bar' }, h('button', { on: () => openSettings('gfx') }, 'Graphics'), h('button', { on: () => openSettings('sound') }, 'Sound'), h('button', { on: () => openSettings('game') }, 'Game')));
     const ta = h('textarea', { id: 'saveBox', 'aria-label': 'Save code', placeholder: 'Save code appears here. Paste one to load it.' });
     let armed = false; const wipe = h('button', { cls: 'danger small', on: () => { if (!armed) { armed = true; wipe.textContent = 'Tap again to erase everything'; return; } S = fresh(); setMap(S.map); bakeGround(); wipeField(); save(); say('Started over.'); } }, 'Erase save');
     p.append(h('h2', null, 'Save'), h('p', null, 'The game saves in this browser every few seconds and keeps working for up to 8 hours while you are away. Copy a save code to move to another device.'), ta,
@@ -2060,10 +2115,12 @@ function buildFixed() {
   $('bWave').addEventListener('click', startWave);
   $('bPause').addEventListener('click', () => setPaused(true));
   $('bFull').addEventListener('click', () => setMapFull(!document.body.classList.contains('mapfull')));
+  $('bSet').addEventListener('click', () => openSettings());
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && FULL.asked) { FULL.asked = false; setMapFull(false); } });
   $('pauseCover').addEventListener('click', () => setPaused(false));
   document.addEventListener('keydown', e => {
     if (e.target.closest && e.target.closest('textarea, input')) return;
+    const md = $('modal'); if (e.key === 'Escape' && !md.hidden && md.classList.contains('sheetm')) { md.hidden = true; md.className = 'modal'; md.onclick = null; save(); return; }
     if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
     else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setMapFull(!document.body.classList.contains('mapfull')); }
     else if (e.key === 'Escape' && document.body.classList.contains('mapfull')) setMapFull(false);
@@ -2120,6 +2177,55 @@ function buildDynamic() {
 }
 let shownTab = null;
 function refresh() { checkBadges(); if (rebuild) buildDynamic(); for (const f of fixedUps) f(); for (const f of ups) f(); card(); }
+/* Settings panel: slides up over the bottom of the screen (from the side on wide screens) so the map stays
+   in view and every graphics change shows at once. */
+let setTab = 'gfx', setUps = [];
+function openSettings(t) {
+  if (t) setTab = t;
+  const m = $('modal'); m.textContent = ''; m.className = 'modal sheetm'; setUps = [];
+  const close = () => { m.hidden = true; m.className = 'modal'; m.onclick = null; setUps = []; save(); };
+  m.onclick = e => { if (e.target === m) close(); };
+  const tabs = h('div', { cls: 'seg settabs', role: 'tablist' });
+  for (const [k, n] of [['gfx', 'Graphics'], ['sound', 'Sound'], ['game', 'Game']]) { const b = h('button', { cls: 'small' + (setTab === k ? ' on' : ''), role: 'tab', 'aria-selected': String(setTab === k), on: () => openSettings(k) }, n); tabs.append(b); }
+  const body = h('div', { cls: 'setbody' }), xb = h('button', { cls: 'small x', 'aria-label': 'Close settings', on: close }, '✕');
+  m.append(h('div', { cls: 'box wide', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'setH' }, h('div', { cls: 'cardhead' }, h('h3', { id: 'setH', cls: 'grow' }, 'Settings'), xb), tabs, body));
+  const run = () => { for (const f of setUps) f(); };
+  const row = (label, hint, opts, get, put, off) => {
+    const seg = h('div', { cls: 'seg' }), hn = h('small', null, hint || '');
+    for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { put(v); run(); refresh(); } }, n); seg.append(b); setUps.push(() => { b.classList.toggle('on', get() === v); b.disabled = !!(off && off()); }); }
+    body.append(h('div', { cls: 'row setrow' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, label), hn), seg));
+    return hn;
+  };
+  const litOff = () => !GX().light || !GLX.ok && GLX.tried;
+  if (setTab === 'gfx') {
+    const qh = row('Quality', '', [['low', 'Low'], ['med', 'Medium'], ['high', 'High'], ['ultra', 'Ultra']], () => GX().preset, v => setGx('preset', v));
+    setUps.push(() => { qh.textContent = GX().preset === 'custom' ? 'Custom mix. Pick a preset to reset the details below.' : { low: 'Fastest: no lighting, 30 fps, fewer effects.', med: 'Lighting with soft shadows at a lower resolution.', high: 'Full lighting, shadows and glow.', ultra: 'Sharper than your screen, long shadows, strong glow, every effect.' }[GX().preset]; });
+    body.append(h('h2', null, 'Detail'));
+    row('Lighting', 'Lights, shadows, glow and day-night. Off is fastest.', [[1, 'On'], [0, 'Off']], () => GX().light ? 1 : 0, v => setGx('light', v));
+    row('Shadows', 'Cast by buildings, towers and raiders as the sun moves.', [[0, 'Off'], [1, 'Soft'], [2, 'Full'], [3, 'Long']], () => GX().shadow, v => setGx('shadow', v), litOff);
+    row('Glow', 'Light bleeding from fires, lamps and blasts.', [[0, 'Off'], [1, 'Low'], [2, 'Normal'], [3, 'Strong']], () => GX().bloom, v => setGx('bloom', v), litOff);
+    row('Resolution', 'Lower is faster and blockier; 150% is extra sharp.', [[.5, '50%'], [.75, '75%'], [1, '100%'], [1.5, '150%']], () => GX().res, v => setGx('res', v));
+    row('Effects', 'Dust, sparks, smoke and debris.', [[0, 'Few'], [1, 'Some'], [2, 'Lots'], [3, 'Max']], () => GX().parts, v => setGx('parts', v));
+    row('Weather effects', 'Rain, dust and heat haze. Weather still changes the fight when hidden.', [[1, 'Show'], [0, 'Hide']], () => GX().weather ? 1 : 0, v => setGx('weather', v));
+    row('Screen shake', '', [[1, 'On'], [0, 'Off']], () => GX().shake ? 1 : 0, v => setGx('shake', v));
+    row('Frame rate', '30 saves battery; the game itself runs the same.', [[60, 'Smooth 60'], [30, 'Battery 30']], () => GX().fps, v => setGx('fps', v));
+    body.append(h('h2', null, 'Style'));
+    row('Look', 'Colour grading for the whole map.', Object.keys(LOOKS).map(k => [k, LOOKS[k].n]), () => GX().look, v => setGx('look', v));
+    row('Film grain', 'A fine moving grain, like old film. Needs lighting.', [[1, 'On'], [0, 'Off']], () => GX().grain ? 1 : 0, v => setGx('grain', v), litOff);
+    row('Scanlines', 'Lines like an old arcade screen.', [[1, 'On'], [0, 'Off']], () => GX().scan ? 1 : 0, v => setGx('scan', v));
+    row('Show frame rate', 'A small counter in the corner of the map.', [[1, 'On'], [0, 'Off']], () => GX().fpsShow ? 1 : 0, v => setGx('fpsShow', v));
+    if (GLX.tried && !GLX.ok) body.append(h('p', null, 'This device cannot run the lighting engine, so lighting, shadows, glow and grain are off. Looks still apply.'));
+  } else if (setTab === 'sound') {
+    row('Sound', '', [[true, 'On'], [false, 'Off']], () => !!S.sound, v => { S.sound = v; snd('coin', 880, .08, 'square', .04, 440); });
+    row('Volume', '', [[.25, 'Low'], [.6, 'Medium'], [1, 'High']], () => S.opt.vol, v => { S.opt.vol = v; S.sound = true; snd('coin', 880, .08, 'square', .04, 440); });
+  } else {
+    row('Waves', 'Held waves only come when you call them.', [[true, 'Come on their own'], [false, 'Held']], () => !!S.autoWave, v => { if (S.autoWave !== v) toggleAuto(); });
+    row('Motion', 'Calm turns off sliding, shaking and pop-in.', [['auto', 'Like my device'], ['calm', 'Calm'], ['full', 'Full']], () => S.opt.calm, v => { S.opt.calm = v; applyMotion(); });
+    row('Damage numbers', '', [[true, 'Show'], [false, 'Hide']], () => S.opt.nums !== false, v => { S.opt.nums = v; });
+    row('When I switch away', '', [[false, 'Keep running'], [true, 'Pause']], () => !!S.opt.autoPause, v => { S.opt.autoPause = v; });
+  }
+  run(); m.hidden = false; xb.focus({ preventScroll: true });
+}
 function welcome(away, coins, gains) {
   const m = $('modal'), m_ = Math.round(away / 60), dur = m_ >= 60 ? Math.floor(m_ / 60) + 'h ' + m_ % 60 + 'm' : m_ + ' minutes';
   const list = h('div', { cls: 'away' });
@@ -2135,6 +2241,7 @@ function welcome(away, coins, gains) {
 /* =========================================================
    Loop
    ========================================================= */
+let drawAcc = 0, fpsT = 0, fpsN = 0;
 let prev = 0, uiT = 0, saveT = 0, shownCoins = null, coinTxt = '', waveP = '', paused = false, playT = 0;
 /* Full-screen map. The page layout does the work; the browser's own full screen is asked for on top
    (hides the address bar on phones) where it is allowed, and leaving it also leaves the full-screen map. */
@@ -2169,11 +2276,15 @@ function frame(now) {
     let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; }
     playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); S.stats.played += Math.min(dt, 1);
   }
-  draw(playT); tickHud(Math.min(dt, .1));
+  // the 30 fps setting keeps the simulation running every frame but draws every other one or so (saves battery)
+  const cap = GX().fps === 30 ? 1 / 31 : 0; drawAcc += dt;
+  if (drawAcc >= cap) { draw(playT); drawAcc = cap ? drawAcc % cap : 0; fpsN++; }
+  tickHud(Math.min(dt, .1));
+  fpsT += dt; if (fpsT >= .5) { const el = $('fpsMeter'); if (el) { el.hidden = !GX().fpsShow; el.textContent = Math.round(fpsN / fpsT) + ' fps' + (GLX.on ? ' · ' + (GLX.nLights || 0) + ' lights' : ''); } fpsT = 0; fpsN = 0; }
   // if lighting makes a device struggle (well under 30 frames a second for several seconds), drop to simple graphics
   if (GLX.on && !GLX.noAuto && !document.hidden && dt > 0 && dt < .5) {
     GLX.frames++; if (dt > 1 / 24) GLX.slow++;
-    if (GLX.frames >= 240) { if (GLX.slow > 170) { S.opt.gfx = 'simple'; applyGfx(); rebuild = true; say('Switched to simple graphics to keep the game smooth. You can turn lighting back on in Settings.'); } GLX.frames = GLX.slow = 0; }
+    if (GLX.frames >= 240) { if (GLX.slow > 170) { setGx('preset', GX().preset === 'ultra' || GX().preset === 'high' ? 'med' : 'low'); say('Lowered the graphics quality to keep the game smooth. Change it any time with the gear button on the map.'); } GLX.frames = GLX.slow = 0; }
   }
   uiT -= dt; if (uiT <= 0) { uiT = .2; refresh(); }
   if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('show');
@@ -2186,7 +2297,7 @@ function start(data) {
   checkBadges(true); applyMotion(); protectSave(); announceVersion();
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); applyGfx(); window.addEventListener('resize', fit);
-  if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * Math.min(window.devicePixelRatio || 1, 2) - cv.width) > 2) fit(); }).observe(cv);
+  if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * renderScale() - cv.width) > 2) fit(); }).observe(cv);
   if (away > 60) {
     const before = S.life, r0 = Object.assign({}, S.res); econ(away);
     const gains = {}; for (const k in ITEMS) gains[k] = S.res[k] - r0[k];
@@ -2200,8 +2311,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-5'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Full-screen map button, foremen for every building (each after the first two costs more), and sturdier updates for the installed app.';
+const GAME_VERSION = '2026.11.15-6'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'New settings panel (gear button on the map): graphics presets Low to Ultra, shadows, glow, resolution, effects, frame rate, five colour looks, film grain and scanlines.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
