@@ -29,15 +29,19 @@ const shots = process.argv[2];
       for (const b of BUILD) S[b.kind][b.def.id] = 12;
       hire('camp');
       let i = 0;
-      for (const t of Object.keys(TOWERS)) { pick = t; tap(PLOTS[i].x, PLOTS[i].y); i++; }
+      for (const t of Object.keys(TOWERS)) { buildTower(t, PLOTS[i].x, PLOTS[i].y); i++; }
       // take every tower through its branch, alternating paths
       S.towers.forEach((t, j) => { for (let k = 0; k < 4; k++) upgradeTower(t); branchTower(t, j % 2 ? 'b' : 'a'); upgradeTower(t); t.tg = ['first', 'strong', 'weak'][j % 3]; });
-      pick = 'crossbow'; tap(PLOTS[i].x, PLOTS[i].y);
+      tap(PLOTS[i].x, PLOTS[i].y); refresh(); const opt = document.querySelector('.buildopt'); if (opt) opt.click();
+      useAbility('ot'); const otOn = S.ot > 0;
       // every raider type, then a boss wave
       for (const w of [8, 12, 15, 20]) { S.wave = w; planWave(); startWave(); for (let j = 0; j < 20 * 70; j++) { combat(.05); econ(.05); } }
       sell('wood', S.res.wood); deliver(0);
-      return { towers: S.towers.length, branched: S.towers.filter(t => t.br).length, wave: S.wave, tapped, kills: S.stats.kills, priceAfterSell: +dem('wood').toFixed(3), foremanBought: S.ext.camp };
+      S.wave = 9; planWave(); startWave(); for (let j = 0; j < 20 * 4; j++) combat(.05); spawn('brute'); spawn('brute'); useAbility('dyn'); const bombThrown = bombs.length === 1 || S.cd.dyn > 0;
+      return { otOn, bombThrown, towers: S.towers.length, branched: S.towers.filter(t => t.br).length, wave: S.wave, tapped, kills: S.stats.kills, priceAfterSell: +dem('wood').toFixed(3), foremanBought: S.ext.camp };
     });
+    if (!r.otOn) errs.push('overtime did not start');
+    if (!r.bombThrown) errs.push('dynamite did not fire');
     if (!r.tapped) errs.push('holding the trees gathered nothing');
     if (r.branched < 5) errs.push('expected 5 branched towers, got ' + r.branched);
     if (!(r.priceAfterSell < 1)) errs.push('selling did not move the price');
@@ -53,8 +57,10 @@ const shots = process.argv[2];
     if (!cardOpen) errs.push('building card did not open');
     for (const t of await p.$$eval('#tabs button', bs => bs.map(b => b.id))) { await p.click('#' + t); await p.waitForTimeout(200); }
     await p.click('#tab-works');
-    const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth);
-    if (overflow) errs.push('page scrolls sideways');
+    const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight + 1);
+    const navVisible = await p.evaluate(() => { const r = document.getElementById('tabs').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.height > 30; });
+    if (!navVisible) errs.push('tab bar is off screen');
+    if (overflow) errs.push('page scrolls outside the app shell');
     if (shots) await p.screenshot({ path: path.join(shots, name + '.png'), fullPage: true });
     console.log(name, JSON.stringify(r), errs.length ? 'FAIL ' + errs.join(' | ') : 'ok');
     if (errs.length) failed = true;
