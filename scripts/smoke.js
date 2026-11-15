@@ -86,6 +86,16 @@ const shots = process.argv[2];
     if (ui.badges < 18) errs.push('expected 18 badges, got ' + ui.badges);
     if (!ui.got) errs.push('no badges earned after a war wagon');
     for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
+    // the lighting engine: renders frames with lights, and simple mode still works (no WebGL here is a warning, not a failure)
+    const lit = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      GLX.noAuto = true; S.opt.gfx = 'lit'; applyGfx(); if (!GLX.on) return { on: false };
+      S.wave = 9; planWave(); startWave(); await wait(600); const lights = GLX.nLights, glErr = GLX.gl.getError();
+      S.opt.gfx = 'simple'; applyGfx(); await wait(200); const simpleOk = !GLX.on; S.opt.gfx = 'lit'; applyGfx(); foes = []; W.queue = [];
+      return { on: true, lights, glErr, simpleOk };
+    });
+    if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');
+    else { if (!(lit.lights > 0)) errs.push('lighting engine gathered no lights'); if (lit.glErr) errs.push('WebGL error ' + lit.glErr); if (!lit.simpleOk) errs.push('simple graphics did not switch off lighting'); }
     // the bridge map draws and keeps the ravine clear of plots
     const br = await p.evaluate(() => { setMap('bridge'); bakeGround(); const ok = !PLOTS.some(q => MAP.ravine.includes(q.x)); setMap(S.map); bakeGround(); return ok; });
     if (!br) errs.push('Trestle Bridge has plots in the ravine');

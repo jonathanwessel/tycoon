@@ -18,6 +18,8 @@ No ads, no purchases, no tracking. The page makes no requests to any other site,
 - Weather that changes the fight: dust storms, rain, heat waves and clear nights.
 - Moving market prices, caravan contracts, research, goals and badges.
 - Charters to start over with deeds and perks, across three maps: Copper Gulch, Forked Canyon and Trestle Bridge.
+- Pixel art lit by a small hand-written WebGL engine: a moving sun with cast shadows, drifting clouds, lamps, forges, muzzle flashes and explosions that light the ground, and dusk falling as raiders arrive. A simple mode is there for slower devices.
+- Install it as an app from your browser (Install app / Add to Home Screen). It works offline and updates itself when a new version is published.
 - Works on phones and computers, keeps working for up to 8 hours while you are away, and can hold waves or pause completely.
 
 ## Running it locally

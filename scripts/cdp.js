@@ -43,7 +43,7 @@ async function launch() {
   if (!exe) throw new Error('No Edge or Chrome found. Install one, or set CHROME_PATH to its executable.');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulch-cdp-'));
   const proc = spawn(exe, ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + dir, '--no-first-run', '--no-default-browser-check',
-    '--disable-gpu', '--mute-audio', '--disable-extensions', 'about:blank'], { stdio: 'ignore' });
+    '--enable-unsafe-swiftshader', '--mute-audio', '--disable-extensions', 'about:blank'], { stdio: 'ignore' }); // swiftshader: WebGL even without a GPU
   let port, wsPath;
   for (let i = 0; i < 150 && !port; i++) {
     try { const [p, w] = fs.readFileSync(path.join(dir, 'DevToolsActivePort'), 'utf8').trim().split(/\r?\n/); if (p && w) { port = p; wsPath = w; } } catch (e) {}
