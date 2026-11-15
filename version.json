@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-8",
-  "notes": "Coins per second for your town, smarter foremen (paid a share of income, save up for the best upgrades, build up the top of the chain), a selling-strategy guide, and cheaper top-tier workshops."
+  "version": "2026.11.15-9",
+  "notes": "Behind the scenes: the game is now split into parts with automatic tests, and saves are ready for an empire of several towns (your save is backed up first)."
 }

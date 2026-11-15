@@ -1,0 +1,145 @@
+'use strict';
+/* =========================================================
+   State and saving
+   ========================================================= */
+/* Graphics options. A preset fills in the detail settings; changing any detail makes the preset "custom".
+   light: the WebGL lighting engine; shadow 0-3; bloom (glow) 0-3; res: render scale; parts: particle budget 0-3;
+   weather: rain/dust/heat particles; shake: screen shake; fps: frame cap. Look, grain, scanlines are style, not quality. */
+const GX_PRESETS = {
+  low:   { light: 0, shadow: 0, bloom: 0, res: .75, parts: 0, weather: 1, shake: 1, fps: 30 },
+  med:   { light: 1, shadow: 1, bloom: 1, res: .75, parts: 1, weather: 1, shake: 1, fps: 60 },
+  high:  { light: 1, shadow: 2, bloom: 2, res: 1,   parts: 2, weather: 1, shake: 1, fps: 60 },
+  ultra: { light: 1, shadow: 3, bloom: 3, res: 1.5, parts: 3, weather: 1, shake: 1, fps: 60 },
+};
+/* Colour looks: graded in the lighting engine's final pass, or with a CSS filter in simple mode. */
+const LOOKS = {
+  natural: { n: 'Natural',        sat: 1.04, con: .16, tint: [1, 1, 1],         lift: [0, 0, 0],          vig: 1,   css: '' },
+  western: { n: 'Western film',   sat: .8,   con: .28, tint: [1.08, .97, .8],   lift: [.035, .018, 0],    vig: 1.35, css: 'sepia(.28) saturate(.85) contrast(1.08)' },
+  vivid:   { n: 'Vivid',          sat: 1.32, con: .24, tint: [1, 1, 1.02],      lift: [0, 0, 0],          vig: .9,  css: 'saturate(1.35) contrast(1.06)' },
+  cool:    { n: 'Cool dusk',      sat: .9,   con: .2,  tint: [.9, .98, 1.12],   lift: [0, .01, .035],     vig: 1.15, css: 'saturate(.9) hue-rotate(-8deg) brightness(.97)' },
+  photo:   { n: 'Old photograph', sat: .12,  con: .32, tint: [1.12, .98, .76],  lift: [.06, .035, .012],  vig: 1.7, css: 'sepia(.85) contrast(1.12) brightness(.96)' },
+};
+const PCAP = [70, 180, 320, 520];
+function fresh() {
+  const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
+  return {
+    v: 4, town: 'gulch', towns: {}, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
+    contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
+    stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
+    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, fb: { share: .5, keep: 0, purse: 0 }, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0 }, GX_PRESETS.high) },
+    autoWave: true, speed: 1, sound: false, last: Date.now(),
+  };
+}
+let S = fresh();
+/* Towns (save v4). The empire owns coins, deeds, perks, badges, stats, goals and settings. Everything in TOWN_KEYS
+   belongs to one town. The town you are playing keeps its fields at the top of S (so the rest of the code reads S as
+   before); every other town is kept in S.towns[id] and swapped in while it works in the background or when you
+   switch to it. */
+const TOWN_KEYS = ['map', 'life', 'res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'towers', 'wave', 'best', 'vaultHp', 'contracts', 'demand', 'sellAbove', 'mgr', 'cd', 'ot', 'fb', 'bestRate'];
+const NESTED = ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'demand', 'mgr', 'cd'];
+const pickTown = o => { const t = {}; for (const k of TOWN_KEYS) if (o[k] !== undefined) t[k] = o[k]; return t; };
+function townFresh(map) { const t = pickTown(fresh()); t.map = map; return t; }
+function fillTown(t) { const f = townFresh(t.map || 'gulch'); const out = Object.assign(f, t); for (const k of NESTED) out[k] = Object.assign(townFresh(out.map)[k], t[k]); return out; }
+/* Run fn with town id swapped in as the active one (its fields at the top of S), then swap back. */
+function withTown(id, fn) {
+  if (id === S.town) return fn();
+  const mine = pickTown(S); Object.assign(S, S.towns[id]);
+  try { return fn(); } finally { S.towns[id] = pickTown(S); Object.assign(S, mine); }
+}
+/* Make another town the one you play. Its map is drawn and its waves start; the town you leave keeps producing. */
+function switchTown(id) {
+  if (id === S.town || !S.towns[id]) return false;
+  S.towns[S.town] = pickTown(S); Object.assign(S, fillTown(S.towns[id])); delete S.towns[id]; S.town = id;
+  setMap(S.map); S.towers = S.towers.filter(t => TOWERS[t.type] && !onRoad(t.c, t.r));
+  return true;
+}
+const KEY = 'copper-gulch-save-v1';
+function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try {
+    const t = localStorage.getItem(KEY); if (!t) return; const o = JSON.parse(t);
+    // before a save is upgraded to a new format, keep a copy of the old one (once)
+    if ((o.v || 0) < 4 && !localStorage.getItem(KEY + '-v3-backup')) localStorage.setItem(KEY + '-v3-backup', t);
+    adopt(o);
+  } catch (e) {}
+}
+function adopt(o) {
+  if (!o || typeof o !== 'object' || !o.res) return false;
+  if (!o.v) { (o.towers || []).forEach(t => { t.r += 2; }); o.v = 2; } // v1 maps had a two-row yard
+  if (o.v < 3) { if (o.goal >= 7) o.goal++; o.v = 3; } // v3 added the vault goal at position 7
+  if (o.v < 4) { o.town = 'gulch'; o.towns = {}; o.v = 4; } // v4: the old save becomes the first town of an empire
+  const f = fresh(); S = Object.assign(f, o);
+  S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
+  for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt']) S[k] = Object.assign(fresh()[k], o[k]);
+  if (!o.stats || o.stats.coins === undefined) S.stats.coins = S.life || 0; // older saves: start the lifetime count from this charter
+  if (!S.bestMap[S.map]) S.bestMap[S.map] = S.best;
+  // graphics options: fill in anything new, and carry over the old Lit/Simple switch
+  const gx0 = fresh().opt.gx, old = o.opt && o.opt.gfx; S.opt.gx = Object.assign(gx0, o.opt && o.opt.gx);
+  if (old === 'simple' && !(o.opt && o.opt.gx)) Object.assign(S.opt.gx, GX_PRESETS.low, { preset: 'low' });
+  delete S.opt.gfx;
+  setMap(S.map);
+  S.towers = (S.towers || []).filter(t => TOWERS[t.type] && t.r >= YARD && t.r < ROWS && t.c >= 0 && t.c < COLS && !onRoad(t.c, t.r));
+  return true;
+}
+
+/* =========================================================
+   Maths
+   ========================================================= */
+const lv = id => S.research[id] || 0;
+const perk = id => S.perks[id] || 0;
+const deedMult = () => 1 + .2 * S.deeds;
+const prodMult = () => (1 + .25 * lv('steam')) * deedMult();
+const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * (wx() === 'heat' ? 1.25 : 1);
+const sellMult = () => 1 + .1 * lv('haggle');
+const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult();
+const tapYield = () => Math.pow(2, lv('tools'));
+const vaultMax = () => 20 + 5 * lv('vault');
+/* Milestones: output doubles at levels 10, 25, 50, then every 100. */
+const MS = l => (l >= 10) + (l >= 25) + (l >= 50) + (l >= 100 ? Math.floor(l / 100) : 0);
+const nextMs = l => l < 10 ? 10 : l < 25 ? 25 : l < 50 ? 50 : (Math.floor(l / 100) + 1) * 100;
+const blv = id => S[BY_ID[id].kind][id] || 0;
+const bMult = id => Math.pow(2, MS(blv(id)));
+const bCost = (b, have) => Math.ceil(b.def.cost * Math.pow(b.g, have));
+/* Market: selling pushes a price down; it drifts back up over time. */
+const dem = k => S.demand[k] === undefined ? 1 : S.demand[k];
+function outRate(k) {
+  let r = 0;
+  for (const e of EXT) if (e.out === k) r += blv(e.id) * e.rate * prodMult() * bMult(e.id);
+  for (const s of SHOPS) if (s.out === k) r += blv(s.id) * s.rate * craftMult() * bMult(s.id);
+  return r;
+}
+const depth = k => 60 + 120 * outRate(k);
+const price = k => ITEMS[k].p * sellMult() * dem(k);
+const sellValue = (k, n) => { const dp = depth(k); return ITEMS[k].p * sellMult() * dem(k) * dp * (1 - Math.exp(-n / dp)); };
+function sell(k, n) {
+  n = Math.min(n, S.res[k]); if (!(n > 0)) return 0;
+  const v = sellValue(k, n); S.demand[k] = Math.max(.3, dem(k) * Math.exp(-n / depth(k)));
+  S.res[k] -= n; earn(v); S.stats.sold += n; S.stats.soldV += v; return v;
+}
+function fmt(n) {
+  if (n < 1000) return String(Math.floor(n));
+  const u = ['K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp']; let i = -1;
+  while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
+  return n >= 1000 ? n.toExponential(2) : (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.floor(n)) + u[i];
+}
+const rate = n => n < 10 ? (Math.round(n * 100) / 100).toString() : fmt(n);
+const pct = n => Math.round(n * 100) + '%';
+function earn(c) { S.coins += c; S.life += c; S.stats.coins += c; }
+function add(k, n) { S.res[k] += n; if (!S.seen[k] && S.res[k] > 0) { S.seen[k] = 1; rebuild = true; } }
+function goodsText(g) { return Object.keys(g).map(k => g[k] + ' ' + ITEMS[k].n.toLowerCase()).join(' + '); }
+function hasGoods(g) { for (const k in g) if (S.res[k] < g[k]) return false; return true; }
+
+/* =========================================================
+   Sound (off until switched on)
+   ========================================================= */
+let AC = null; const lastSnd = {};
+function snd(name, f, d = .07, type = 'square', v = .04, slide = 0) {
+  if (!S.sound) return; const now = performance.now(); if (now - (lastSnd[name] || 0) < 70) return; lastSnd[name] = now;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime;
+    o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+    v *= S.opt.vol === undefined ? 1 : S.opt.vol; if (v <= 0) return;
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d);
+  } catch (e) {}
+}

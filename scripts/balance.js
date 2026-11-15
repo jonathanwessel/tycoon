@@ -1,10 +1,6 @@
 // Balance bot: node scripts/balance.js [minutes=120] [seed runs=1]
 // Plays the real game logic with a simple greedy policy, with no drawing,
 // and reports how long it takes to reach each milestone.
-// Uses Playwright if it is installed, otherwise an installed Edge or Chrome (scripts/cdp.js).
-const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('./cdp'); } })();
-const path = require('path');
-const URL = require('url').pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href;
 const MINUTES = +process.argv[2] || 120;
 const RUNS = +process.argv[3] || 1;
 
@@ -107,14 +103,10 @@ function bot(MINUTES) {
 }
 
 (async () => {
-  const b = await chromium.launch();
+  // The bot runs the game's own simulation files in Node (scripts/sim.js): no browser, and much faster.
   for (let run = 0; run < RUNS; run++) {
-    const p = await b.newPage();
-    await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} window.requestAnimationFrame = () => 0; });
-    const errs = []; p.on('pageerror', e => errs.push(e.message));
-    await p.goto(URL);
-    await p.waitForTimeout(300);
-    const r = await p.evaluate(bot, MINUTES);
+    const errs = []; let r;
+    try { r = require('./sim').load().run('(' + bot + ')(' + MINUTES + ')'); } catch (e) { errs.push(e.stack); r = { marks: {}, log: [] }; }
     const m = r.marks, fmt = s => s == null ? '-' : (s / 60).toFixed(1) + 'm';
     console.log(`run ${run + 1}: first tower ${fmt(m['tower:crossbow'])} | wave5 ${fmt(m.wave5)} | wave10 ${fmt(m.wave10)} | wave11 ${fmt(m.wave11)} | wave20 ${fmt(m.wave20)} | wave30 ${fmt(m.wave30)} | wave50 ${fmt(m.wave50)} | first deed ${fmt(m.firstDeed)}`);
     console.log(`  reached wave ${r.wave} (best ${r.best}), breaches ${r.breaches}, longest gap between buys ${r.longestWait}s, goals ${r.goals}, lifetime coins ${Math.round(r.life).toExponential(2)}, first path pick ${fmt(m.branch)}`);
@@ -122,7 +114,5 @@ function bot(MINUTES) {
     console.log('  towers:', r.towers, ' levels:', r.levels);
     if (r.log.length) console.log('  ' + r.log.join('; '));
     if (errs.length) console.log('  ERRORS', errs);
-    await p.close();
   }
-  await b.close();
 })();

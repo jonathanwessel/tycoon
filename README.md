@@ -26,11 +26,16 @@ No ads, no purchases, no tracking. The page makes no requests to any other site,
 
 Open `index.html` in a browser. There is no build step and nothing to install.
 
+## Code
+
+`index.html` holds the page and its styles; the game's code is in `src/` as plain scripts loaded in order (no build step): definitions, map, pixel art, state and saves, economy, goals, combat, effects, the 2D renderer, the WebGL lighting engine, the interface, and the app (loop, install, updates).
+
 ## Checks
 
-Both scripts need Node 22 or newer. They use Playwright if it is installed, and otherwise drive an installed Edge or Chrome directly (`scripts/cdp.js`); set `CHROME_PATH` to pick a browser.
+- `node --test` runs the simulation tests: the game's own economy, combat and save code loaded into Node (`scripts/sim.js`), no browser needed.
+- `node scripts/balance.js [minutes] [runs]` lets a bot play the real game logic in Node and reports how long each milestone takes (a 90-minute game in a few seconds).
+
+The browser checks need Node 22 or newer. They use Playwright if it is installed, and otherwise drive an installed Edge or Chrome directly (`scripts/cdp.js`); set `CHROME_PATH` to pick a browser.
 
 - `node scripts/smoke.js [screenshot-dir]` plays through every tower, raider, power and screen at phone and desktop sizes and fails on errors or broken layout.
-- `node scripts/balance.js [minutes] [runs]` lets a bot play the real game logic and reports how long each milestone takes.
-
 `PLAN.md` describes how the code is laid out and what is planned next.
