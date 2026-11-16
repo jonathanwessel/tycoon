@@ -9,13 +9,14 @@ const GX = () => S.opt.gx;
 function applyMotion() { const m = S.opt.calm; REDUCED = m === 'calm' ? true : m === 'full' ? false : SYS_REDUCED; document.documentElement.classList.toggle('calm', REDUCED); }
 const CHIP = {}; let flyN = 0;
 function bump(el) { if (el && el.animate && !REDUCED) el.animate([{ transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 180 }); }
-function flyPx(icon, x0, y0, target) {
-  if (REDUCED || flyN > 20 || !target || document.hidden) return;
+function flyPx(icon, x0, y0, target, spray, delay) { // spray: [dx, dy] a coin first bursts out to; delay in ms
+  if (REDUCED || flyN > 32 || !target || document.hidden) return;
   const tr = target.getBoundingClientRect(); if (!tr.width) return;
   const dx = tr.left + Math.min(tr.width / 2, 20) - x0, dy = tr.top + tr.height / 2 - y0;
   const im = document.createElement('img'); im.src = iconURL(icon); im.className = 'fly'; im.alt = ''; im.style.left = x0 - 11 + 'px'; im.style.top = y0 - 11 + 'px';
   document.body.append(im); flyN++;
-  const a = im.animate([{ transform: 'translate(0,0) scale(1.2)' }, { transform: `translate(${dx * .35}px,${dy * .35 - 46}px) scale(1.5)`, offset: .4 }, { transform: `translate(${dx}px,${dy}px) scale(.8)` }], { duration: 620, easing: 'ease-in' });
+  const a = spray ? im.animate([{ transform: 'translate(0,0) scale(.6)', easing: 'cubic-bezier(.2,.9,.3,1)' }, { transform: `translate(${spray[0]}px,${spray[1]}px) scale(1.35)`, offset: .32, easing: 'cubic-bezier(.6,0,.9,.6)' }, { transform: `translate(${dx}px,${dy}px) scale(.75)` }], { duration: 760 + Math.random() * 120, delay: delay || 0, fill: 'backwards' })
+    : im.animate([{ transform: 'translate(0,0) scale(1.2)' }, { transform: `translate(${dx * .35}px,${dy * .35 - 46}px) scale(1.5)`, offset: .4 }, { transform: `translate(${dx}px,${dy}px) scale(.8)` }], { duration: 620, easing: 'ease-in' });
   const end = () => { if (im.isConnected) { im.remove(); flyN--; bump(target); } }; a.onfinish = end; a.oncancel = end;
 }
 function fly(icon, gx, gy, target) {
@@ -24,6 +25,59 @@ function fly(icon, gx, gy, target) {
   flyPx(icon, r.left + px * s, r.top + py * s, target);
 }
 function flyFrom(icon, from, target) { const r = from.getBoundingClientRect(); if (r.width) flyPx(icon, r.left + r.width / 2, r.top + r.height / 2, target); }
+/* --- juice: scaffolds for new buildings, sparkles for upgrades, the boss entrance, bursts of coins ----------------- */
+const BUILD_T = 1.15, SCAF_T = .75, BOSS_CAM = 3.2; // a new building stands in scaffolding for SCAF_T of its BUILD_T seconds
+/* Sparkles: glints that spiral up from a spot (map cells x, y, starting height h). Only in the town on screen. */
+function sparkle(x, y, n = 14, h = .6) {
+  if (TOWN_ID !== S.town) return;
+  for (let i = 0; i < n && FXS.sparks.length < 90; i++) { const t = .8 + Math.random() * .55; FXS.sparks.push({ x, y, h: h + Math.random() * .35, a: i / n * Math.PI * 2 + Math.random() * .5, r: .3 + Math.random() * .45, vh: .7 + Math.random() * .9, t, t0: t, gold: i % 3 ? 1 : 0 }); }
+}
+const TPOP = new Map(); // towers that just levelled up: a short squash-and-stretch pop (seconds left)
+function towerSparkle(t, n = 12) { if (TOWN_ID !== S.town) return; sparkle(t.c + .5, t.r + .5, n, .45); TPOP.set(t, .4); }
+/* The boss rides in: a banner, cinema bars and the camera easing towards it (view.js) unless motion is calm. */
+function bossEntrance(air) {
+  if (TOWN_ID !== S.town) return;
+  FXS.bossCam = BOSS_CAM;
+  FXS.banner = { t: 2.6, a: bossName(), b: air ? 'Sky pirates over the mesa' : TOWN_ID === 'falls' ? 'Steaming up the river' : TOWN_ID === 'ridge' ? 'Thundering down the line' : 'Riding for the vault', enter: 1 };
+}
+/* How far the camera leans towards the boss (0 to 1): eases in, holds, eases out; nothing while motion is calm. */
+function bossCamK() {
+  const t = FXS.bossCam; if (!(t > 0) || REDUCED) return 0;
+  const k = Math.min(1, (BOSS_CAM - t) / .8, t / 1); return k * k * (3 - 2 * k);
+}
+/* Coins burst out of a spot on the map (or an element) in a fan and fly to the coin counter, which shows the sum. */
+function coinBurst(gx, gy, n, v) {
+  if (typeof R3 === 'undefined' || !R3.on || !R3.cam || REDUCED || document.hidden) return;
+  const [px, py, w] = r3Project(gx, .5, gy); if (w <= 0) return; const r = R3.canvas.getBoundingClientRect(), s = r.width / R3.canvas.width;
+  burstPx(r.left + px * s, r.top + py * s, n, v);
+}
+function coinBurstFrom(el, n, v) { const r = el && el.getBoundingClientRect(); if (r && r.width && !REDUCED) burstPx(r.left + r.width / 2, r.top + r.height / 2, n, v); }
+function burstPx(x0, y0, n, v) {
+  const target = $('hCoinWrap'); if (!target) return;
+  for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i / Math.max(1, n - 1) - .5) * 2.6 + (Math.random() - .5) * .3, d = 26 + Math.random() * 34; flyPx('coin', x0, y0, target, [Math.cos(a) * d, Math.sin(a) * d * .8 - 8], i * 38); }
+  if (v > 0) setTimeout(() => coinPop(v), 560);
+}
+/* "+1.2K" rises beside the counter as a burst lands. */
+function coinPop(v) {
+  const w = $('hCoinWrap'); if (!w || REDUCED || document.hidden) return; const r = w.getBoundingClientRect(); if (!r.width) return;
+  const el = document.createElement('b'); el.className = 'cpop'; el.textContent = '+' + fmt(v); el.style.left = r.left + r.width / 2 + 'px'; el.style.top = r.bottom + 'px';
+  document.body.append(el); const a = el.animate([{ opacity: 0, transform: 'translate(-50%, 6px) scale(.7)' }, { opacity: 1, transform: 'translate(-50%, 0) scale(1.15)', offset: .2 }, { opacity: 1, transform: 'translate(-50%, -2px) scale(1)', offset: .7 }, { opacity: 0, transform: 'translate(-50%, -12px)' }], { duration: 1200, easing: 'ease-out' });
+  a.onfinish = a.oncancel = () => el.remove();
+}
+/* Each frame: scaffolds count down and pop in a ring of dust, sparkles rise, the boss camera runs out. */
+function juice(dt) {
+  for (const id in FXS.build) {
+    const was = FXS.build[id]; FXS.build[id] -= dt;
+    if (was > BUILD_T - SCAF_T && FXS.build[id] <= BUILD_T - SCAF_T && SLOT[id]) { // the scaffolding comes down: pop and dust
+      const [sx, sy] = SLOT[id]; FXS.pop[id] = .45; snd('build', 520, .1, 'triangle', .05, 260); sparkle(sx + 1, sy + 1, 10, 1.1);
+      for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2; parts.push({ x: sx + 1 + Math.cos(a) * 1.05, y: sy + 1.15 + Math.sin(a) * .8, vx: Math.cos(a) * (1.2 + Math.random()), vy: Math.sin(a) * .5 - .25, g: 0, t: .75 + Math.random() * .3, c: i % 3 ? '#dcc59c' : '#c9b58e', s: .13, smoke: 1 }); }
+    }
+    if (FXS.build[id] <= 0) delete FXS.build[id];
+  }
+  for (const q of FXS.sparks) { q.t -= dt; q.a += dt * 4; q.h += q.vh * dt; q.r += dt * .25; } FXS.sparks = FXS.sparks.filter(q => q.t > 0);
+  for (const [t, k] of TPOP) if (k - dt <= 0) TPOP.delete(t); else TPOP.set(t, k - dt);
+  FXS.bossCam = Math.max(0, FXS.bossCam - dt);
+}
 const RATE = {}, lastRes = {}, HIST = {}; let rateT = 0, histT = 0;
 function maker(k) {
   const b = BUILD.find(b => b.def.out === k);
@@ -34,6 +88,7 @@ function cosmetics(dt, time) {
   for (const k in FXS.shake) FXS.shake[k] = Math.max(0, FXS.shake[k] - dt);
   for (const k in FXS.gold) if ((FXS.gold[k] -= dt) <= 0) delete FXS.gold[k];
   for (const k in FXS.pop) if ((FXS.pop[k] -= dt) <= 0) delete FXS.pop[k];
+  juice(dt);
   if (FXS.mend > 0) { FXS.mend -= dt; if (Math.random() < dt * 14) parts.push({ x: VAULT[0] + .5 + (Math.random() - .5) * .9, y: VAULT[1] + .5, vx: (Math.random() - .5) * 1.5, vy: -1 - Math.random(), g: 5, t: .5, c: Math.random() < .5 ? '#c9d2de' : '#a6b0c2', s: .06 }); }
   // explosions leave scorch marks that fade; walking raiders kick up dust; cannonballs trail smoke
   for (const e of fx) if (e.k === 'boom' && !e.sc) { e.sc = 1; if (FXS.scorch.length < 24) FXS.scorch.push({ x: e.x, y: e.y, r: Math.min(1.2, e.r * .55), t: 5 }); }

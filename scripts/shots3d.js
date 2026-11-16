@@ -27,6 +27,8 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   if (!r.on) { console.log('3D did not start', errs); process.exit(1); }
   const shot = async n => { await p.screenshot({ path: path.join(out, town + (process.env.VIEW ? '-' + process.env.VIEW : '') + '-' + n + '.png') }); };
   await shot('day');
+  await p.evaluate(async () => { const b = BUILD[3], id = b.def.id; S[b.kind][id] = 0; refresh(); await new Promise(r => setTimeout(r, 400)); buyBuilding(b); BUILD.slice(4, 7).forEach(q => { upgradeTower(S.towers[0]); }); await new Promise(r => setTimeout(r, 420)); });
+  await shot('build');
   const t = await p.evaluate(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     S.wave = 19; planWave(); startWave(); await wait(5000); S.best = Math.max(S.best, 10); S.cd.tar = 0; useAbility('tar'); await wait(600);

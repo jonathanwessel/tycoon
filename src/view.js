@@ -116,7 +116,11 @@ function r3Resize() {
 function r3Camera() {
   const W = R3.canvas.width, H = R3.canvas.height, fov = .62, asp = W / H, th = Math.tan(fov / 2);
   // R3.dist is a zoom (24 = the whole board); the real distance makes the board fit this screen's width and height
-  const fitD = Math.max(24, (COLS / 2 + .7) / (th * asp), 8.2 / th), dist = R3.dist * fitD / 24;
+  // a boss riding in: the camera leans towards it and closes in a little (bossCamK in fx.js), then eases back
+  const bk = !R3.look && !(typeof CAPV !== 'undefined' && CAPV.on) && typeof bossCamK === 'function' ? bossCamK() : 0, boss = bk > 0 && foes.find(f => f.type === 'boss' && f.hp > 0);
+  R3.bk = (R3.bk || 0) + ((boss ? bk : 0) - (R3.bk || 0)) * .2; if (R3.bk < .001) R3.bk = 0;
+  if (boss) { R3.bx = Math.max(1, Math.min(COLS - 1, boss.x + .5)); R3.bz = Math.max(YARD + 1.5, Math.min(ROWS - 1, boss.y + .5)); }
+  const fitD = Math.max(24, (COLS / 2 + .7) / (th * asp), 8.2 / th), dist = R3.dist * fitD / 24 * (1 - .3 * R3.bk);
   // with a menu sheet open on a phone, look further down the board so the town shows above the sheet
   R3.shift = (R3.shift || 0) + (((typeof SHEET !== 'undefined' && SHEET.open) ? SHEET.h * dist * .38 : 0) - (R3.shift || 0)) * .15;
   // with a plot or tower selected on a phone, glide so it sits in the upper part of the screen, above its card
@@ -124,6 +128,7 @@ function r3Camera() {
   R3.fx = (R3.fx || 0) + (((fc && phone) ? fc[0] + .5 - (COLS / 2 + R3.panX) : 0) - (R3.fx || 0)) * .12;
   R3.fz = (R3.fz || 0) + (((fc && phone) ? fc[1] + .5 + dist * .2 - (ROWS / 2 + .6 + R3.panZ) : 0) - (R3.fz || 0)) * .12;
   const tgt = R3.look ? [R3.look[0], 0, R3.look[1]] : [COLS / 2 + R3.panX + R3.fx, 0, ROWS / 2 + .6 + R3.shift + R3.panZ + R3.fz]; // R3.look: aim somewhere else (the icon renderer)
+  if (R3.bk) { const k = R3.bk * .75; tgt[0] += (R3.bx - tgt[0]) * k; tgt[2] += (R3.bz - tgt[2]) * k; }
   const eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * dist, Math.sin(R3.pitch) * dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * dist];
   const V = M4.look(eye, tgt, [0, 1, 0]), Pm = M4.persp(fov, W / H, .5, 200);
   R3.cam = { eye, tgt, fov, asp: W / H, VP: M4.mul(Pm, V) };
@@ -168,9 +173,9 @@ function r3Project(x, y, z) {
     if (pts.size === 2 && two) {
       const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
       R3.distT = Math.max(9, Math.min(36, R3.distT * two.d / d)); let da = ang - two.a; da = Math.atan2(Math.sin(da), Math.cos(da)); R3.yawT -= da; pan(mx - two.mx, my - two.my);
-      two = { d, a: ang, mx, my }; down.moved = true; stopHold(); return;
+      two = { d, a: ang, mx, my }; down.moved = true; stopHold(); FXS.bossCam = 0; return;
     }
-    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8 && !down.moved) { down.moved = true; stopHold(); }
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8 && !down.moved) { down.moved = true; stopHold(); FXS.bossCam = 0; }
     if (!down.moved) return;
     const dx = e.clientX - down.lx, dy = e.clientY - down.ly, now = performance.now(), dt = Math.max(1, now - down.t);
     if (down.turn) R3.yawT -= dx / cv.clientWidth * 3; else { pan(dx, dy); down.vx = dx / dt; down.vy = dy / dt; }
@@ -183,7 +188,7 @@ function r3Project(x, y, z) {
   };
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListener(ev, up);
   cv.addEventListener('click', e => { if (R3.dragged) { R3.dragged = false; e.stopImmediatePropagation(); } }, true);
-  cv.addEventListener('wheel', e => { if (!R3.on) return; e.preventDefault(); R3.distT = Math.max(9, Math.min(36, R3.distT * (1 + Math.sign(e.deltaY) * .1))); }, { passive: false });
+  cv.addEventListener('wheel', e => { if (!R3.on) return; e.preventDefault(); FXS.bossCam = 0; R3.distT = Math.max(9, Math.min(36, R3.distT * (1 + Math.sign(e.deltaY) * .1))); }, { passive: false });
   cv.addEventListener('dblclick', () => { if (R3.on) { R3.yawT = 0; R3.distT = 24; R3.panXT = R3.panZT = 0; } });
 })();
 

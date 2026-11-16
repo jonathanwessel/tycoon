@@ -359,6 +359,12 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 .banner b { font-family: var(--display); font-weight: 400; font-size: 1.9rem; color: var(--copper); } .banner.gold b { color: var(--gold); } .banner.boss b { color: #ff8fb0; }
 .banner span { font-weight: 600; } .banner.out { animation: banout .35s ease-in forwards; }
 @keyframes banin { from { transform: scaleY(0) translateX(-30%); opacity: 0; } } @keyframes banout { to { transform: translateX(40%); opacity: 0; } }
+/* the boss entrance: a bigger banner and cinema bars that slide in from the top and bottom edges */
+.banner.enter { top: 64%; padding: 16px 8px; animation: banin .55s cubic-bezier(.2, .8, .2, 1); } .banner.enter b { font-size: 2.5rem; letter-spacing: .03em; text-shadow: 3px 3px 0 #2a1c22; }
+#cineT, #cineB { position: fixed; left: 0; right: 0; height: clamp(56px, calc(7vh + 40px), 140px); background: #161a2a; z-index: 4; pointer-events: none; opacity: 0; transform: translateY(-100%); transition: transform .5s cubic-bezier(.2, .8, .2, 1), opacity .5s; }
+#cineT { top: var(--top, 0px); } #cineB { bottom: var(--navh, 0px); transform: translateY(100%); } .cine #cineT, .cine #cineB { transform: none; opacity: 1; }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) { #cineT, #cineB { display: none; } } /* wide screens frame the map already */
+.cpop { position: fixed; z-index: 51; pointer-events: none; font-weight: 700; color: var(--gold); font-size: 1rem; text-shadow: 2px 2px 0 #2a1c22; white-space: nowrap; }
 .calm .bossbar, .calm .banner { animation: none; } @media (prefers-reduced-motion: reduce) { .bossbar, .banner { animation: none; } }
 @media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
   .mapbtn { left: auto; right: 10px; bottom: auto; }
@@ -499,6 +505,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
       <canvas id="cv" aria-label="Map of the gulch. Hold trees and rocks to gather, tap a building to upgrade it, tap an empty plot by the road to build a tower."></canvas>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <div class="bossbar" id="bossbar" hidden><div class="bn"><b id="bossName"></b><span id="bossNote"></span><em id="bossHp"></em></div><div class="bb"><i id="bossFill"></i><s></s><s></s></div></div>
+      <div id="cineT" aria-hidden="true"></div><div id="cineB" aria-hidden="true"></div>
       <div class="banner" id="banner" hidden><b id="banA"></b><span id="banB"></span></div>
       <button class="mapbtn" id="bMis" aria-label="Missions" title="Missions (M)"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 1h9v2h2v11a1 1 0 0 1-1 1H4a2 2 0 0 1-2-2V3h1zM5 5v1h6V5zm0 3v1h6V8zm0 3v1h4v-1z"/></svg><b class="mcount" hidden></b></button>
       <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>

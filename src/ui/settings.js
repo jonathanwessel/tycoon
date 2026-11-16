@@ -56,7 +56,7 @@ function welcome(away, coins, gains) {
   const m = $('modal'), m_ = Math.round(away / 60), dur = m_ >= 60 ? Math.floor(m_ / 60) + 'h ' + m_ % 60 + 'm' : m_ + ' minutes';
   const list = h('div', { cls: 'away' });
   for (const k in gains) if (gains[k] >= 1) list.append(h('div', null, ico(k, ITEMS[k].n), '+' + fmt(gains[k])));
-  const ok = h('button', { cls: 'primary', on: () => { m.hidden = true; for (let i = 0; i < 5; i++) setTimeout(() => flyFrom('coin', ok, $('hCoinWrap')), i * 80); } }, 'Back to work');
+  const ok = h('button', { cls: 'primary', on: () => { m.hidden = true; coinBurstFrom(ok, 9, coins); } }, 'Back to work');
   m.textContent = '';
   m.append(h('div', { cls: 'box', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mh' }, h('h3', { id: 'mh' }, 'Welcome back'),
     h('p', null, 'Your works ran for ' + dur + ' while you were away.' + (coins >= 1 ? ' Auto-sell and foremen earned you ' + fmt(coins) + ' coins.' : '')),

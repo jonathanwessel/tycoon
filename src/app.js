@@ -43,12 +43,13 @@ function bossHud() {
     if (boss.flash > 0 && !bar.classList.contains('hit')) { bar.classList.add('hit'); setTimeout(() => bar.classList.remove('hit'), 180); }
   }
   const b = FXS.banner, el = $('banner');
-  if (b && !paused && b !== banShown) { banShown = b; el.className = 'banner' + (b.gold ? ' gold' : '') + (b.boss || (S.wave % 10 === 0 && !b.gold) ? ' boss' : ''); $('banA').textContent = b.a; $('banB').textContent = b.b || ''; $('banB').hidden = !b.b; el.hidden = false; }
+  if (b && !paused && b !== banShown) { banShown = b; el.className = 'banner' + (b.gold ? ' gold' : '') + (b.boss || b.enter || (S.wave % 10 === 0 && !b.gold) ? ' boss' : '') + (b.enter ? ' enter' : ''); $('banA').textContent = b.a; $('banB').textContent = b.b || ''; $('banB').hidden = !b.b; el.hidden = false; }
   if (b && b.t < .35 && !el.classList.contains('out')) el.classList.add('out');
   if (!b && !el.hidden) { el.hidden = true; banShown = null; }
 }
 function tickHud(dt) {
   bossHud(); tutTick();
+  document.body.classList.toggle('cine', FXS.bossCam > .35 && !REDUCED && !paused && !CAPV.on); // cinema bars while the boss rides in
   if (shownCoins === null || REDUCED || !isFinite(shownCoins)) shownCoins = S.coins;
   shownCoins += (S.coins - shownCoins) * Math.min(1, dt * 9); if (Math.abs(S.coins - shownCoins) < .5) shownCoins = S.coins;
   const t = fmt(shownCoins); if (t !== coinTxt) { coinTxt = t; $('hCoins').textContent = t; }
@@ -102,8 +103,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-4'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'A walkable 3D Capital: visit the Capitol and the institutions, tap a building to build or upgrade it';
+const GAME_VERSION = '2026.11.16-5'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Juice: scaffolds and dust for new buildings, upgrade sparkles, a cinematic boss entrance, coin bursts to the counter';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

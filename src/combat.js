@@ -3,7 +3,7 @@
    Combat
    ========================================================= */
 let troops = [], clouds = [], tars = [], foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
-const FXS = { shake: {}, gold: {}, pop: {}, scorch: [], quake: 0, night: 0, banner: null, flash: 0, car: 9, lastCoin: 0, flow: {} };
+const FXS = { shake: {}, gold: {}, pop: {}, build: {}, sparks: [], scorch: [], quake: 0, night: 0, banner: null, flash: 0, car: 9, lastCoin: 0, flow: {}, bossCam: 0 };
 const W = { active: false, queue: [], next: null, ntype: 'mixed', type: 'mixed', shown: null, spawnT: 0, gap: .7, countdown: 30, spawned: 0, hpm: 1 };
 const foeHp = w => 10 * Math.pow(1.25, w - 1) * (1 + w * .05) * (1 + Math.min(.15, Math.max(0, w - 12) * .01));
 const foeCoins = w => 2 * Math.pow(1.12, w - 1) * (1 + .2 * lv('bounty'));
@@ -41,6 +41,7 @@ function spawn(type) {
   const p = air ? MAP.air : MAP.river !== undefined ? (type === 'boat' || type === 'boss' ? MAP.river : 0) : MAP.air !== undefined ? 0 : W.spawned++ % PATHS.length;
   const hp = foeHp(S.wave) * FOES[type].hp * (type === 'boss' ? (TOWN.boss.hp || 1) : W.hpm) * MAP.hp, [x, y] = posAt(0, p);
   foes.push({ type, p, d: 0, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: 1, flash: 0, num: 0, ht: 1.5, air: air ? 1 : 0 });
+  if (type === 'boss') bossEntrance(air); // the cinematic entrance: camera, banner, letterbox
   if (air) { FXS.quake = Math.max(FXS.quake, .5); FXS.bossIn = 2.5; snd('rumble', 70, .9, 'sawtooth', .07, -20); floats.push({ x: x + 2.2, y: y - .3, t: 1.8, s: 'Airship!', c: '#ff8fb0', z: .45 }); return; }
   // every raider kicks up a puff of dust as it rides in; the war wagon shakes the ground
   for (let i = 0; i < (type === 'boss' ? 22 : 5); i++) parts.push({ x: x + .4 + Math.random() * .4, y: y + .5 + (Math.random() - .5) * .6, vx: Math.random() * 1.2, vy: -.3 - Math.random() * .5, g: 0, t: .7, c: '#dcc59c', s: .09, smoke: 1 });
@@ -80,7 +81,7 @@ function hurt(f, dmg, o) {
       fx.push({ k: 'boom', x: f.x, y: f.y, r: 2.2, t: .6, d: .6 }); FXS.quake = 1; FXS.flash = .15; snd('kaboom', 60, .7, 'sawtooth', .1, -30);
       FXS.banner = { t: 2.8, a: bossName() + ' destroyed', b: '+' + fmt(bonus) + ' bonus coins', gold: 1, boss: 1 };
       for (let i = 0; i < 40; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 9, vy: -2 - Math.random() * 6, g: 9, t: 1 + Math.random() * .6, c: [P.yel, P.yelL, '#8a6a48', P.steelL, P.org][i % 5], s: .1 + Math.random() * .06 });
-      for (let i = 0; i < 10; i++) setTimeout(() => fly('coin', f.x + .5 + (Math.random() - .5), f.y + .5, $('hCoinWrap')), i * 70);
+      coinBurst(f.x + .5, f.y + .5, 14, bonus); FXS.bossCam = 0;
     }
     if (!REDUCED) for (let i = 0; i < (f.type === 'boss' ? 6 : 1 + (Math.random() < .4)); i++) drops.push({ x: f.x + .5, y: f.y + .55, z: 0, vz: 3 + Math.random() * 2, vx: (Math.random() - .5) * 1.6, t: 1.1 });
     if (corpses.length < 40) corpses.push({ type: f.type, x: f.x, y: f.y, dir: f.dir, t: .8, air: f.air });
@@ -118,7 +119,7 @@ function troopStats(t) {
 }
 function upgradeTrack(t, k) {
   const c = trackCost(t, k); t.up = t.up || {}; if ((t.up[k] || 0) >= TRACKS[k].max || S.coins < c) return false;
-  S.coins -= c; t.spent = (t.spent || 0) + c; t.up[k] = (t.up[k] || 0) + 1; snd('build', 440, .12, 'triangle', .05, 440); return true;
+  S.coins -= c; t.spent = (t.spent || 0) + c; t.up[k] = (t.up[k] || 0) + 1; snd('build', 440, .12, 'triangle', .05, 440); towerSparkle(t); return true;
 }
 const roadPaths = () => PATHS.map((_, i) => i).filter(i => i !== MAP.river && i !== MAP.air);
 /* Does this plot touch the road (a road cell beside it or at a corner, not the river)? Barracks may only stand there. */
@@ -185,7 +186,7 @@ function rebuildHelipad(t) {
 }
 function upgradeDrone(t, k) {
   const c = droneCost(t, k); t.dr = t.dr || {}; if ((t.dr[k] || 0) >= DRONE[k].max || S.coins < c) return false;
-  S.coins -= c; t.spent = (t.spent || 0) + c; t.dr[k] = (t.dr[k] || 0) + 1; snd('build', 520, .12, 'triangle', .05, 440); return true;
+  S.coins -= c; t.spent = (t.spent || 0) + c; t.dr[k] = (t.dr[k] || 0) + 1; snd('build', 520, .12, 'triangle', .05, 440); towerSparkle(t); return true;
 }
 const DRONE_T = new WeakMap(); // the raider each drone is after (kept out of the save)
 function droneTick(t, dt) {
@@ -209,8 +210,8 @@ const buildCost = type => Math.ceil(TOWERS[type].coins * Math.pow(1.2, towerCoun
 const upCost = t => Math.ceil(TOWERS[t.type].coins * .8 * Math.pow(1.75, t.lvl) * tf('eng', .92));
 const needsBranch = t => t.lvl >= 4 && !t.br && !!BRANCH[t.type];
 const branchCost = t => upCost(t) * 2;
-function upgradeTower(t) { if (needsBranch(t) || TOWERS[t.type].troops) return false; const c = upCost(t); if (S.coins < c) return false; S.coins -= c; t.lvl++; snd('build', 440, .12, 'triangle', .05, 440); return true; }
-function branchTower(t, b) { if (!needsBranch(t)) return false; const c = branchCost(t); if (S.coins < c) return false; S.coins -= c; t.br = b; t.lvl++; snd('ms', 660, .25, 'triangle', .06, 440); for (let i = 0; i < 14; i++) parts.push({ x: t.c + .5, y: t.r + .5, vx: Math.cos(i) * 2, vy: Math.sin(i) * 2 - 1, g: 2, t: .7, c: P.yel, s: .08 }); return true; }
+function upgradeTower(t) { if (needsBranch(t) || TOWERS[t.type].troops) return false; const c = upCost(t); if (S.coins < c) return false; S.coins -= c; t.lvl++; snd('build', 440, .12, 'triangle', .05, 440); towerSparkle(t); return true; }
+function branchTower(t, b) { if (!needsBranch(t)) return false; const c = branchCost(t); if (S.coins < c) return false; S.coins -= c; t.br = b; t.lvl++; snd('ms', 660, .25, 'triangle', .06, 440); towerSparkle(t, 22); for (let i = 0; i < 14; i++) parts.push({ x: t.c + .5, y: t.r + .5, vx: Math.cos(i) * 2, vy: Math.sin(i) * 2 - 1, g: 2, t: .7, c: P.yel, s: .08 }); return true; }
 function buildTower(type, c, r) {
   const d = TOWERS[type], cost = buildCost(type);
   const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods) || (d.from && S.best < d.from) || d.rebuilt || (d.troops && !besideRoad(c, r))) return false;
@@ -383,7 +384,7 @@ function combat(dt) {
       say('Vault breached! Raiders took ' + fmt(lost) + ' coins. Falling back to wave ' + S.wave + '.');
     }
   } else if (W.active && !W.queue.length && !foes.length) {
-    W.active = false; W.countdown = 20; const b = Math.ceil(foeCoins(S.wave) * 5 * MAP.coin); earn(b);
+    W.active = false; W.countdown = 20; const b = Math.ceil(foeCoins(S.wave) * 5 * MAP.coin); earn(b); coinBurst(VAULT[0] + .5, VAULT[1] + .5, 8, b);
     say('Wave ' + S.wave + ' cleared: +' + fmt(b) + ' coins.'); snd('clear', 520, .2, 'triangle', .05, 520);
     if (!(FXS.banner && FXS.banner.boss)) FXS.banner = { t: 2.2, a: 'Wave ' + S.wave + ' cleared', b: '+' + fmt(b) + ' coins', gold: 1 };
     if (!W.leaks) S.stats.flawless = (S.stats.flawless || 0) + 1;

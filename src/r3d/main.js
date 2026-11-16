@@ -8,7 +8,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { MAT, col } from './kit.js';
+import { MAT, col, part } from './kit.js';
 import { makeBuilding, BUILDING_IDS } from './buildings.js';
 import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, makeSoldier, makeDrone, PROPS } from './units.js';
 import { buildWorld, makeSky } from './world.js';
@@ -86,6 +86,7 @@ function resize(W, H) { if (!V.r) return; V.r.setSize(W, H, false); V.quality = 
 function rebuildWorld() {
   if (V.world) { V.scene.remove(V.world); disposeTree(V.world); }
   for (const id in V.bld) { V.dyn.remove(V.bld[id].obj); } V.bld = {};
+  for (const id in V.scaf || {}) V.dyn.remove(V.scaf[id]); V.scaf = {};
   for (const [, t] of V.towers) V.dyn.remove(t.obj); V.towers.clear();
   for (const [, f] of V.foes) V.dyn.remove(f.obj); V.foes.clear();
   for (const [, f] of V.corpses) V.dyn.remove(f.obj); V.corpses.clear();
@@ -115,13 +116,17 @@ function syncBuildings(time, dt) {
     if (!b || b.key !== key) {
       if (b) { V.dyn.remove(b.obj); }
       const m = makeBuilding(tier < 0 ? '_lot' : id, Math.max(0, tier)); m.key = key; m.obj.position.set(SLOT[id][0] + 1, .22, SLOT[id][1] + 1); V.dyn.add(m.obj); V.bld[id] = b = m;
-      if (V.bldSeen && tier >= 0) b.grow = .5; // a new building rises out of the ground
+      if (V.bldSeen && tier >= 0 && !(FXS.build[id] > 0)) b.grow = .5; // a bigger building rises out of the ground (a first build has its scaffold)
     }
     const act = (ACT[id] || 0) > .08 || fixed;
     // the build pop and the rise of a new building
     let s = 1; if (FXS.pop[id] > 0) s = 1 + Math.sin((1 - FXS.pop[id] / .45) * Math.PI * 2.5) * FXS.pop[id] * .25;
     if (b.grow > 0) { b.grow = Math.max(0, b.grow - dt); const p = 1 - b.grow / .5; s *= p < 1 ? .3 + .7 * (1 - Math.pow(1 - p, 3)) + Math.sin(p * Math.PI) * .08 : 1; }
-    b.obj.scale.set(1 + (s - 1) * .6, s, 1 + (s - 1) * .6);
+    // a first build: the building climbs up inside its scaffold, then the scaffold comes down (the pop and dust: fx.js)
+    const bt = tier >= 0 ? FXS.build[id] || 0 : 0, up = bt > BUILD_T - SCAF_T; let sw = 1;
+    if (up) { const p = (BUILD_T - bt) / SCAF_T, e = 1 - Math.pow(1 - p, 2); s *= .12 + .78 * e; sw = .9; if (GX().parts > 0 && !REDUCED && Math.random() < dt * 9) puff(b.obj.position.x + (Math.random() - .5) * 1.5, .3, b.obj.position.z + .75, '#dcc59c', .1, { t: .8, vy: .25 }); }
+    scaffold(id, up, time);
+    b.obj.scale.set((1 + (s - 1) * .6) * sw, s, (1 + (s - 1) * .6) * sw);
     for (const m of b.movers) {
       const n = m.node;
       if (m.kind === 'spin') { if (act || m.axis === 'z' && id === 'clockw') n.rotation[m.axis] += m.speed * dt * (act ? 1 : .15); }
@@ -140,6 +145,26 @@ function syncBuildings(time, dt) {
   }
   V.bldSeen = true;
 }
+/* Scaffolding round a building going up: poles, plank decks, braces and a hoist with a swinging crate. */
+function makeScaffold() {
+  const g = part(k => {
+    const w = .82, h = 1.5;
+    for (const [x, z] of [[-w, -w], [w, -w], [-w, w], [w, w]]) k.box(x, 0, z, .07, h, .07, 'wood');
+    for (const y of [.48, .98, 1.44]) for (const [x, z, a, d] of [[0, -w, w * 2 + .12, .12], [0, w, w * 2 + .12, .12], [-w, 0, .12, w * 2 + .12], [w, 0, .12, w * 2 + .12]]) k.box(x, y, z, a, .045, d, y > 1.4 ? 'woodL' : 'plank');
+    const L = Math.hypot(w * 2, .48), a = Math.atan2(.48, w * 2);
+    for (const [y, sgn] of [[.02, 1], [.5, -1], [1, 1]]) { k.box(0, y + .22, w + .045, L, .04, .04, 'woodD', { rz: a * sgn }); k.box(-w - .045, y + .22, 0, L, .04, .04, 'woodD', { ry: Math.PI / 2, rz: a * sgn }); }
+    k.box(w, h, w, .07, .5, .07, 'wood'); k.box(w * .45, h + .46, w, w * 1.15, .06, .06, 'woodD'); // the hoist
+    for (const [x, z] of [[-.4, w + .2], [.1, w + .26]]) k.box(x, 0, z, .5, .06, .14, 'plank', { ry: x * 2 }); // planks waiting on the ground
+  });
+  const rope = part(k => { k.box(0, -.42, 0, .015, .42, .015, 'ink'); k.box(0, -.56, 0, .14, .14, .14, 'woodL'); });
+  rope.position.set(.15, 1.96, .82); g.add(rope); g.userData.rope = rope;
+  g.traverse(m => { if (m.isMesh) m.castShadow = true; }); return g;
+}
+function scaffold(id, on, time) {
+  let o = V.scaf[id]; if (!on) { if (o) o.visible = false; return; }
+  if (!o) { o = V.scaf[id] = makeScaffold(); o.position.set(SLOT[id][0] + 1, .22, SLOT[id][1] + 1); V.dyn.add(o); }
+  o.visible = true; o.userData.rope.rotation.z = Math.sin(time * 3) * .2; o.userData.rope.rotation.x = Math.sin(time * 2.3) * .12;
+}
 function puff(x, y, z, c, s, o = {}) { if (V.smoke.length < 260) V.smoke.push({ x, y, z, vx: .12 + Math.random() * .12 + (o.vx || 0), vy: o.vy || .5, vz: (Math.random() - .5) * .1, t: o.t || 1.6, t0: o.t || 1.6, s, c: col(c) }); }
 
 /* --- towers ------------------------------------------------------------------------------------------------- */
@@ -152,7 +177,8 @@ function syncTowers(time, dt) {
     if (!v || v.key !== key) { if (v) V.dyn.remove(v.obj); const obj = makeTower(t.type, t.br, t.lvl); v = { obj, key, s: obj.scale.x, mat: null }; V.dyn.add(obj); V.towers.set(t, v); }
     const u = v.obj.userData, kick = t.kick > 0 ? t.kick / .12 : 0, born = t.born > 0 ? 1 - t.born / .35 : 1;
     v.obj.position.set(t.c + .5, 0, t.r + .5);
-    const bs = born < 1 ? (1 - Math.pow(1 - born, 3)) * (1 + Math.sin(born * Math.PI) * .25) : 1; v.obj.scale.setScalar(v.s * Math.max(.01, bs));
+    const tp = TPOP.get(t) || 0, pk = tp > 0 ? 1 + Math.sin((1 - tp / .4) * Math.PI * 2.5) * tp * .45 : 1;
+    const bs = born < 1 ? (1 - Math.pow(1 - born, 3)) * (1 + Math.sin(born * Math.PI) * .25) : 1; v.obj.scale.set(v.s * Math.max(.01, bs) * (1 + (pk - 1) * .5), v.s * Math.max(.01, bs) * pk, v.s * Math.max(.01, bs) * (1 + (pk - 1) * .5));
     if (t.type !== 'tesla' && t.type !== 'frost') u.head.rotation.y = -(t.aim || 0);
     u.bar.position.x = -kick * .09;
     if (u.spin) u.spin.rotation.x += dt * (t.cd < .4 || kick > 0 ? 30 : 0);
@@ -287,6 +313,7 @@ function syncFx(time, dt) {
   for (const cl of clouds) { const k = Math.min(1, cl.t / .8, (cl.t0 - cl.t) * 4); for (let i = 0; i < 7; i++) { const a = i * .9 + time * .5, rr = cl.r * (.25 + .5 * ((i * 37) % 10) / 10); S_(cl.x + .5 + Math.cos(a) * rr, .2 + (i % 3) * .12 + Math.sin(time * 2 + i) * .04, cl.y + .5 + Math.sin(a) * rr, cl.r * .55 * k, cl.zap > 0 ? col('#d8ff8a') : col(i % 2 ? '#7cc24a' : '#5fae5a'), a); } }
   for (const p of tars) if (p.burn > 0) for (let i = 0; i < 6; i++) { const a = i * 1.05 + time * 3; G_(p.x + .5 + Math.cos(a) * p.r * .5, .12 + Math.abs(Math.sin(time * 9 + i)) * .25, p.y + .5 + Math.sin(a) * p.r * .35, .1, .2 + Math.random() * .15, .1, _c.setRGB(3, 1.3, .3)); }
   for (const [x, y, z, L, ry, rz] of G_DRONE.splice(0)) G_(x, y, z, L, .03, .03, _c.setRGB(3, 2.5, 1.2), ry, 0);
+  for (const q of FXS.sparks) { const f = q.t / q.t0, tw = .6 + .4 * Math.sin(time * 22 + q.a * 5), sz = .085 * Math.min(1, f * 3, (1 - f) * 8) * tw; if (sz > .005) G_(q.x + Math.cos(q.a) * q.r, q.h, q.y + Math.sin(q.a) * q.r * .85, sz, sz, sz, q.gold ? _c.setRGB(3.2, 2.4, .8) : _c.setRGB(2.8, 2.8, 2.5), q.a, .785); }
   // chimney smoke grows and fades
   for (const q of V.smoke) { q.t -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.vy *= 1 - dt * .3; }
   V.smoke = V.smoke.filter(q => q.t > 0);
@@ -463,6 +490,7 @@ function prebuild() {
   for (const k of Object.keys(PROPS)) { try { PROPS[k](1, 1); n++; } catch (e) { bad.push(k + ': ' + e.message); } }
   for (const id of SITE_IDS) for (const t of [0, 1, 2, 3, 4]) { try { makeSite(id, t); n++; } catch (e) { bad.push('capital ' + id + t + ': ' + e.message); } }
   try { buildCapitalWorld(CAP_SITE, COLS, ROWS); n++; } catch (e) { bad.push('capital ground: ' + e.message); }
+  try { makeScaffold(); n++; } catch (e) { bad.push('scaffold: ' + e.message); }
   return { n, bad };
 }
 function info() { const i = V.r.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, err: V.r.getContext().getError(), foes: V.foes.size, towers: V.towers.size }; }

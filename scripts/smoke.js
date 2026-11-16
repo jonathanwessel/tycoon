@@ -150,10 +150,17 @@ const shots = process.argv[2];
       sel = { t }; refresh(); await wait(100); const btn = [...document.querySelectorAll('#card button')].find(b => /^Sell/.test(b.textContent));
       btn.click(); await wait(50); const kept = S.towers.includes(t); btn.click(); await wait(50); const sold = !S.towers.includes(t);
       foes = []; W.queue = []; spawn('boss'); await wait(300); const bar = !document.getElementById('bossbar').hidden && document.getElementById('bossbar').getBoundingClientRect().height > 10;
+      // the boss rides in: its own banner, cinema bars and the camera leaning towards it (all off with calm motion)
+      const enter = document.getElementById('banA').textContent === bossName() && document.getElementById('banner').classList.contains('enter');
+      const cine = REDUCED || document.body.classList.contains('cine'), cam = REDUCED || R3.bk > .05;
       foes = []; await wait(200); const gone = document.getElementById('bossbar').hidden;
-      return { kept, sold, bar, gone };
+      // a first build stands in scaffolding, which comes down again; coins burst out to the counter
+      const bb = BUILD.find(b => !blv(b.def.id) && SLOT[b.def.id]); let scaf = true, down = true;
+      if (bb && R3.on) { buyBuilding(bb); await wait(250); const o = R3D.V.scaf && R3D.V.scaf[bb.def.id]; scaf = !!(o && o.visible); await wait(1400); down = !(o && o.visible); }
+      coinBurst(5, 8, 8, 1000); await wait(120); const burst = REDUCED || !R3.on || document.querySelectorAll('img.fly').length >= 4;
+      return { kept, sold, bar, gone, enter, cine, cam, scaf, down, burst };
     });
-    for (const k in sellx) if (!sellx[k]) errs.push((k === 'kept' ? 'sell needs two taps' : k === 'sold' ? 'second tap did not sell' : 'boss bar: ' + k) + ' failed');
+    for (const k in sellx) if (!sellx[k]) errs.push((k === 'kept' ? 'sell needs two taps' : k === 'sold' ? 'second tap did not sell' : k === 'bar' || k === 'gone' ? 'boss bar: ' + k : 'juice: ' + k) + ' failed');
     // the tutorial: every step can be done and it finishes with its reward; the Capital panel opens once founded
     const tut = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms)), at = []; foes = []; W.queue = []; W.active = false; S.towers = []; sel = null; S.wave = 1; S.ext.camp = 0; S.stats.taps = 0; R3.panXT = R3.panZT = 0; R3.yawT = 0; R3.distT = 24; S.mgr = {}; if (SHEET.open) closeSheet(); tab = 'defend'; // no foremen building things on their own

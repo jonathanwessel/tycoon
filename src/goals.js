@@ -146,6 +146,6 @@ function goalNow() {
 function claimGoal() {
   const g = goalNow(); if (g.cur < g.need) return;
   earn(g.r); S.goalsDone++; if (S.goal < goalList().length) S.goal++; else S.gq = null;
-  const from = document.querySelector('.goal img.px') || $('bMis'); if (from) for (let i = 0; i < 4; i++) setTimeout(() => flyFrom('coin', from, $('hCoinWrap')), i * 80);
+  const from = document.querySelector('.goal img.px') || $('bMis'); if (from) coinBurstFrom(from, 7, g.r);
   snd('goal', 523, .25, 'triangle', .06, 523); say('Goal complete: +' + fmt(g.r) + ' coins.');
 }

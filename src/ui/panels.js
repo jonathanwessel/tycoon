@@ -142,7 +142,7 @@ const PANELS = {
     for (const k in ITEMS) {
       if (!S.seen[k]) continue;
       const info = h('small'), val = h('span'), sc = h('canvas', { cls: 'spark', width: 128, height: 48, 'aria-hidden': 'true' });
-      const sellB = h('button', { on: () => { const n = Math.floor(S.res[k]); if (!n) return; sell(k, n); for (let i = 0; i < 3; i++) setTimeout(() => fly('coin', 11, 1, $('hCoinWrap')), i * 90); snd('coin', 880, .08, 'square', .04, 440); } }, 'Sell ', h('span', { cls: 'cost' }, h('span', null, ico('coin', 'coins'), val)));
+      const sellB = h('button', { on: () => { const n = Math.floor(S.res[k]); if (!n) return; const v = sell(k, n); coinBurst(11, 1.5, 5, v); snd('coin', 880, .08, 'square', .04, 440); } }, 'Sell ', h('span', { cls: 'cost' }, h('span', null, ico('coin', 'coins'), val)));
       const auto = h('button', { cls: 'small', on: () => { S.auto[k] = !S.auto[k]; } }, 'Auto');
       p.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, ITEMS[k].n), info), sc, h('div', { cls: 'acts' }, auto, sellB)));
       ups.push(() => {

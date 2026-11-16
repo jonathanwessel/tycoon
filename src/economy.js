@@ -180,7 +180,8 @@ function levelled(b, from, to, quiet) {
   if (b.def.id === 'locow' && to >= 1) S.railOpen = 1; // the first Locomotive Works brings trains to every route
   if (TOWN_ID !== S.town) { if (MS(to) > MS(from)) say(TOWN.n + ': ' + b.def.n + ' reached level ' + to + ', output doubled.'); return; } // a town working in the background: no effects on this map
   const [sx, sy] = SLOT[b.def.id];
-  if (!quiet) { FXS.pop[b.def.id] = .45; snd('build', 330, .12, 'triangle', .05, 330); for (let i = 0; i < 10; i++) parts.push({ x: sx + .3 + Math.random() * 1.4, y: sy + 1.6, vx: (Math.random() - .5) * 2, vy: -2 - Math.random() * 2, g: 6, t: .6, c: P.yelL, s: .08 }); }
+  // a first build stands in scaffolding, then pops out of a cloud of dust (fx.js); a new level pops and sparkles
+  if (!quiet) { snd('build', 330, .12, 'triangle', .05, 330); if (!from) FXS.build[b.def.id] = BUILD_T; else { FXS.pop[b.def.id] = .45; sparkle(sx + 1, sy + 1, 14, 1); } }
   if (MS(to) > MS(from)) {
     FXS.gold[b.def.id] = 1.6; snd('ms', 660, .3, 'triangle', .06, 660);
     floats.push({ x: sx + 1, y: sy + .6, t: 1.8, s: 'Output ×2', c: P.yel, z: .42 });
@@ -200,7 +201,7 @@ function deliver(i) {
   const c = S.contracts[i]; if (!c || S.res[c.k] < c.qty) return false;
   S.res[c.k] -= c.qty; const v = contractPay(c); earn(v); S.stats.contracts++; S.contracts[i] = newContract(); rebuild = true;
   say('Order delivered: +' + fmt(v) + ' coins.'); FXS.car = 0;
-  for (let j = 0; j < 5; j++) setTimeout(() => fly('coin', 11, 3, $('hCoinWrap')), 900 + j * 90);
+  setTimeout(() => coinBurst(11, 3, 7, v), 900);
   snd('coin', 660, .15, 'square', .04, 660); return true;
 }
 /* Tap the trees or rocks (src is the yard slot); each town decides what they give (Iron Ridge: stone and iron ore). */
