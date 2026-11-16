@@ -135,3 +135,27 @@ The 3D view is rebuilt on three.js (vendored in vendor/three, MIT licence) with 
 - [ ] G6 build animations, icons from the models, 3D as the default after a phone check
 
 Preview locally with `node scripts/serve.js` (modules do not load from file://). `node scripts/shots3d.js <dir> [town]` takes phone-size screenshots and prints frame timing.
+
+## Economy that scales on its own (foremen + auto-sell)
+
+`node scripts/idle.js [hours]` runs all three towns with every foreman on, auto-sell on and the suggested routes, untouched, and checks that income rises every hour, no workshop stands idle and foremen keep buying.
+
+| After 6 idle hours | Before | After |
+|---|---|---|
+| Copper Gulch income | 3.3K/s | 49K/s |
+| Iron Ridge income | 1.8K/s | 26K/s |
+| Silver Falls income | 1.5K/s | 23K/s |
+| Boiler Shop / Locomotive Works / Telegraph Works | 1 / 1 / 1 | grow to 40 / 45 / 43 by 12 hours |
+
+What changed:
+- Foremen count goods arriving by route (and those shipped away).
+- They price sales at the level steady selling settles at.
+- They save toward x2 milestones, and give a starved workshop's supplier enough levels.
+- They may buy Steam Power, Assembly Lines and Haggling (Works tab, Research switch).
+- They weigh saving time as well as payback.
+- Each town's purse fills from that town's own earnings.
+- Workshops that use the same good now share it by capacity instead of the first in the chain taking it all.
+- Routes have an Auto rate.
+- Every Locomotive Works level adds 10% train capacity.
+
+Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29-34 min, best wave about 50).

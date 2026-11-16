@@ -218,3 +218,37 @@ test('a dust storm shortens tower reach except frost and tesla', () => {
   assert.ok(g.run(`towerStats({ type: 'crossbow', lvl: 0 }).range`) < r0);
   assert.strictEqual(g.run(`towerStats({ type: 'frost', lvl: 0 }).range`), f0);
 });
+
+test('foremen value and buy a workshop fed only by a shipping route', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e9; S.best = 25; unlockTown('ridge'); S.railOpen = 1;
+    Object.assign(S.ext, { camp: 30, mine: 30 }); Object.assign(S.shops, { saw: 30, smelt: 20 });
+    Object.assign(S.towns.ridge.ext, { ironmine: 30, coalseam: 30 }); Object.assign(S.towns.ridge.shops, { blast: 25, boilerw: 1 });
+    S.towns.ridge.mgr = { boilerw: 1 }; S.towns.ridge.fb = { share: 1, keep: 0, purse: 0, study: 0 };
+    S.towns.ridge.research = { ledger: 1 }; for (const k in ITEMS) S.towns.ridge.auto[k] = 1; // Iron Ridge sells, so its foreman gets paid
+    S.routes.push({ id: 1, from: 'gulch', to: 'ridge', k: 'plank', per: 'auto', sent: 0 });`);
+  g.run('for (let i = 0; i < 1200; i++) econTowns(1);');
+  assert.ok(g.run('S.towns.ridge.shops.boilerw') > 5, 'Boiler Shop upgraded by its foreman, got ' + g.run('S.towns.ridge.shops.boilerw'));
+});
+
+test('workshops share an input instead of the first in the chain taking it all', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); useTown('ridge'); S.res.pig = 0; S.res.plank = 1e6; S.shops = { rolling: 10, boilerw: 10 }; S.ext = {};`);
+  g.run('for (let i = 0; i < 50; i++) { S.res.pig += 1; econStep(.1); }');
+  assert.ok(g.run('S.res.boiler') > 0, 'the Boiler Shop got some pig iron');
+  assert.ok(g.run('S.res.rail') > 0, 'the Rolling Mill still got some');
+});
+
+test('foremen save toward a x2 milestone', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.ext = { camp: 7 }; S.mgr = { camp: 1 }; S.fb = { share: 1, keep: 0, purse: 1e6, study: 0, own: 1, last: 0 }; S.coins = 1e6; foremenWork();`);
+  assert.ok(g.run('S.ext.camp') >= 10, 'bought the camp up to its level 10 milestone, got ' + g.run('S.ext.camp'));
+});
+
+test('Auto routes ship what the other town can use, and trains grow with the Locomotive Works', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e9; S.best = 25; unlockTown('ridge'); S.railOpen = 1; readLoco();`);
+  const base = g.run('carrier().max');
+  g.run(`S.towns.ridge.shops.locow = 11; readLoco();`);
+  assert.strictEqual(g.run('carrier().max'), Math.round(base * 2), 'ten more levels double the trains');
+});

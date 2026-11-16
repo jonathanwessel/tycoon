@@ -191,6 +191,13 @@ const FOE_TIPS = {
   shield: 'Blocks four hits. Cannons smash the shield in one.', sapper: 'Jams a tower it walks past unless it dies quickly.',
   healer: 'Mends raiders around it. Kill it first.', thief: 'Steals goods instead of hitting the vault.', boat: 'River pirates: row up the river in Silver Falls. Towers on the banks can reach them.', boss: 'Every tenth wave. If it reaches the vault, the vault falls however strong it is: destroy it to move on.',
 };
+/* What the foremen are saving for, in words. */
+function fbGoal() {
+  const g = S.fb && S.fb.goal; if (!g) return '';
+  if (g.startsWith('r:')) { const r = RESEARCH.find(q => q.id === g.slice(2)); return r ? ' (now: research ' + r.n + ', ' + fmt(S.fb.goalC) + ')' : ''; }
+  const b = BY_ID[g]; if (!b) return ''; const n = S.fb.goalN || 1, l = blv(g);
+  return ' (now: ' + b.def.n + (n > 1 ? ' levels ' + (l + 1) + ' to ' + (l + n) : ' level ' + (l + 1)) + ', ' + fmt(S.fb.goalC || bCost(b, l)) + ')';
+}
 const PANELS = {
   defend(p) {
     const gt = h('span'), gn = h('small'), bar = h('i'), claim = h('button', { cls: 'small', on: claimGoal }, 'Claim'), swap = h('button', { cls: 'small', on: () => { S.gq = null; } }, 'Swap');
@@ -242,6 +249,7 @@ const PANELS = {
     const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } fbBox.append(s); };
     fseg('Pay them', [[.25, '25%'], [.5, '50%'], [.75, '75%'], [1, 'All']], 'share');
     fseg('Keep', [[0, 'No reserve'], [1, '1 min'], [5, '5 min']], 'keep');
+    fseg('Research', [[1, 'They may buy it'], [0, 'Leave it to me']], 'study');
     p.append(fbBox);
     if (TOWN.power) { // the power grid: supply from Water Wheels against demand from workshop levels
       const pw = h('div', { cls: 'power' }), pbar = h('i'), ptxt = h('small');
@@ -252,7 +260,7 @@ const PANELS = {
     p.append(h('h2', null, 'Gathering'));
     ups.push(() => {
       const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length;
-      fbInfo.textContent = n ? n + ' at work. They get ' + pct(S.fb.share) + ' of what you earn and save up for the upgrade that pays back fastest' + (S.fb.goal && BY_ID[S.fb.goal] ? ' (now: ' + BY_ID[S.fb.goal].def.n + ' level ' + (blv(S.fb.goal) + 1) + ', ' + fmt(bCost(BY_ID[S.fb.goal], blv(S.fb.goal))) + ')' : '') + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.')
+      fbInfo.textContent = n ? n + ' at work. They get ' + pct(S.fb.share) + ' of what you earn and save up for the upgrade that pays back fastest' + fbGoal() + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.')
         : 'Hire a foreman with the button next to any building. They get a share of what you earn and keep upgrading for you.';
     });
     for (const b of BUILD) { if (b.def === SHOPS[0]) p.append(h('h2', null, 'Workshops')); p.append(buyRow(b, ups)); }
@@ -343,20 +351,20 @@ const PANELS = {
     p.append(sug, list, form);
     const made = id => new Set([...TOWNS[id].ext, ...TOWNS[id].shops].map(b => BY_ALL[b].def.out));
     const needs = id => { const m = made(id), n = new Set(); for (const s of TOWNS[id].shops) for (const k in BY_ALL[s].def.in) if (!m.has(k)) n.add(k); for (const ty in TOWNS[id].goods) for (const k in TOWNS[id].goods[ty]) if (!m.has(k)) n.add(k); return [...n]; };
-    const addRoute = (from, to, k, per) => { if (from === to) return; S.routes.push({ id: Date.now() + Math.random(), from, to, k, per: per || 60, sent: 0 }); rebuild = true; say('Shipping ' + ITEMS[k].n.toLowerCase() + ' from ' + TOWNS[from].n + ' to ' + TOWNS[to].n + '.'); };
+    const addRoute = (from, to, k, per) => { if (from === to) return; S.routes.push({ id: Date.now() + Math.random(), from, to, k, per: per || 'auto', sent: 0 }); rebuild = true; say('Shipping ' + ITEMS[k].n.toLowerCase() + ' from ' + TOWNS[from].n + ' to ' + TOWNS[to].n + '.'); };
     const ids = townIds().filter(townOpen);
     for (const to of ids) for (const k of needs(to)) {
       const from = ids.find(f => f !== to && made(f).has(k)); if (!from || S.routes.some(r => r.to === to && r.k === k)) continue;
-      sug.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, TOWNS[to].n + ' needs ' + ITEMS[k].n.toLowerCase()), h('small', null, 'Made in ' + TOWNS[from].n + '.')), h('button', { cls: 'small primary', on: () => addRoute(from, to, k, 60) }, 'Ship it')));
+      sug.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, TOWNS[to].n + ' needs ' + ITEMS[k].n.toLowerCase()), h('small', null, 'Made in ' + TOWNS[from].n + '.')), h('button', { cls: 'small primary', on: () => addRoute(from, to, k, 'auto') }, 'Ship it')));
     }
     if (!S.routes.length) list.append(h('p', null, ids.length > 1 ? 'No routes yet. Goods leave before auto-sell, so a route takes what the town makes before it is sold.' : 'Open a second town to ship goods between towns.'));
     for (const r of S.routes) {
       const info = h('small'), seg = h('div', { cls: 'seg' });
-      const rates = S.railOpen ? [30, 120, 300, 1200] : [10, 30, 60, 120];
-      for (const v of rates) { const b = h('button', { cls: 'small', on: () => { r.per = v; refresh(); } }, v + '/min'); seg.append(b); ups.push(() => b.classList.toggle('on', r.per === v)); }
+      const rates = ['auto', ...(S.railOpen ? [30, 120, 300, 1200] : [10, 30, 60, 120])];
+      for (const v of rates) { const b = h('button', { cls: 'small', on: () => { r.per = v; refresh(); } }, v === 'auto' ? 'Auto' : v + '/min'); if (v === 'auto') b.title = 'Ship what the other town can use, up to what the carrier can take'; seg.append(b); ups.push(() => b.classList.toggle('on', r.per === v)); }
       const pause = h('button', { cls: 'small', on: () => { r.paused = !r.paused; refresh(); } }), del = h('button', { cls: 'small danger', on: () => { S.routes = S.routes.filter(q => q !== r); rebuild = true; } }, 'Remove');
       list.append(h('div', { cls: 'row' }, ico(r.k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, ITEMS[r.k].n + ': ' + TOWNS[r.from].n + ' → ' + TOWNS[r.to].n), info), seg, h('div', { cls: 'acts' }, pause, del)));
-      ups.push(() => { info.textContent = (r.paused ? 'Paused · ' : '') + fmt(r.sent || 0) + ' shipped so far'; pause.textContent = r.paused ? 'Resume' : 'Pause'; });
+      ups.push(() => { info.textContent = (r.paused ? 'Paused · ' : r.per === 'auto' ? 'Auto: ' + fmt(routeRate(r)) + '/min · ' : '') + fmt(r.sent || 0) + ' shipped so far'; pause.textContent = r.paused ? 'Resume' : 'Pause'; });
     }
     if (ids.length > 1) {
       const sel = (opts, val) => { const s = h('select'); for (const [v, n] of opts) { const o = h('option', { value: v }, n); if (v === val) o.selected = true; s.append(o); } return s; };

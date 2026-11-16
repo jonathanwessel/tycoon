@@ -17,10 +17,14 @@ function econStep(dt) {
   for (const e of EXT) { const l = S.ext[e.id] || 0; if (l && e.out) add(e.out, l * e.rate * pm * bMult(e.id) * dt); }
   // deliveries arrive first; what shipping routes will send this step is held back from this town's own workshops
   const resv = routeHold(dt);
+  // workshops that use the same good share it by what each could use at full speed (not first come, first served),
+  // so upgrading a workshop wins it a bigger share and the whole chain keeps working
+  const want = {}, pool = {}, capOf = s => (S.shops[s.id] || 0) * s.rate * cm * bMult(s.id) * dt;
+  for (const s of SHOPS) if (S.shops[s.id] && !S.off[s.id]) { const c = capOf(s); for (const k in s.in) want[k] = (want[k] || 0) + c * s.in[k]; }
   for (const s of SHOPS) {
     const l = S.shops[s.id] || 0; if (!l) continue;
-    const cap = l * s.rate * cm * bMult(s.id) * dt; let n = S.off[s.id] ? 0 : cap, miss = null;
-    for (const k in s.in) { const m = Math.max(0, S.res[k] - (resv[k] || 0)) / s.in[k]; if (m < n) { n = m; miss = k; } }
+    const cap = capOf(s); let n = S.off[s.id] ? 0 : cap, miss = null;
+    for (const k in s.in) { if (pool[k] === undefined) pool[k] = Math.max(0, S.res[k] - (resv[k] || 0)); const m = Math.min(pool[k] * cap / (want[k] || 1), Math.max(0, S.res[k] - (resv[k] || 0))) / s.in[k]; if (m < n) { n = m; miss = k; } }
     if (n > 0) { for (const k in s.in) S.res[k] -= n * s.in[k]; add(s.out, n); S.stats.made += n; PHASE[s.id] = ((PHASE[s.id] || 0) + n / l / bMult(s.id)) % 1; }
     ACT[s.id] = (ACT[s.id] || 0) + (n / cap - (ACT[s.id] || 0)) * ease; STARVE[s.id] = miss;
   }
@@ -32,56 +36,93 @@ function econStep(dt) {
 }
 function econ(dt) { while (dt > 0) { const s = Math.min(dt, 5); econStep(s); dt -= s; } }
 
-/* Steady income: coins per second this town makes once production settles, if surplus goods are sold at full price.
-   Workshops are limited by their inputs, taken upstream first (SHOPS is listed in chain order), so a workshop short of
-   inputs adds nothing and the camp that would feed it shows its real worth. extraId counts one more level of that
-   building, which is how foremen value an upgrade. mode 'top' sells only goods no built workshop uses. */
+/* Production per second once it settles, as a chain: gatherers first, goods arriving by shipping route, then workshops
+   in chain order (SHOPS is listed upstream first), each limited by its inputs. What this town's routes ship out is held
+   back from its workshops, as in econStep. ex adds levels ({ id: n }) or research ({ 'r:steam': 1 }) to try them out.
+   Returns { have: left over per good, made: produced per good, used: goods a workshop takes, out: shipped away }. */
+const ROUTE_OUT = {}, ROUTE_NEED = {}; // per town: goods per second it makes, refreshed by econTowns, so routes know what can be sent
+function chainFlow(ex) {
+  ex = ex || {}; const bump = {};
+  for (const k in ex) if (k.startsWith('r:')) { const id = k.slice(2); bump[id] = S.research[id] || 0; S.research[id] = bump[id] + ex[k]; }
+  try {
+    const pm = prodMult(), cm = craftMult() * powerUse(ex).f, have = {}, made = {}, used = {}, hold = {}, out = {}, need = {}, cr = carrier();
+    for (const k in ITEMS) { have[k] = 0; made[k] = 0; }
+    const lvl = id => blv(id) + (ex[id] || 0);
+    for (const e of EXT) { const l = lvl(e.id); if (l && e.out) { const n = l * e.rate * pm * Math.pow(2, MS(l)); have[e.out] += n; made[e.out] += n; } }
+    const capOf = s => { const l = lvl(s.id); return l && !S.off[s.id] ? l * s.rate * cm * Math.pow(2, MS(l)) : 0; }, pool = {};
+    for (const s of SHOPS) { const c = capOf(s); for (const k in s.in) need[k] = (need[k] || 0) + c * s.in[k]; }
+    for (const r of S.routes || []) {
+      if (r.paused || !townOpen(r.to) || !townOpen(r.from)) continue;
+      // an Auto route follows what the workshops here would use (so a tried-out upgrade gets its extra goods)
+      const rate = r.per === 'auto' && r.to === TOWN_ID ? Math.min(cr.max / 60, Math.max(5 / 60, (need[r.k] || 0) * 1.1)) : routeRate(r) / 60;
+      if (r.to === TOWN_ID) { const src = ROUTE_OUT[r.from], n = src && src[r.k] !== undefined ? Math.min(rate, src[r.k]) : rate; have[r.k] += n; }
+      if (r.from === TOWN_ID) hold[r.k] = (hold[r.k] || 0) + rate;
+    }
+    for (const s of SHOPS) {
+      const cap = capOf(s); if (!cap) continue;
+      let n = cap; for (const k in s.in) { used[k] = 1; if (pool[k] === undefined) pool[k] = Math.max(0, have[k] - (hold[k] || 0)); n = Math.min(n, pool[k] * cap / (need[k] || 1) / s.in[k]); }
+      if (n > 0) { for (const k in s.in) have[k] -= n * s.in[k]; have[s.out] += n; made[s.out] += n; }
+    }
+    for (const k in hold) { out[k] = Math.min(hold[k], Math.max(0, have[k])); have[k] -= out[k]; }
+    return { have, made, used, out, need };
+  } finally { for (const id in bump) S.research[id] = bump[id]; }
+}
+/* What a good sells for when sold steadily at n per second: selling pushes demand down and it recovers (see econStep),
+   so a flood of one good settles at a lower price. */
+function steadyPrice(k, n) {
+  const rec = perk('trade') ? .04 : .02, d = n > 0 ? Math.max(.3, rec / (rec + n / depth(k))) : 1;
+  return ITEMS[k].p * sellMult() * d;
+}
+/* Steady income: coins per second this town makes once production settles, selling the surplus at the price that
+   selling it would settle at. mode 'top' sells only goods no built workshop uses. Foremen value an upgrade by it. */
 function steadyIncome(extra, mode) {
-  const ex = typeof extra === 'string' ? { [extra]: 1 } : extra || {}, pm = prodMult(), cm = craftMult() * powerUse(ex).f, have = {}, used = {};
-  for (const k in ITEMS) have[k] = 0;
-  const lvl = id => blv(id) + (ex[id] || 0);
-  for (const e of EXT) { const l = lvl(e.id); if (l && e.out) have[e.out] += l * e.rate * pm * Math.pow(2, MS(l)); }
-  for (const s of SHOPS) {
-    const l = lvl(s.id); if (!l || S.off[s.id]) continue;
-    let n = l * s.rate * cm * Math.pow(2, MS(l)); for (const k in s.in) { used[k] = 1; n = Math.min(n, have[k] / s.in[k]); }
-    if (n > 0) { for (const k in s.in) have[k] -= n * s.in[k]; have[s.out] += n; }
-  }
-  let v = 0; for (const k in ITEMS) if (mode !== 'top' || !used[k]) v += Math.max(0, have[k]) * ITEMS[k].p * sellMult();
+  const ex = typeof extra === 'string' ? { [extra]: 1 } : extra || {}, f = chainFlow(ex);
+  let v = 0; for (const k in ITEMS) if (mode !== 'top' || !f.used[k]) { const n = Math.max(0, f.have[k]); if (n > 0) v += n * steadyPrice(k, n); }
   return v;
 }
 /* Foremen. They are paid a share of what you earn (Works tab: 25, 50, 75 or 100 percent), saved in a purse, and never
-   take you below your reserve (none, or 1 or 5 minutes of income). The rest of your income is yours to keep, so savings
-   always grow. From the purse they buy the upgrade that pays for itself fastest (cost ÷ extra steady income): that
-   favours levels reaching a ×2 milestone, values the top of the chain properly, and skips workshops short of inputs. */
+   take you below your reserve (none, or 1 or 5 minutes of income). The rest of your income is yours to keep.
+   From the purse they buy whatever pays for itself fastest (cost ÷ extra steady income), looking at:
+   - one more level of a building they run;
+   - all the levels up to that building's next ×2 milestone, bought together once the purse holds them;
+   - for a workshop starved of an input, levels on the building that makes it (as many as the shortage needs);
+   - the research that speeds the whole town up (Steam Power, Assembly Lines, Haggling), if you let them.
+   They save for up to half an hour of income; dearer things are left to you (or to a new charter). */
+const FB_RESEARCH = ['steam', 'lines', 'haggle'];
 function foremenWork() {
-  const fb = S.fb || (S.fb = { share: .5, keep: 0, purse: 0, last: S.stats.coins });
-  if (fb.last === undefined || fb.last > S.stats.coins) fb.last = S.stats.coins;
-  const inc = steadyIncome();
-  fb.purse = Math.min((fb.purse || 0) + (S.stats.coins - fb.last) * fb.share, Math.max(1e3, inc * 600)); fb.last = S.stats.coins;
-  if (!Object.keys(S.mgr).some(id => S.mgr[id] === 1)) return;
+  // each town's purse fills from what that town earns (S.life is per town); coins themselves are shared by the empire
+  const fb = S.fb || (S.fb = { share: .5, keep: 0, purse: 0, last: S.life || 0, study: 1 });
+  if (fb.study === undefined) fb.study = 1;
+  if (!fb.own) { fb.own = 1; fb.last = S.life || 0; } // saves from before purses were per town counted the whole empire
+  if (fb.last === undefined || fb.last > (S.life || 0)) fb.last = S.life || 0;
+  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800);
+  fb.purse = Math.min((fb.purse || 0) + ((S.life || 0) - fb.last) * fb.share, cap); fb.last = S.life || 0;
+  const mine = Object.keys(S.mgr).filter(id => S.mgr[id] === 1 && BY_ID[id]); if (!mine.length) { fb.goal = null; return; }
   const reserve = fb.keep * 60 * inc;
-  // they save up for the best-value upgrade rather than spending on whatever is cheap right now
-  // (anything costing more than the purse can ever hold, about 10 minutes of income, is left for you)
-  const cap = Math.max(1e3, inc * 600);
-  for (let i = 0; i < 6; i++) {
-    const base = steadyIncome(); let best = null, budget = Math.min(fb.purse, S.coins - reserve);
-    for (const id in S.mgr) {
-      if (S.mgr[id] !== 1) continue; const b = BY_ID[id], c = bCost(b, blv(id)); if (c > cap) continue;
-      const gain = steadyIncome(id) - base;
-      if (gain > 1e-9) { const sc = c / gain; if (!best || sc < best.sc) best = { b, id, c, sc }; continue; }
-      // a workshop short of an input is worth nothing alone; value it together with a level on the building that
-      // makes its scarcest input (if a foreman runs that one too), and buy the supplier's level first
-      if (b.kind !== 'shops') continue;
+  for (let i = 0; i < 8; i++) {
+    const base = steadyIncome(), budget = Math.min(fb.purse, S.coins - reserve); let best = null;
+    const earn = Math.max(1e-6, inc * fb.share);
+    const offer = (kind, id, n, c, gain) => { if (!(gain > 1e-9) || c > cap) return; const sc = Math.max(0, c - budget) / earn + c / gain; if (!best || sc < best.sc) best = { kind, id, n, c, sc }; };
+    const levels = (b, n) => { let c = 0; for (let j = 0; j < n; j++) c += bCost(b, blv(b.def.id) + j); return c; };
+    for (const id of mine) {
+      const b = BY_ID[id], have = blv(id), toMs = nextMs(have) - have;
+      offer('b', id, 1, bCost(b, have), steadyIncome(id) - base);
+      if (toMs > 1) offer('b', id, toMs, levels(b, toMs), steadyIncome({ [id]: toMs }) - base);
+      // a starved workshop: its supplier's levels count together with it, enough of them to feed it
+      if (b.kind !== 'shops' || steadyIncome(id) - base > 1e-9) continue;
       for (const k in b.def.in) {
         const sup = BUILD.find(o => o.def.out === k); if (!sup || S.mgr[sup.def.id] !== 1) continue;
-        const sc2 = bCost(sup, blv(sup.def.id)), g2 = steadyIncome({ [id]: 1, [sup.def.id]: 1 }) - base;
-        if (!(g2 > 1e-9) || c + sc2 > cap) continue;
-        const sc = (c + sc2) / g2; if (!best || sc < best.sc) best = { b: sup, id: sup.def.id, c: sc2, sc };
+        const sl = blv(sup.def.id), sMs = nextMs(sl) - sl;
+        for (const n of [1, 2, 4, 8, sMs]) { if (n > 25) continue; offer('b', sup.def.id, n, levels(sup, n) + bCost(b, have), steadyIncome({ [id]: 1, [sup.def.id]: n }) - base); }
       }
     }
-    fb.goal = best ? best.id : null;
+    if (fb.study) for (const id of FB_RESEARCH) { const r = RESEARCH.find(q => q.id === id); if (!r || lv(id) >= r.max) continue; offer('r', id, 1, Math.ceil(r.cost * Math.pow(r.g, lv(id))), steadyIncome({ ['r:' + id]: 1 }) - base); }
+    // a bundle is bought one level at a time as soon as the purse holds all of it, so the chain grows in step
+    fb.goal = best ? (best.kind === 'r' ? 'r:' : '') + best.id : null; fb.goalN = best ? best.n : 0; fb.goalC = best ? best.c : 0;
     if (!best || best.c > budget) break;
-    const have = blv(best.id); fb.purse -= best.c; S.coins -= best.c; S[best.b.kind][best.id] = have + 1; levelled(best.b, have, have + 1, true);
+    if (best.kind === 'r') { const r = RESEARCH.find(q => q.id === best.id); fb.purse -= best.c; S.coins -= best.c; S.research[best.id] = lv(best.id) + 1; continue; }
+    const b = BY_ID[best.id];
+    for (let j = 0; j < best.n; j++) { const have = blv(best.id), c = bCost(b, have); fb.purse -= c; S.coins -= c; S[b.kind][best.id] = have + 1; levelled(b, have, have + 1, true); }
   }
 }
 /* Income actually earned, averaged over the last minute (every coin source counts). */

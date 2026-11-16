@@ -75,12 +75,20 @@ function unlockTown(id) {
    Goods leave before the source town's auto-sell runs and arrive in the destination's inbox, collected on its next tick.
    Wagons carry up to 120 a minute for 5% of the goods' value; once a Locomotive Works stands, trains carry up to
    1200 a minute for 2%. */
-const carrier = () => S.railOpen ? { n: 'Train', max: 1200, fee: .02, spr: 'loco' } : { n: 'Wagon train', max: 120, fee: .05, spr: 'wagon' };
+/* Goods per minute a route moves: a set rate, or Auto: what the receiving town's workshops can use (plus 10%). */
+const routeRate = r => { const cr = carrier(); if (r.per !== 'auto') return Math.min(r.per, cr.max); const n = ROUTE_NEED[r.to] && ROUTE_NEED[r.to][r.k]; return Math.min(cr.max, Math.max(5, (n || 0) * 66)); };
+/* Shipping: wagon trains at first; the first Locomotive Works brings trains, and every level of it adds 10% more
+   capacity to every route (more locomotives, more trains), so the empire's shipping grows with it. */
+// read at the top of each tick (econTowns), where S is the home town; inside another town's step it would be wrong
+let LOCO_LV = 0;
+const locoLevel = () => LOCO_LV;
+const readLoco = () => { LOCO_LV = (S.town === 'ridge' ? S.shops.locow : S.towns.ridge && S.towns.ridge.shops && S.towns.ridge.shops.locow) || 0; };
+const carrier = () => S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1))), fee: .02, spr: 'loco' } : { n: 'Wagon train', max: 120, fee: .05, spr: 'wagon' };
 /* Collect deliveries for this town, and say how much of each good its routes will take this step (workshops leave it). */
 function routeHold(dt) {
   const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
   const cr = carrier(), hold = {};
-  for (const r of S.routes) if (r.from === TOWN_ID && !r.paused && townOpen(r.to)) hold[r.k] = (hold[r.k] || 0) + Math.min(r.per, cr.max) * dt / 60;
+  for (const r of S.routes) if (r.from === TOWN_ID && !r.paused && townOpen(r.to)) hold[r.k] = (hold[r.k] || 0) + routeRate(r) * dt / 60;
   return hold;
 }
 function shipGoods(dt) {
@@ -88,14 +96,18 @@ function shipGoods(dt) {
   const cr = carrier();
   for (const r of S.routes) {
     if (r.from !== TOWN_ID || r.paused || !townOpen(r.to)) continue;
-    const amt = Math.min(S.res[r.k] || 0, Math.min(r.per, cr.max) * dt / 60); if (!(amt > 0)) continue;
+    const amt = Math.min(S.res[r.k] || 0, routeRate(r) * dt / 60); if (!(amt > 0)) continue;
     const fee = amt * ITEMS[r.k].p * cr.fee; if (S.coins < fee) continue;
     S.res[r.k] -= amt; S.coins -= fee; r.sent = (r.sent || 0) + amt; S.stats.shipped = (S.stats.shipped || 0) + amt;
     (S.inbox[r.to] = S.inbox[r.to] || {})[r.k] = (S.inbox[r.to][r.k] || 0) + amt;
   }
 }
 /* Every town but the one on screen works in the background (economy only: waves wait until you are there). */
-function econTowns(dt) { econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => econ(dt)); }
+function econTowns(dt) {
+  readLoco();
+  // what each town makes, so shipping routes (and foremen valuing goods that arrive by route) know what can be sent
+  for (const id of townIds()) if (townOpen(id)) { const c = id === S.town ? chainFlow() : withTown(id, () => chainFlow()); ROUTE_OUT[id] = c.made; ROUTE_NEED[id] = c.need; }
+  econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => econ(dt)); }
 const KEY = 'copper-gulch-save-v1';
 function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {

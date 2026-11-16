@@ -74,8 +74,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-17'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'New 3D engine preview: every building, raider, tower and wagon modelled in low-poly 3D with soft shadows, glowing windows at night, smoke and flowing water. Turn it on with the gear button, View, 3D.';
+const GAME_VERSION = '2026.11.15-18'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Foremen now grow every town on their own: they count goods shipped in, save up for x2 milestones and can buy research. Workshops share inputs fairly, routes have an Auto rate, and each Locomotive Works level adds train capacity.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
