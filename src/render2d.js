@@ -40,8 +40,13 @@ function bake(g, c) {
   }
   const line = (wd, col) => {
     g.strokeStyle = col; g.lineWidth = wd; g.lineJoin = 'miter'; g.lineCap = 'butt';
-    for (const P_ of PATHS) { g.beginPath(); P_.way.forEach(([x, y], i) => { const px = (x + .5) * c, py = (y + .5) * c; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.lineTo(VAULT[0] * c + c, VAULT[1] * c + c / 2); g.stroke(); }
+    PATHS.forEach((P_, pi) => { if (pi === MAP.river) return; g.beginPath(); P_.way.forEach(([x, y], i) => { const px = (x + .5) * c, py = (y + .5) * c; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.lineTo(VAULT[0] * c + c, VAULT[1] * c + c / 2); g.stroke(); });
   };
+  if (MAP.river !== undefined) { // Silver Falls: a river with muddy banks, deep water and glints
+    const R = PATHS[MAP.river], wl = (wd, col) => { g.strokeStyle = col; g.lineWidth = wd; g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath(); R.way.forEach(([x, y], i) => { const px = (x + .5) * c, py = (y + .5) * c; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); };
+    wl(c * 1.12, '#5a4a32'); wl(c * .98, '#7a6a48'); wl(c * .86, '#2f5d78'); wl(c * .5, '#3d6f8f'); wl(c * .18, '#4a82a3');
+    for (let d = 0; d < R.len; d += .23) { if (rnd() < .5) continue; const [x, y] = posAt(d, MAP.river); g.fillStyle = rnd() < .5 ? '#8ec4de' : '#5b9cc0'; g.fillRect((x + .5 + (rnd() - .5) * .6) * c, (y + .5 + (rnd() - .5) * .6) * c, c * (.08 + rnd() * .1), Math.max(1, c * .03)); }
+  }
   // Trestle Bridge: a ravine with a creek at the bottom
   if (MAP.ravine) {
     const x0 = Math.min(...MAP.ravine) * c, x1 = (Math.max(...MAP.ravine) + 1) * c, y0 = YARD * c, y1 = ROWS * c, rg = g.createLinearGradient(x0, 0, x1, 0);
@@ -53,7 +58,7 @@ function bake(g, c) {
   }
   line(c * 1.04, 'rgba(70,46,28,.35)'); line(c * .96, pal.road[0]); line(c * .84, pal.road[1]); line(c * .44, pal.road[2]); line(c * .34, pal.road[3]);
   // wheel ruts and the stones kicked to the road's edge
-  for (const P_ of PATHS) for (const s of P_.segs) {
+  for (const P_ of PATHS.filter((q, i) => i !== MAP.river)) for (const s of P_.segs) {
     const hz = s.y1 === s.y2, ax = Math.min(s.x1, s.x2), bx = Math.max(s.x1, s.x2), ay = Math.min(s.y1, s.y2), by = Math.max(s.y1, s.y2);
     g.fillStyle = 'rgba(96,66,42,.5)';
     for (const o of [-.22, .22]) hz ? g.fillRect((ax + .5 - .2) * c, (ay + .5 + o) * c, (bx - ax + .4) * c, Math.max(1, c * .045)) : g.fillRect((ax + .5 + o) * c, (ay + .5 - .2) * c, Math.max(1, c * .045), (by - ay + .4) * c);

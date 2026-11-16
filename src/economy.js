@@ -3,10 +3,18 @@
    Economy
    ========================================================= */
 const ACT = {}, STARVE = {}, PHASE = {};
+/* Silver Falls power grid: every running workshop level draws 1 unit; Water Wheels supply 4 a level (×2 at milestones).
+   When demand outruns supply, every workshop in town slows to the share that is powered. ex adds trial levels (foremen). */
+function powerUse(ex) {
+  if (!TOWN.power) return { cap: 0, use: 0, f: 1 }; ex = ex || {}; let cap = 0, use = 0;
+  for (const e of EXT) if (e.power) { const l = blv(e.id) + (ex[e.id] || 0); cap += l * e.power * Math.pow(2, MS(l)); }
+  for (const s of SHOPS) if (!S.off[s.id]) use += blv(s.id) + (ex[s.id] || 0);
+  return { cap, use, f: use ? Math.min(1, cap / use) : 1 };
+}
 function econStep(dt) {
-  const ot = S.ot > 0 ? 3 : 1, pm = prodMult() * ot, cm = craftMult() * ot, ease = Math.min(1, dt * 3);
+  const ot = S.ot > 0 ? 3 : 1, pm = prodMult() * ot, cm = craftMult() * ot * powerUse().f, ease = Math.min(1, dt * 3);
   S.ot = Math.max(0, S.ot - dt); for (const k in S.cd) S.cd[k] = Math.max(0, S.cd[k] - dt);
-  for (const e of EXT) { const l = S.ext[e.id] || 0; if (l) add(e.out, l * e.rate * pm * bMult(e.id) * dt); }
+  for (const e of EXT) { const l = S.ext[e.id] || 0; if (l && e.out) add(e.out, l * e.rate * pm * bMult(e.id) * dt); }
   for (const s of SHOPS) {
     const l = S.shops[s.id] || 0; if (!l) continue;
     const cap = l * s.rate * cm * bMult(s.id) * dt; let n = S.off[s.id] ? 0 : cap, miss = null;
@@ -27,10 +35,10 @@ function econ(dt) { while (dt > 0) { const s = Math.min(dt, 5); econStep(s); dt 
    inputs adds nothing and the camp that would feed it shows its real worth. extraId counts one more level of that
    building, which is how foremen value an upgrade. mode 'top' sells only goods no built workshop uses. */
 function steadyIncome(extra, mode) {
-  const pm = prodMult(), cm = craftMult(), have = {}, used = {}, ex = typeof extra === 'string' ? { [extra]: 1 } : extra || {};
+  const ex = typeof extra === 'string' ? { [extra]: 1 } : extra || {}, pm = prodMult(), cm = craftMult() * powerUse(ex).f, have = {}, used = {};
   for (const k in ITEMS) have[k] = 0;
   const lvl = id => blv(id) + (ex[id] || 0);
-  for (const e of EXT) { const l = lvl(e.id); if (l) have[e.out] += l * e.rate * pm * Math.pow(2, MS(l)); }
+  for (const e of EXT) { const l = lvl(e.id); if (l && e.out) have[e.out] += l * e.rate * pm * Math.pow(2, MS(l)); }
   for (const s of SHOPS) {
     const l = lvl(s.id); if (!l || S.off[s.id]) continue;
     let n = l * s.rate * cm * Math.pow(2, MS(l)); for (const k in s.in) { used[k] = 1; n = Math.min(n, have[k] / s.in[k]); }
@@ -103,7 +111,7 @@ function buyPlan(b) {
 function buyBuilding(b) {
   const p = buyPlan(b); if (!p.ok) return false;
   const have = blv(b.def.id); S.coins -= p.c; S[b.kind][b.def.id] = have + p.n;
-  if (!S.seen[b.def.out]) { S.seen[b.def.out] = 1; rebuild = true; }
+  if (b.def.out && !S.seen[b.def.out]) { S.seen[b.def.out] = 1; rebuild = true; }
   levelled(b, have, have + p.n); return true;
 }
 function levelled(b, from, to, quiet) {

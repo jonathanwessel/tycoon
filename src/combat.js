@@ -14,6 +14,7 @@ function planWave() {
   for (const k in T.w) if (w >= UNLOCK[k]) for (let i = 0; i < T.w[k]; i++) pool.push(k);
   if (!pool.length) pool.push('raider');
   const q = []; for (let i = 0; i < n; i++) q.push(pool[Math.floor(Math.random() * pool.length)]);
+  if (MAP.river !== undefined) for (let i = 0; i < q.length; i++) if (Math.random() < .3) q[i] = 'boat'; // river pirates
   if (w % 10 === 0) q.push('boss');
   W.next = q; W.nextFor = w; W.ntype = type;
   const wk = Object.keys(WEATHER); W.nweather = w >= 6 && w % 10 !== 0 && Math.random() < .35 ? wk[Math.floor(Math.random() * wk.length)] : null;
@@ -30,7 +31,8 @@ function startWave() {
   snd('wave', 220, .25, 'sawtooth', .04, 220);
 }
 function spawn(type) {
-  const p = W.spawned++ % PATHS.length, hp = foeHp(S.wave) * FOES[type].hp * (type === 'boss' ? 1 : W.hpm) * MAP.hp, [x, y] = posAt(0, p);
+  // on a map with a river, boats and the boss come up the river (path MAP.river); everyone else takes the road
+  const p = MAP.river !== undefined ? (type === 'boat' || type === 'boss' ? MAP.river : 0) : W.spawned++ % PATHS.length, hp = foeHp(S.wave) * FOES[type].hp * (type === 'boss' ? 1 : W.hpm) * MAP.hp, [x, y] = posAt(0, p);
   foes.push({ type, p, d: 0, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: 1, flash: 0, num: 0, ht: 1.5 });
   // every raider kicks up a puff of dust as it rides in; the war wagon shakes the ground
   for (let i = 0; i < (type === 'boss' ? 22 : 5); i++) parts.push({ x: x + .4 + Math.random() * .4, y: y + .5 + (Math.random() - .5) * .6, vx: Math.random() * 1.2, vy: -.3 - Math.random() * .5, g: 0, t: .7, c: '#dcc59c', s: .09, smoke: 1 });

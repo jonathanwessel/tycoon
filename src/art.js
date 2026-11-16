@@ -150,3 +150,31 @@ function paintSprites3() {
     for (const x of [5, 11, 17]) { p.disc(P.dark, x, 14.5, 2.6); p(P.grey, f ? x : x - 1, 14, 2, 1); }
   });
 }
+/* Silver Falls: goods, buildings, river pirates and the ironclad steamer. */
+function paintSprites4() {
+  const hut = (p, wall, wallD, roof, roofD) => { p(roof, 5, 2, 6, 1); p(roof, 4, 3, 8, 1); p(roof, 3, 4, 10, 1); p(roof, 2, 5, 12, 1); p(roofD, 1, 6, 14, 2); p(wall, 2, 8, 12, 6); p(wallD, 2, 13, 12, 1); p(P.dark, 7, 10, 3, 4); };
+  const CU = '#c46a3a', CUL = '#e8955e', CUD = '#8a4424', GLS = '#bfe6f2', WATER = '#3d6f8f', WATERL = '#5b9cc0';
+  // goods
+  mk('cu', 12, 12, p => { p.disc(P.grey, 6, 6.5, 4.8); p(P.greyD, 2, 8, 8, 2); p(CU, 3, 4, 2, 2); p(CU, 7, 5, 2, 2); p('#4fa38a', 5, 7, 2, 1); p(CUL, 4, 4, 1, 1); });
+  mk('sand', 13, 10, p => { p('#e2c88e', 2, 5, 9, 4); p('#e2c88e', 4, 3, 5, 2); p('#f2dcaa', 4, 3, 3, 1); p('#c9ab6e', 2, 8, 9, 1); p('#c9ab6e', 8, 5, 2, 1); });
+  mk('copper', 14, 11, p => { p(CUL, 4, 2, 7, 1); p(CUL, 3, 3, 9, 1); p(CU, 2, 4, 11, 3); p(CUD, 1, 7, 12, 2); p('#ffd2b0', 5, 2, 3, 1); });
+  mk('wire', 13, 13, p => { p.disc(CUD, 6.5, 6.5, 5.5); p.disc(CU, 6.5, 6.5, 4.5); p.disc(CUD, 6.5, 6.5, 3); p.disc(P.woodL, 6.5, 6.5, 2); p(CUL, 3, 4, 1, 3); p(CUL, 9, 3, 1, 2); });
+  mk('glassp', 12, 13, p => { p(P.greyL, 1, 1, 10, 11); p(GLS, 2, 2, 8, 9); p(P.white, 3, 3, 2, 4); p(P.white, 5, 3, 1, 1); p('#9cd0e2', 7, 8, 2, 2); });
+  mk('bulb', 11, 14, p => { p.disc('#fff6c0', 5.5, 5, 4.3); p.disc(P.yelL, 5.5, 5, 3.2); p(P.white, 3, 3, 2, 2); p(P.greyL, 4, 9, 3, 1); p(P.grey, 4, 10, 3, 1); p(P.greyL, 4, 11, 3, 1); p(P.greyD, 5, 12, 1, 1); p(P.org, 5, 5, 1, 2); });
+  mk('tele', 14, 14, p => { p(P.woodD, 1, 9, 12, 4); p(P.wood, 1, 9, 12, 1); p(P.brass, 3, 6, 8, 3); p(P.yel, 3, 6, 8, 1); p.disc(P.greyD, 4, 5, 1.5); p(P.dark, 9, 3, 1, 3); p(P.dark, 6, 2, 5, 1); p(CU, 11, 10, 2, 2); });
+  // buildings
+  mk('cumine', 16, 16, p => { p(P.grey, 4, 2, 8, 3); p(P.grey, 2, 5, 12, 9); p(P.greyL, 4, 2, 5, 1); p(CU, 5, 4, 2, 1); p(CU, 11, 6, 2, 2); p('#4fa38a', 3, 6, 1, 1); p(P.greyD, 2, 13, 12, 1); p(P.woodL, 4, 7, 8, 1); p(P.wood, 4, 8, 1, 6); p(P.wood, 11, 8, 1, 6); p(P.night, 5, 8, 6, 6); p(CU, 6, 11, 4, 2); });
+  mk('sandpit', 16, 16, p => { p('#c9ab6e', 1, 9, 14, 5); p('#e2c88e', 3, 7, 10, 3); p('#f2dcaa', 5, 6, 6, 1); p(P.wood, 11, 3, 1, 8); p(P.woodD, 8, 3, 4, 1); p(P.greyD, 8, 4, 1, 3); p.disc(P.dark, 4, 13.5, 1.2); p(P.wood, 2, 11, 5, 2); });
+  mk('wheel', 16, 16, p => { p(WATER, 0, 12, 16, 4); p(WATERL, 1, 13, 4, 1); p(WATERL, 9, 14, 5, 1); p.disc(P.woodD, 8, 8, 7); p.disc(P.wood, 8, 8, 5.6); p.disc(null, 8, 8, 4.4); for (const [x, y] of [[8, 1], [8, 14], [1, 8], [14, 8], [3, 3], [12, 3], [3, 12], [12, 12]]) p(P.woodL, x, y, 1, 1); p(P.woodD, 7, 2, 2, 12); p(P.woodD, 2, 7, 12, 2); p.disc(P.greyD, 8, 8, 1.5); });
+  mk('refinery', 16, 16, p => { p(P.greyD, 12, 0, 3, 7); p(CU, 12, 1, 3, 1); hut(p, '#8a6a58', '#6a4e40', CUD, '#5e3018'); p(P.org, 4, 9, 3, 4); p(P.yel, 5, 10, 1, 2); p(CU, 10, 10, 3, 3); });
+  mk('wirew', 16, 16, p => { hut(p, P.woodL, P.wood, '#3b5fa8', '#2a4478'); p.disc(CUD, 12, 10.5, 2.5); p.disc(CU, 12, 10.5, 1.6); p.disc(CUD, 4, 10.5, 2.5); p.disc(CU, 4, 10.5, 1.6); p(CU, 6, 10, 4, 1); });
+  mk('glassb', 16, 16, p => { hut(p, P.white, P.greyL, P.teal, P.tealD); p(GLS, 3, 9, 3, 3); p(GLS, 11, 9, 2, 3); p(P.org, 6, 11, 3, 3); p(P.yel, 7, 12, 1, 2); p(P.greyD, 7, 0, 2, 3); });
+  mk('bulbw', 16, 16, p => { hut(p, '#5a5470', '#3e3a50', P.yel, P.brass); for (const x of [3, 6, 9, 12]) { p(P.yelL, x, 9, 1, 2); p(P.white, x, 9, 1, 1); } p(P.yelL, 7, 3, 2, 2); });
+  mk('telw', 16, 16, p => { p(P.redD, 1, 4, 14, 3); p(P.red, 2, 3, 12, 2); p(P.woodL, 1, 7, 14, 7); p(P.wood, 1, 13, 14, 1); p(P.night, 6, 9, 4, 5); p(P.woodD, 12, 0, 1, 7); p(P.dark, 10, 1, 5, 1); p(P.dark, 2, 0, 1, 4); p(P.dark, 0, 1, 5, 1); p(P.yelL, 3, 9, 2, 2); p(P.yelL, 11, 9, 2, 2); });
+  // river pirates (rowing boat) and the ironclad steamer (Silver Falls boss), two frames each
+  for (const f of [0, 1]) {
+    const s = f ? '_b' : '';
+    mk('boat' + s, 18, 12, p => { p(P.woodD, 1, 7, 16, 3); p(P.wood, 2, 6, 14, 1); p(P.woodD, 3, 10, 12, 1); p('#4a3428', 6, 1, 4, 2); p(P.skin, 7, 3, 2, 1); p('#5b8be0', 6, 4, 4, 2); p(P.red, 7, 1, 2, 1); p(P.woodL, f ? 2 : 13, f ? 3 : 5, 1, 5); p(P.woodL, f ? 15 : 3, f ? 5 : 3, 1, 5); });
+    mk('steamer' + s, 26, 18, p => { p(P.dark, 8, 0, 3, 6); p(P.dark, 14, 1, 3, 5); p(P.red, 8, 1, 3, 1); p(P.red, 14, 2, 3, 1); p(P.greyD, 3, 6, 18, 5); p(P.grey, 3, 6, 18, 2); p(P.greyL, 3, 6, 18, 1); for (const x of [6, 10, 14, 18]) p(P.yel, x, 9, 1, 1); p(P.steelD, 1, 11, 23, 3); p(P.dark, 2, 14, 21, 1); p.disc(P.woodD, 21, 10, 3.5); p(P.woodL, f ? 20 : 22, f ? 7 : 8, 1, 5); p(WATERL, 0, 15, 26, 1); p(P.white, f ? 1 : 3, 15, 4, 1); });
+  }
+}

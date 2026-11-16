@@ -148,10 +148,16 @@ const shots = process.argv[2];
       S.wave = 10; planWave(); startWave(); await wait(800); W.queue = []; spawn('boss'); await wait(800);
       const trainBar = !!foes.find(f => f.type === 'boss'); foes = []; W.queue = []; W.active = false;
       goTab('works'); await wait(200); const ridgeRows = document.querySelectorAll('.row.bld').length;
+      // Silver Falls: open from Iron Ridge, boats and the ironclad on the river, the power grid in the Works tab
+      S.best = Math.max(S.best, 16); goTown('gulch'); await wait(200); const fallsOpen = unlockTown('falls'); goTown('falls'); await wait(300);
+      for (const k in S.res) add(k, 500); buildTower('crossbow', PLOTS[0].x, PLOTS[0].y);
+      S.wave = 10; planWave(); startWave(); W.queue = []; spawn('boat'); spawn('boss'); await wait(700);
+      const river = foes.length === 2 && foes.every(f => f.p === MAP.river); foes = []; W.active = false;
+      goTab('works'); await wait(200); const powerPanel = !!document.querySelector('.power');
       goTown('gulch'); await wait(300);
-      return { opened, cards, sugg, routes: S.routes.length, inRidge, trainBar, ridgeRows, home: TOWN_ID === 'gulch' };
+      return { opened, cards, sugg, routes: S.routes.length, inRidge, trainBar, ridgeRows, fallsOpen, river, powerPanel, home: TOWN_ID === 'gulch' };
     });
-    if (!emp.opened || emp.cards < 2 || !emp.inRidge || !emp.trainBar || emp.ridgeRows !== 7 || !emp.home || emp.routes < 1) errs.push('empire check failed: ' + JSON.stringify(emp));
+    if (!emp.opened || emp.cards < 3 || !emp.inRidge || !emp.trainBar || emp.ridgeRows !== 7 || !emp.fallsOpen || !emp.river || !emp.powerPanel || !emp.home || emp.routes < 1) errs.push('empire check failed: ' + JSON.stringify(emp));
     // the bridge map draws and keeps the ravine clear of plots
     const br = await p.evaluate(() => { setMap('bridge'); bakeGround(); const ok = !PLOTS.some(q => MAP.ravine.includes(q.x)); setMap(S.map); bakeGround(); return ok; });
     if (!br) errs.push('Trestle Bridge has plots in the ravine');

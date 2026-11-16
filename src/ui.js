@@ -27,7 +27,7 @@ function recipe(s) {
 function buyRow(b, list) {
   const def = b.def, kind = b.kind, id = def.id, name = h('div', { cls: 'name' }), info = h('small'), lab = h('span'), msl = h('small');
   const btn = h('button', { cls: 'buy', on: () => buyBuilding(b) }, lab, ' ', costEl(() => buyPlan(b).c, null, list));
-  const head = kind === 'shops' ? recipe(def) : h('span', { cls: 'recipe' }, ico(def.out, ITEMS[def.out].n));
+  const head = kind === 'shops' ? recipe(def) : def.power ? h('span', { cls: 'recipe' }, ico('bulb', 'power')) : h('span', { cls: 'recipe' }, ico(def.out, ITEMS[def.out].n));
   const prog = kind === 'shops' ? h('div', { cls: 'prog' }, h('i')) : null;
   // buy button on top; the run switch and foreman sit small underneath so the row never needs a line of its own
   const mini = h('div', { cls: 'mini' }), acts = h('div', { cls: 'acts' }, btn, mini);
@@ -40,7 +40,7 @@ function buyRow(b, list) {
   list.push(() => {
     const have = blv(id), p = buyPlan(b), mult = (kind === 'ext' ? prodMult() : craftMult()) * bMult(id), ms = MS(have);
     name.textContent = def.n; name.append(h('i', null, have ? 'Lv ' + have : '')); if (ms) name.append(h('em', null, '★'.repeat(Math.min(ms, 5)) + (ms > 5 ? '+' + (ms - 5) : '')));
-    info.textContent = rate(Math.max(1, have) * def.rate * mult) + '/s' + (have ? '' : ' at level 1');
+    info.textContent = def.power ? 'Powers ' + fmt(Math.max(1, have) * def.power * Math.pow(2, MS(have))) + ' workshop levels' + (have ? '' : ' at level 1') : rate(Math.max(1, have) * def.rate * mult) + '/s' + (have ? '' : ' at level 1');
     msl.textContent = have ? 'Output ×2 at level ' + nextMs(have) + (S.mgr[id] === 1 ? ' · foreman working' : S.mgr[id] === 2 ? ' · foreman resting' : '') : '';
     lab.textContent = have ? '+' + p.n : 'Build'; btn.disabled = !p.ok;
     if (tog) { tog.hidden = !have; tog.textContent = S.off[id] ? 'Off' : 'On'; tog.classList.toggle('on', !S.off[id]); tog.title = S.off[id] ? 'Workshop paused. Tap to run it.' : 'Workshop running. Tap to pause it.'; tog.setAttribute('aria-label', tog.title); }
@@ -185,7 +185,7 @@ function spark(canvas, k) {
 const FOE_TIPS = {
   raider: 'Plain gunmen.', runner: 'Fast riders.', brute: 'Slow and tough. Takes 2 off the vault.',
   shield: 'Blocks four hits. Cannons smash the shield in one.', sapper: 'Jams a tower it walks past unless it dies quickly.',
-  healer: 'Mends raiders around it. Kill it first.', thief: 'Steals goods instead of hitting the vault.', boss: 'Every tenth wave. If it reaches the vault, the vault falls however strong it is: destroy it to move on.',
+  healer: 'Mends raiders around it. Kill it first.', thief: 'Steals goods instead of hitting the vault.', boat: 'River pirates: row up the river in Silver Falls. Towers on the banks can reach them.', boss: 'Every tenth wave. If it reaches the vault, the vault falls however strong it is: destroy it to move on.',
 };
 const PANELS = {
   defend(p) {
@@ -238,7 +238,14 @@ const PANELS = {
     const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } fbBox.append(s); };
     fseg('Pay them', [[.25, '25%'], [.5, '50%'], [.75, '75%'], [1, 'All']], 'share');
     fseg('Keep', [[0, 'No reserve'], [1, '1 min'], [5, '5 min']], 'keep');
-    p.append(fbBox, h('h2', null, 'Gathering'));
+    p.append(fbBox);
+    if (TOWN.power) { // the power grid: supply from Water Wheels against demand from workshop levels
+      const pw = h('div', { cls: 'power' }), pbar = h('i'), ptxt = h('small');
+      pw.append(h('div', { cls: 'name' }, 'Power grid'), h('div', { cls: 'prog vbar' }, pbar), ptxt); p.append(pw);
+      ups.push(() => { const g = powerUse(); pbar.style.width = Math.min(100, g.use ? g.cap / g.use * 100 : 100) + '%'; pbar.style.background = g.f >= 1 ? 'var(--good)' : g.f > .6 ? 'var(--gold)' : 'var(--bad)';
+        ptxt.textContent = 'Water Wheels supply ' + fmt(g.cap) + ', workshops use ' + fmt(g.use) + (g.f >= 1 ? '. Everything runs at full speed.' : '. Workshops run at ' + pct(g.f) + ' speed: build more Water Wheels.'); });
+    }
+    p.append(h('h2', null, 'Gathering'));
     ups.push(() => {
       const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length;
       fbInfo.textContent = n ? n + ' at work. They get ' + pct(S.fb.share) + ' of what you earn and save up for the upgrade that pays back fastest' + (S.fb.goal && BY_ID[S.fb.goal] ? ' (now: ' + BY_ID[S.fb.goal].def.n + ' level ' + (blv(S.fb.goal) + 1) + ', ' + fmt(bCost(BY_ID[S.fb.goal], blv(S.fb.goal))) + ')' : '') + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.')
@@ -304,7 +311,7 @@ const PANELS = {
     // a card for every town
     for (const id in TOWNS) {
       const T = TOWNS[id], live = h('b'), info = h('small'), act = h('div', { cls: 'bar' });
-      const card = h('div', { cls: 'town' }, h('div', { cls: 'cardhead' }, ico(id === 'gulch' ? 'vault' : 'loco'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, T.n, h('i', null, T.era)), info), live), act);
+      const card = h('div', { cls: 'town' }, h('div', { cls: 'cardhead' }, ico({ gulch: 'vault', ridge: 'loco', falls: 'bulb' }[id] || 'vault'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, T.n, h('i', null, T.era)), info), live), act);
       p.append(card);
       let shown = '';
       ups.push(() => {
@@ -315,13 +322,13 @@ const PANELS = {
           live.textContent = '+' + rate(liveIncome(id)) + '/s';
           info.textContent = 'Potential +' + rate(townIncome(id)) + '/s · wave ' + t.wave + ' (best ' + t.best + ')' + (mg ? ' · ' + mg + ' foremen' : '') + (here ? ' · you are here' : ' · working in the background, waves on hold');
         } else {
-          const u = T.unlock, best = Math.max(S.town === 'gulch' ? S.best : (S.towns.gulch || {}).best || 0, S.bestMap.gulch || 0);
-          live.textContent = ''; info.textContent = 'Opens after wave ' + u.best + ' in Copper Gulch (best so far ' + best + ') for ' + fmt(u.coins) + ' coins.';
+          const u = T.unlock, from = TOWNS[u.from];
+          live.textContent = ''; info.textContent = townOpen(u.from) ? 'Opens after wave ' + u.best + ' in ' + from.n + ' (best so far ' + townBest(u.from) + ') for ' + fmt(u.coins) + ' coins.' : 'Open ' + from.n + ' first.';
         }
         const key = (open ? 'o' : 'l') + (here ? 'h' : '');
         if (key !== shown) {
           shown = key; act.textContent = '';
-          if (!open) { const b = h('button', { cls: 'primary', on: () => { if (unlockTown(id)) { say(T.n + ' is open! It needs goods it cannot make: set up a shipping route below.'); snd('badge', 784, .35, 'triangle', .06, 392); rebuild = true; } } }, 'Open ' + T.n + ' ', costEl(() => T.unlock.coins, null, ups)); act.append(b); ups.push(() => { b.disabled = S.coins < T.unlock.coins || Math.max(S.town === 'gulch' ? S.best : (S.towns.gulch || {}).best || 0, S.bestMap.gulch || 0) < T.unlock.best; }); }
+          if (!open) { const b = h('button', { cls: 'primary', on: () => { if (unlockTown(id)) { say(T.n + ' is open! It needs goods it cannot make: set up a shipping route below.'); snd('badge', 784, .35, 'triangle', .06, 392); rebuild = true; } } }, 'Open ' + T.n + ' ', costEl(() => T.unlock.coins, null, ups)); act.append(b); ups.push(() => { b.disabled = S.coins < T.unlock.coins || townBest(T.unlock.from) < T.unlock.best; }); }
           else if (!here) act.append(h('button', { cls: 'primary', on: () => goTown(id) }, 'Play ' + T.n));
         }
       });

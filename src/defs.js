@@ -22,6 +22,14 @@ const ITEMS = {
   rail:    { n: 'Rails',      p: 34 },
   boiler:  { n: 'Boilers',    p: 80 },
   loco:    { n: 'Locomotives', p: 900 },
+  // Silver Falls
+  cu:      { n: 'Copper ore', p: 3 },
+  sand:    { n: 'Sand',       p: 1 },
+  copper:  { n: 'Copper',     p: 9 },
+  wire:    { n: 'Wire',       p: 14 },
+  glassp:  { n: 'Glass',      p: 7 },
+  bulb:    { n: 'Light bulbs', p: 50 },
+  tele:    { n: 'Telegraphs', p: 700 },
 };
 const EXT_ALL = [
   { id: 'camp',  n: 'Lumber Camp',   out: 'wood',    rate: .5, cost: 15 },
@@ -31,6 +39,10 @@ const EXT_ALL = [
   { id: 'ironmine', n: 'Iron Mine',  out: 'iron',    rate: .5, cost: 30 },
   { id: 'coalseam', n: 'Coal Seam',  out: 'coal',    rate: .4, cost: 80 },
   { id: 'quarry',   n: 'Stone Quarry', out: 'stone', rate: .5, cost: 40 },
+  { id: 'cumine',   n: 'Copper Mine',  out: 'cu',    rate: .5, cost: 60 },
+  { id: 'sandpit',  n: 'Sand Pit',     out: 'sand',  rate: .6, cost: 50 },
+  // Silver Falls power: a Water Wheel makes no goods; each level powers 4 workshop levels (×2 at its milestones)
+  { id: 'wheel',    n: 'Water Wheel',  out: null,    rate: 0,  cost: 200, power: 4 },
 ];
 const SHOPS_ALL = [
   { id: 'saw',    n: 'Sawmill',         in: { wood: 2 },                        out: 'plank',  rate: .25, cost: 50 },
@@ -50,6 +62,12 @@ const SHOPS_ALL = [
   { id: 'rolling', n: 'Rolling Mill',      in: { pig: 2 },                       out: 'rail',   rate: .1,  cost: 900 },
   { id: 'boilerw', n: 'Boiler Shop',       in: { pig: 1, plank: 2 },             out: 'boiler', rate: .05, cost: 3000 },
   { id: 'locow',   n: 'Locomotive Works',  in: { boiler: 1, rail: 2, gear: 2 },  out: 'loco',   rate: .03, cost: 20000 },
+  // Silver Falls: every workshop level here draws one unit of power from the Water Wheels; telegraphs need rails from Iron Ridge
+  { id: 'refinery', n: 'Copper Works',      in: { cu: 2 },                        out: 'copper', rate: .25, cost: 300 },
+  { id: 'wirew',    n: 'Wire Works',        in: { copper: 1 },                    out: 'wire',   rate: .25, cost: 900 },
+  { id: 'glassb',   n: 'Glassblower',       in: { sand: 2 },                      out: 'glassp', rate: .2,  cost: 600 },
+  { id: 'bulbw',    n: 'Bulb Works',        in: { wire: 1, glassp: 1 },           out: 'bulb',   rate: .1,  cost: 4000 },
+  { id: 'telw',     n: 'Telegraph Works',   in: { wire: 2, bulb: 1, rail: 1 },    out: 'tele',   rate: .03, cost: 30000 },
 ];
 const RESEARCH = [
   { id: 'tools',  n: 'Sharper Tools',    d: 'Doubles what each tap gathers.',            cost: 40,  g: 3,   max: 12 },
@@ -91,6 +109,7 @@ const FOES = {
   healer: { n: 'Healer',       hp: 1.1, spd: .95,  rw: 2,  leak: 1, c: '#7fd992', size: .76, heal: 1 },
   thief:  { n: 'Thief',        hp: .7,  spd: 1.8,  rw: 1,  leak: 0, c: '#8a5ac8', size: .7,  thief: 1 },
   boss:   { n: 'War wagon',    hp: 25,  spd: .55,  rw: 20, leak: 5, c: '#ff4f8b', size: 1.25 },
+  boat:   { n: 'River pirates', hp: 1.5, spd: 1.15, rw: 2,  leak: 2, c: '#5b8be0', size: .9 },
 };
 const UNLOCK = { raider: 1, runner: 3, thief: 6, brute: 6, shield: 8, sapper: 12, healer: 15 };
 const WTYPES = {
@@ -118,6 +137,10 @@ const MAPS = {
   ridge: { n: 'Iron Ridge', d: 'A switchback road climbs the ridge to the vault. Raiders are tougher and pay more; charters here earn an extra deed.',
            paths: [[[-.5, 13], [9, 13], [9, 11], [2, 11], [2, 9], [9, 9], [9, 7], [11, 7]]], vault: [11, 7], hp: 1.2, coin: 1.6, deed: 1,
            pal: { yard: '#9c8a74', a: '#b4a28a', b: '#ab987e', road: ['#5e5048', '#7a6a5c', '#6a5a4e', '#7a6a5c'] } },
+  // Silver Falls: path 0 is the road, path 1 the river; boats and the ironclad come up the river
+  falls: { n: 'Silver Falls', d: 'A road and a river both lead to the vault: raiders ride in, river pirates row in, and the boss is an ironclad steamer. Raiders pay more; charters here earn two extra deeds.',
+           paths: [[[-.5, 7], [8, 7], [8, 10], [11, 10]], [[-.5, 12], [5, 12], [5, 13], [11, 13], [11, 11]]], vault: [11, 10], hp: 1.3, coin: 2.2, deed: 2, river: 1,
+           pal: { yard: '#8c9a6a', a: '#a3b07a', b: '#9aa872', road: ['#6e5a40', '#8e7550', '#7e6646', '#8e7550'] } },
 };
 /* Towns of the empire. Each has its own map(s), buildings, yard layout, gathering taps, boss and tower materials.
    Only the active town's buildings are in EXT / SHOPS / BUILD / BY_ID / SLOT at any moment (see useTown). */
@@ -131,6 +154,11 @@ const SLOT_RIDGE = {
   rocks: [0, 2], coalseam: [2, 2], quarry: [4, 2], boilerw: [6, 2], locow: [8, 2], caravan: [10, 2],
   hall: [8, 4], office: [10, 4],
 };
+const SLOT_FALLS = {
+  trees: [0, 0], cumine: [2, 0], refinery: [4, 0], wirew: [6, 0], market: [10, 0],
+  rocks: [0, 2], sandpit: [2, 2], glassb: [4, 2], bulbw: [6, 2], telw: [8, 2], caravan: [10, 2],
+  wheel: [0, 4], hall: [8, 4], office: [10, 4],
+};
 const TOWNS = {
   gulch: { n: 'Copper Gulch', era: 'Frontier', ext: ['camp', 'mine', 'drill', 'pit'], shops: ['saw', 'smelt', 'glass', 'mach', 'eng', 'mill', 'clockw', 'autow'],
            slot: SLOT_GULCH, tap: { trees: 'wood', rocks: 'ore' }, tapN: { trees: 'Chop', rocks: 'Dig' }, trees: true, maps: ['gulch', 'fork', 'bridge'],
@@ -140,7 +168,13 @@ const TOWNS = {
            boss: { n: 'Armoured train', spr: 'train' },
            goods: { crossbow: { stone: 6 }, cannon: { pig: 10 }, frost: { rail: 4 }, tesla: { boiler: 2, rail: 6 }, gatling: { boiler: 3, loco: 1 } },
            start: { res: { stone: 30 }, seen: ['iron', 'stone', 'coal'] }, forge: ['blast', 'boilerw'], glow: [],
-           unlock: { best: 20, coins: 1e5 } },
+           unlock: { from: 'gulch', best: 20, coins: 1e5 } },
+  falls: { n: 'Silver Falls', era: 'Electricity', ext: ['cumine', 'sandpit', 'wheel'], shops: ['refinery', 'wirew', 'glassb', 'bulbw', 'telw'],
+           slot: SLOT_FALLS, tap: { trees: 'sand', rocks: 'cu' }, tapN: { trees: 'Dig sand', rocks: 'Mine' }, trees: false, maps: ['falls'], power: true,
+           boss: { n: 'Ironclad steamer', spr: 'steamer' },
+           goods: { crossbow: { copper: 4 }, cannon: { copper: 10 }, frost: { glassp: 8 }, tesla: { wire: 10, bulb: 2 }, gatling: { tele: 1, wire: 12 } },
+           start: { res: { copper: 20 }, seen: ['cu', 'sand', 'copper'] }, forge: ['refinery'], glow: ['bulbw', 'telw'],
+           unlock: { from: 'ridge', best: 15, coins: 1e6 } },
 };
 const townOfMap = m => Object.keys(TOWNS).find(t => TOWNS[t].maps.includes(m)) || 'gulch';
 const towerGoods = type => TOWN.goods[type] || TOWERS[type].goods;

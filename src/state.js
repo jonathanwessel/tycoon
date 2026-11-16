@@ -62,12 +62,13 @@ function switchTown(id) {
 }
 const townIds = () => [S.town, ...Object.keys(S.towns)];
 const townOpen = id => id === S.town || !!S.towns[id];
+/* Best wave reached in a town (stored towns keep theirs; charters keep the best per map). */
+const townBest = id => !townOpen(id) ? 0 : Math.max(id === S.town ? S.best : S.towns[id].best || 0, S.bestMap[TOWNS[id].maps[0]] || 0);
 /* Open a new town (Empire tab). */
 function unlockTown(id) {
   const T = TOWNS[id], u = T && T.unlock; if (!u || townOpen(id)) return false;
-  const best = Math.max(S.town === 'gulch' ? S.best : (S.towns.gulch || {}).best || 0, S.bestMap.gulch || 0);
-  if (best < u.best || S.coins < u.coins) return false;
-  S.coins -= u.coins; S.towns[id] = townFresh(T.maps[0]); S.badges.ridge = S.badges.ridge || 0; S.stats.towns = (S.stats.towns || 1) + 1;
+  if (townBest(u.from) < u.best || S.coins < u.coins) return false;
+  S.coins -= u.coins; S.towns[id] = townFresh(T.maps[0]); S.stats.towns = (S.stats.towns || 1) + 1;
   return true;
 }
 /* Shipping. A route moves one good from one town to another at up to `per` a minute, paying a fee for each load.

@@ -142,6 +142,36 @@ test('the first Locomotive Works opens rail for every route', () => {
   assert.strictEqual(g.run('carrier().max'), 1200);
 });
 
+test('Silver Falls opens after wave 15 in Iron Ridge for 1M', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 5e6; S.towns.ridge = townFresh('ridge'); S.towns.ridge.best = 10;`);
+  assert.strictEqual(g.run(`unlockTown('falls')`), false, 'Ridge not far enough');
+  g.run('S.towns.ridge.best = 16;');
+  assert.strictEqual(g.run(`unlockTown('falls')`), true);
+  assert.strictEqual(g.run('S.towns.falls.map'), 'falls');
+});
+
+test('the Silver Falls power grid slows workshops when demand outruns the Water Wheels', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.towns.falls = townFresh('falls'); switchTown('falls');
+    S.ext.cumine = 20; S.shops.refinery = 8; S.ext.wheel = 1;`);
+  assert.deepStrictEqual(JSON.parse(g.run('JSON.stringify(powerUse())')), { cap: 4, use: 8, f: .5 });
+  g.run('S.res.copper = 0; econ(10);'); const slow = g.run('S.res.copper');
+  g.run('S.ext.wheel = 2; S.res.copper = 0; econ(10);'); const full = g.run('S.res.copper');
+  assert.ok(Math.abs(full - 2 * slow) < 1e-6, 'twice the copper at full power');
+  g.run('S.ext.wheel = 1;');
+  assert.ok(g.run(`steadyIncome('wheel') > steadyIncome()`), 'foremen see a Water Wheel is worth building');
+});
+
+test('in Silver Falls boats and the ironclad come up the river, raiders take the road', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.towns.falls = townFresh('falls'); switchTown('falls'); spawn('boat'); spawn('raider'); spawn('boss');`);
+  assert.deepStrictEqual(JSON.parse(g.run('JSON.stringify(foes.map(f => f.p))')), [1, 0, 1]);
+  assert.strictEqual(g.run('bossName()'), 'Ironclad steamer');
+  g.run(`S.wave = 7; planWave();`);
+  assert.ok(g.run(`W.next.length`) > 0);
+});
+
 test('a dust storm shortens tower reach except frost and tesla', () => {
   const g = load();
   g.run(`S = fresh(); setMap('gulch'); W.active = false;`);

@@ -145,10 +145,10 @@ function r3Buffer(data) {
 /* Which sprites become which shapes. Height is in world units (one map cell = 1). */
 const R3_SHAPES = (() => {
   const s = {};
-  const house = ['camp', 'mine', 'saw', 'saw_b', 'smelt', 'glass', 'mach', 'eng', 'market', 'mill', 'clockw', 'autow', 'hall', 'office', 'pit', 'drill', 'ironmine', 'coalseam', 'quarry', 'blast', 'rolling', 'boilerw', 'locow'];
+  const house = ['camp', 'mine', 'saw', 'saw_b', 'smelt', 'glass', 'mach', 'eng', 'market', 'mill', 'clockw', 'autow', 'hall', 'office', 'pit', 'drill', 'ironmine', 'coalseam', 'quarry', 'blast', 'rolling', 'boilerw', 'locow', 'cumine', 'sandpit', 'wheel', 'refinery', 'wirew', 'glassb', 'bulbw', 'telw'];
   for (const k of house) s[k] = ['prism', 13, 1.7];
   s.vault = ['prism', 14, 1.05]; s.wagon = s.wagon_b = ['prism', 8, .9]; s.loco = ['prism', 7, .7]; s.sign = ['prism', 2, .8];
-  for (const k of ['raider', 'runner', 'brute', 'shield', 'sapper', 'healer', 'thief', 'boss', 'train']) { s[k] = ['prism', k === 'boss' || k === 'train' ? 9 : k === 'runner' ? 5 : 4, 0]; s[k + '_b'] = s[k]; }
+  for (const k of ['raider', 'runner', 'brute', 'shield', 'sapper', 'healer', 'thief', 'boss', 'train', 'boat', 'steamer']) { s[k] = ['prism', k === 'boss' || k === 'train' || k === 'steamer' ? 9 : k === 'boat' ? 7 : k === 'runner' ? 5 : 4, 0]; s[k + '_b'] = s[k]; }
   for (const k of ['worker', 'worker_b', 'foreman', 'foreman_b']) s[k] = ['prism', 3, .5];
   s.tree = ['lathe', 0, 1.25]; s.rock = ['lathe', 0, .8]; s.boulder = ['lathe', 0, .9]; s.cactus = ['cross', 2, .55]; s.barrel = ['lathe', 0, .4]; s.crate = ['prism', 10, .36]; s.skull = ['prism', 3, .22]; s.wheel = ['prism', 2, .4];
   s.crossbow = ['prism', 12, .7]; s.frost = ['lathe', 0, .95]; s.tesla = ['lathe', 0, 1]; s.cannon = ['lathe', 0, .6]; s.gatling = ['lathe', 0, .55];
@@ -187,7 +187,8 @@ function box(out, x, y, z, sx, sy, sz, col, yaw, ao) {
     [[0, 0, 1], [[hx, 0, hz], [hx, sy, hz], [-hx, sy, hz], [-hx, 0, hz]]], [[0, 0, -1], [[-hx, 0, -hz], [-hx, sy, -hz], [hx, sy, -hz], [hx, 0, -hz]]]];
   for (const [n, q] of faces) { const nn = N(n[0], n[1], n[2]); for (const i of [0, 1, 2, 0, 2, 3]) { const p = P(q[i][0], q[i][1], q[i][2]); out.push(p[0], p[1], p[2], nn[0], nn[1], nn[2], r, g, b, a); } }
 }
-const cellH = (x, y) => y < YARD ? .22 : MAP.ravine && MAP.ravine.includes(x) && !onRoad(x, y) ? -1.6 : onRoad(x, y) ? -.06 : 0;
+const onRiver = (x, y) => MAP.river !== undefined && PATHS[MAP.river].segs.some(s => x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01);
+const cellH = (x, y) => y < YARD ? .22 : onRiver(x, y) ? -.32 : MAP.ravine && MAP.ravine.includes(x) && !onRoad(x, y) ? -1.6 : onRoad(x, y) ? -.06 : 0;
 /* Ground, road, ravine, bridges and fence: built once per map. */
 function r3Static() {
   const out = [], pal = MAP.pal || { yard: '#b99468', a: '#d0aa76', b: '#c9a26c', road: ['#7a5a3e', '#9b7552', '#8a6645', '#9b7552'] };
@@ -197,10 +198,11 @@ function r3Static() {
     const h = cellH(x, y), road = onRoad(x, y), bridge = road && MAP.ravine && MAP.ravine.includes(x);
     let col = y < YARD ? hex(pal.yard) : road ? hex(pal.road[1]) : (x + y) % 2 ? hex(pal.a) : hex(pal.b);
     if (h < -1) col = hex('#3a2419');
+    if (onRiver(x, y)) col = (x + y) % 2 ? hex('#3d6f8f') : hex('#386886');
     box(out, x + .5, -2, y + .5, 1, 2 + h, 1, tint(col, .94 + rnd() * .1));
     if (bridge) { for (let i = 0; i < 5; i++) box(out, x + .1 + i * .2, -.12, y + .5, .17, .1, .95, i % 2 ? hex('#a8703f') : hex('#b98250')); box(out, x + .5, -.1, y + .04, 1, .18, .07, hex('#5a3a22')); box(out, x + .5, -.1, y + .96, 1, .18, .07, hex('#5a3a22')); }
     if (h < -1) box(out, x + .5, -1.62, y + .5, .35, .04, 1, hex('#2f5d78'));
-    if (road && !bridge) { box(out, x + .3, -.06, y + .5, .05, .005, .9, tint(hex(pal.road[0]), .9)); box(out, x + .7, -.06, y + .5, .05, .005, .9, tint(hex(pal.road[0]), .9)); }
+    if (road && !bridge && !onRiver(x, y)) { box(out, x + .3, -.06, y + .5, .05, .005, .9, tint(hex(pal.road[0]), .9)); box(out, x + .7, -.06, y + .5, .05, .005, .9, tint(hex(pal.road[0]), .9)); }
     if (!road && y >= YARD && rnd() < .35) { const gx = x + .2 + rnd() * .6, gz = y + .2 + rnd() * .6; for (let i = 0; i < 3; i++) box(out, gx + (i - 1) * .05, h, gz, .03, .08 + rnd() * .08, .03, i % 2 ? hex('#a9a24a') : hex('#8f8a3c')); }
   }
   // the yard fence
