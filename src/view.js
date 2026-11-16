@@ -204,7 +204,6 @@ function r3Overlay(time) {
     for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2, [px, py] = r3Project(pc + .5 + Math.cos(a) * reach, .05, pr + .5 + Math.sin(a) * reach); i ? ux.lineTo(px, py) : ux.moveTo(px, py); }
     ux.stroke(); ux.setLineDash([]);
   }
-  { const bt = rallyFor || (sel && sel.t && TOWERS[sel.t.type].troops ? sel.t : null); if (bt && bt.rally) { const [px, py, w] = r3Project(bt.rally[0] + .5, 0, bt.rally[1] + .5), [qx, qy] = r3Project(bt.rally[0] + .5, .8, bt.rally[1] + .5); if (w > 0) { ux.fillStyle = '#2a1c22'; ux.fillRect(px - 2, qy, 4, py - qy); ux.fillStyle = '#5b8bc0'; ux.fillRect(px + 2, qy, c * .3, c * .2); } } }
   for (const q of troops) if (q.hp < q.max) { const [px, py, w] = r3Project(q.x + .5, .75, q.y + .5); if (w <= 0) continue; const bw = c * .4; ux.fillStyle = '#2a1c22'; ux.fillRect(px - bw / 2 - 1, py - 1, bw + 2, c * .07 + 2); ux.fillStyle = '#5b8bc0'; ux.fillRect(px - bw / 2, py, bw * Math.max(0, q.hp / q.max), c * .07); }
   for (const f of foes) if (f.hp < f.max && f.type !== 'boss') { const [px, py, w] = r3Project(f.x + .5, FOES[f.type].size + .25, f.y + .5); if (w <= 0) continue; const bw = c * .6; ux.fillStyle = '#2a1c22'; ux.fillRect(px - bw / 2 - 1, py - 1, bw + 2, c * .09 + 2); ux.fillStyle = '#f07067'; ux.fillRect(px - bw / 2, py, bw, c * .09); ux.fillStyle = '#7fd992'; ux.fillRect(px - bw / 2, py, bw * Math.max(0, f.hp / f.max), c * .09); }
   ux.lineJoin = 'round';

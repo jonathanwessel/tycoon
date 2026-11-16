@@ -50,11 +50,14 @@ const PANELS = {
     const fbInfo = h('p');
     p.append(fbInfo);
     const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } p.append(s); };
+    if (capOpen()) p.append(h('p', null, 'The Capitol pays the foremen of every town from its budget, and the Academy does the research.'), h('button', { cls: 'primary', on: () => goTab('capital') }, 'Open the Capitol budget'));
+    else {
     fseg('Pay them', [[.25, '25%'], [.5, '50%'], [.75, '75%'], [1, 'All']], 'share');
     fseg('Keep', [[0, 'No reserve'], [1, '1 min'], [5, '5 min']], 'keep');
     fseg('Research', [[1, 'They may buy it'], [0, 'Leave it to me']], 'study');
+    }
     p.append(h('p', null, 'Hire a foreman with the button next to any building in Works. Each foreman after the first two costs more. Every building doubles its output at levels 10, 25, 50 and each 100, and foremen save up for those.'), h('button', { on: () => goTab('works') }, '‹ Back to Works'));
-    ups.push(() => { const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length; fbInfo.textContent = n ? n + ' at work in ' + TOWN.n + '. They get ' + pct(S.fb.share) + ' of what this town earns and save up for the upgrade that pays back fastest' + fbGoal() + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.') : 'No foremen yet in ' + TOWN.n + '.'; });
+    ups.push(() => { const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length; fbInfo.textContent = n ? n + ' at work in ' + TOWN.n + '. They get ' + (capOpen() ? pct(S.capital.share * capSplit().foremen) + ' (the Capitol budget)' : pct(S.fb.share)) + ' of what this town earns and save up for the upgrade that pays back fastest' + fbGoal() + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.') : 'No foremen yet in ' + TOWN.n + '.'; });
   },
   missions(p) {
     p.append(h('h2', null, TOWN.n));
@@ -151,13 +154,13 @@ const PANELS = {
     const note = h('p'); p.append(note, h('div', { cls: 'bar' }, thr));
     ups.push(() => {
       thr.hidden = !lv('ledger'); thr.textContent = S.sellAbove ? 'Auto-sell only above ' + pct(S.sellAbove) + ' price' : 'Auto-sell at any price';
-      note.textContent = lv('ledger') ? 'Auto-sell keeps ' + KEEP + ' of each good back for towers and contracts.' : 'Research the Trading Ledger to sell goods automatically.';
+      note.textContent = lv('ledger') ? 'Auto-sell keeps enough of each good to build any tower twice and fill the caravan contracts (at least ' + KEEP + ').' : 'Research the Trading Ledger to sell goods automatically.';
     });
   },
   research(p) {
     p.append(h('h2', null, 'Research'));
     for (const r of RESEARCH) {
-      const cost = () => Math.ceil(r.cost * Math.pow(r.g, lv(r.id)));
+      const cost = () => resCost(r);
       const name = h('div', { cls: 'name' }), ce = costEl(cost, null, ups), done = h('span', null, 'Done'), btn = h('button', { on: () => { const c = cost(); if (S.coins < c || lv(r.id) >= r.max) return; S.coins -= c; S.research[r.id] = lv(r.id) + 1; if (r.id === 'vault') S.vaultHp += 5; snd('build', 500, .15, 'triangle', .05, 500); } }, ce, done);
       p.append(h('div', { cls: 'row' }, h('div', { cls: 'grow' }, name, h('small', null, r.d)), h('div', { cls: 'acts' }, btn)));
       ups.push(() => { const l = lv(r.id), fin = l >= r.max; name.textContent = r.n; if (r.max > 1) name.append(h('i', null, l ? 'Lv ' + l : '')); ce.hidden = fin; done.hidden = !fin; btn.disabled = fin || S.coins < cost(); });
@@ -196,6 +199,7 @@ const PANELS = {
         }
       });
     }
+    p.append(h('h2', null, 'The Capital'), h('div', { cls: 'bar' }, h('button', { cls: capOpen() ? '' : 'primary', on: () => goTab('capital') }, capOpen() ? 'Go to the Capital' : capitalReady() ? 'Found the Capital' : 'About the Capital')));
     // shipping routes
     p.append(h('h2', null, 'Shipping routes'));
     const sug = h('div', { cls: 'sugs' }), list = h('div'), form = h('div', { cls: 'bar routeform' });

@@ -2,7 +2,7 @@
 /* =========================================================
    Interface: map taps
    Taps become map cells (gridAt); trees and rocks gather while held; a tap selects a building, tower,
-   plot or the vault, or moves a rally point.
+   plot or the vault.
    ========================================================= */
 /* Map taps */
 function gridAt(ev) { return R3.on ? r3Pick(ev) : [-9, -9]; } // a tap as fractional map cells [x, y] (off the map until the 3D view is up)
@@ -20,7 +20,6 @@ for (const e of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListe
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('click', ev => {
   const [gx, gy] = gridAt(ev);
-  if (rallyFor) { const t = rallyFor; rallyFor = null; if (setRally(t, Math.floor(gx), Math.floor(gy))) { say('Rally point moved.'); snd('tab', 660, .05, 'square', .02, 200); } else say('That is not a road cell inside the barracks\' reach.'); return; }
   if (gy < YARD) {
     const id = slotAt(gx, gy);
     if (id === 'trees' || id === 'rocks') return;

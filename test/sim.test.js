@@ -63,7 +63,7 @@ test('a v3 save becomes the first town of an empire (current save version), with
   const g = load();
   const v3 = g.run(`(() => { const o = fresh(); delete o.town; delete o.towns; o.v = 3; o.coins = 12345; o.ext.camp = 17; o.wave = 22; o.deeds = 3; o.towers = [{ c: 0, r: 6, type: 'crossbow', lvl: 2, tg: 'first' }]; return JSON.stringify(o); })()`);
   const h = load({ storage: { 'copper-gulch-save-v1': v3 } });
-  h.run('load()');
+  h.run('WIPE_OFF = true; load()');
   assert.strictEqual(h.run('S.v'), h.run('fresh().v'));
   assert.strictEqual(h.run('S.town'), 'gulch');
   assert.deepStrictEqual(h.run('JSON.stringify([S.coins, S.ext.camp, S.wave, S.deeds, S.towers.length])'), JSON.stringify([12345, 17, 22, 3, 1]));
@@ -73,7 +73,7 @@ test('a v3 save becomes the first town of an empire (current save version), with
 test('a save on the retired Forked Canyon moves to Copper Gulch and refunds towers now on the road', () => {
   const g = load();
   const v4 = g.run(`(() => { const o = fresh(); o.v = 4; o.map = 'fork'; o.coins = 1000; o.ext.camp = 12; o.towers = [{ c: 3, r: 7, type: 'cannon', lvl: 2, tg: 'first' }, { c: 0, r: 6, type: 'crossbow', lvl: 0, tg: 'first' }]; return JSON.stringify(o); })()`);
-  const h = load({ storage: { 'copper-gulch-save-v1': v4 } }); h.run('load()');
+  const h = load({ storage: { 'copper-gulch-save-v1': v4 } }); h.run('WIPE_OFF = true; load()');
   assert.strictEqual(h.run('S.map'), 'gulch');
   assert.strictEqual(h.run('S.v'), h.run('fresh().v'));
   assert.strictEqual(h.run('S.ext.camp'), 12, 'buildings kept');
@@ -262,7 +262,7 @@ test('missions are per town: switching towns keeps each chain, and old saves kee
   assert.strictEqual(g.run('S.goal'), 6, 'Copper Gulch kept its place');
   // a v5 save made while in Iron Ridge: the shared chain index belonged to Copper Gulch's list
   const h = load(); const old = g.run(`(() => { const o = JSON.parse(JSON.stringify(S)); switchTown('ridge'); const p = JSON.parse(JSON.stringify(S)); p.v = 5; p.goal = 9; delete p.towns.gulch.goal; return JSON.stringify(p); })()`);
-  h.run(`adopt(${old})`);
+  h.run(`adopt(${old}, 0)`);
   assert.strictEqual(h.run('S.town'), 'ridge');
   assert.strictEqual(h.run('S.goal'), 0, 'Iron Ridge starts at its first mission');
   assert.strictEqual(h.run('S.towns.gulch.goal'), 9, 'the old progress stays with Copper Gulch');
@@ -279,6 +279,8 @@ test('a fresh start keeps deeds (plus 10), perks, badges and stats, and backs up
   assert.ok(g.run('S.coins') < 1e6 && !g.run('S.ext.camp'), 'the town itself starts over');
   assert.ok(g.store.has('copper-gulch-save-v1-before-v6'), 'old save backed up');
   assert.ok(/starts fresh/.test(g.run('S.movedNote')));
-  // with no fresh start set (WIPE_V 0), a save is migrated as usual
-  const h = load(); assert.strictEqual(h.run(`adopt(${old})`), true); assert.strictEqual(h.run('S.ext.camp'), 80);
+  // the real setting: this release starts saves from before v7 fresh; a save already on v7 carries on
+  const h = load(); assert.strictEqual(h.run(`adopt(${old})`), true); assert.strictEqual(h.run('S.deeds'), 17, 'v6 save starts fresh');
+  const k = load(); const cur = k.run(`(() => { const o = fresh(); o.ext.camp = 80; return JSON.stringify(o); })()`); k.run(`adopt(${cur})`); assert.strictEqual(k.run('S.ext.camp'), 80, 'a v7 save carries on');
+  const m = load(); m.run(`adopt(${old}, 0)`); assert.strictEqual(m.run('S.ext.camp'), 80, 'with the fresh start off, migrated as usual');
 });

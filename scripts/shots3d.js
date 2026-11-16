@@ -12,7 +12,7 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await p.goto(srv.url); await p.waitForTimeout(1500);
   const r = await p.evaluate(async town => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    PERF.noAuto = true; S.coins = 1e9; S.best = 40;
+    PERF.noAuto = true; S.tut = 'done'; document.getElementById('modal').hidden = true; S.coins = 1e9; S.best = 40;
     if (town !== 'gulch') { unlockTown('ridge'); if (town === 'falls') { S.best = 40; withTown('ridge', () => { S.best = 40; }); unlockTown('falls'); } goTown(town); await wait(300); }
     for (const k in S.res) add(k, 5000);
     const L = [12, 30, 60, 120]; BUILD.forEach((b, i) => { S[b.kind][b.def.id] = L[i % 4]; }); for (const b of BUILD.slice(0, 5)) hire(b.def.id);
@@ -48,6 +48,10 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('select');
   await p.evaluate(async () => { sel = null; refresh(); foes = []; W.queue = []; W.active = false; S.wave = 30; planWave(); startWave(); for (let i = 0; i < 60 && !foes.some(f => f.type === 'boss'); i++) await new Promise(r => setTimeout(r, 250)); await new Promise(r => setTimeout(r, 1500)); });
   await shot('boss');
+  await p.evaluate(async () => { foes = []; W.active = false; W.queue = []; sel = null; S.tut = undefined; tutStart(); S.stats.taps = 0; await new Promise(r => setTimeout(r, 900)); });
+  await shot('tutorial');
+  await p.evaluate(async () => { tutEnd(true); S.coins = 1e12; S.best = 40; if (!townOpen('ridge')) unlockTown('ridge'); if (S.towns.ridge) S.towns.ridge.best = 30; if (!townOpen('falls')) unlockTown('falls'); if (S.towns.falls) S.towns.falls.best = 20; S.coins = 1e12; openCapital(); buyInst('market'); buyInst('war'); goTab('capital'); setSheetH(.9); await new Promise(r => setTimeout(r, 900)); });
+  await shot('capital');
   console.log(town, JSON.stringify(t), errs.length ? 'ERRORS ' + errs.join(' | ') : 'no errors');
   await b.close(); srv.close(); process.exit(0);
 })();

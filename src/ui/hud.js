@@ -73,7 +73,7 @@ function buildFixed() {
     bw.textContent = W.active ? 'Wave ' + S.wave + ' · ' + (W.queue.length + foes.length) + ' left' : 'Call wave ' + S.wave + (S.autoWave ? ' · ' + Math.ceil(W.countdown) + 's' : ' · held');
     bw.classList.toggle('live', W.active); bw.classList.toggle('held', !W.active && !S.autoWave); bw.classList.toggle('soon', !W.active && S.autoWave && W.countdown <= 5);
     $('bSpeed').textContent = S.speed + '×'; $('bSpeed').setAttribute('aria-label', 'Game speed ' + S.speed + ' times');
-    const g = goalNow(); dots.defend.hidden = g.cur < g.need;
+    // missions ready to claim show on the Missions button, not on a tab
     dots.market.hidden = !S.contracts.some(c => S.res[c.k] >= c.qty);
     dots.charter.hidden = !(deedsOnOffer() || freeDeeds() > 0 && PERKS.some(p => perk(p.id) < p.max && !(p.req && !perk(p.req)) && freeDeeds() >= p.cost(perk(p.id))));
   });
@@ -91,7 +91,7 @@ function buildDynamic() {
     ups.push(() => { v.textContent = fmt(S.res[k]); const x = RATE[k] || 0, show = Math.abs(x) >= .05; r.textContent = show ? (x > 0 ? '▲ ' : '▼ ') + rate(Math.abs(x)) + '/s' : ITEMS[k].n; r.className = 'r' + (show ? x > 0 ? ' up' : ' down' : ''); });
   }
   const p = $('panel'); p.textContent = ''; p.setAttribute('aria-labelledby', 'tab-' + tab); PANELS[tab](p);
-  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : tab === 'missions' ? 'Missions' : tab === 'foremen' ? 'Foremen' : '';
+  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : tab === 'missions' ? 'Missions' : tab === 'foremen' ? 'Foremen' : tab === 'capital' ? 'Capital' : '';
   if (shownTab && shownTab !== tab && p.animate && !REDUCED) {
     const order = TABS.map(t => t[0]), dir = order.indexOf(tab) > order.indexOf(shownTab) ? 1 : -1;
     p.animate([{ opacity: 0, transform: 'translateX(' + dir * 28 + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });

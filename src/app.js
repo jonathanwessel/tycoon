@@ -48,7 +48,7 @@ function bossHud() {
   if (!b && !el.hidden) { el.hidden = true; banShown = null; }
 }
 function tickHud(dt) {
-  bossHud();
+  bossHud(); tutTick();
   if (shownCoins === null || REDUCED || !isFinite(shownCoins)) shownCoins = S.coins;
   shownCoins += (S.coins - shownCoins) * Math.min(1, dt * 9); if (Math.abs(S.coins - shownCoins) < .5) shownCoins = S.coins;
   const t = fmt(shownCoins); if (t !== coinTxt) { coinTxt = t; $('hCoins').textContent = t; }
@@ -83,6 +83,8 @@ function start(data) {
   paintSprites(); paintSprites2(); paintSprites3(); paintSprites4(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
   checkBadges(true); applyMotion(); protectSave(); announceVersion();
+  if (S.tut === undefined && !S.towers.length && !S.charters && !Object.keys(S.towns).length) setTimeout(tutOffer, 900); else if (S.tut === undefined) S.tut = 'done'; // a brand-new game is offered the tutorial
+  else if (typeof S.tut === 'number') setTimeout(tutShow, 900);
   if (S.movedNote) { const n = S.movedNote; delete S.movedNote; setTimeout(() => say(n), 1500); }
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); applyGfx(); window.addEventListener('resize', fit);
@@ -100,8 +102,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-25'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'The game is now 3D only, and its code has been tidied. Low quality is a lighter 3D view for slower phones.';
+const GAME_VERSION = '2026.11.15-26'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Big update with a fresh start: you keep your deeds, perks and badges plus 10 bonus deeds. New: the Capital (after Silver Falls wave 15) with a global budget, automatic tower upgrades and research, and auto waves per town. A tutorial. The Barracks now stands beside the road and its soldiers march back up it. Auto-sell keeps enough for towers. Brighter look, snappier menus.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
@@ -138,7 +140,9 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       const reg = APP.reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
       const watch = w => { if (!w) return; const done = () => { if (w.state === 'installed' && navigator.serviceWorker.controller) { APP.waiting = w; showUpdate(); } }; done(); w.addEventListener('statechange', done); };
       watch(reg.waiting); reg.addEventListener('updatefound', () => watch(reg.installing));
-      let reloading = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
+      // reload when an update takes over; the very first install taking control of a new visitor's page is not an update
+      const hadController = !!navigator.serviceWorker.controller; let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading || !hadController) return; reloading = true; location.reload(); });
     } catch (e) {}
     checkUpdates();
     setInterval(checkUpdates, 15 * 60 * 1000);

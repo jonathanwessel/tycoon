@@ -13,7 +13,7 @@ const fbm = (x, z) => noise(x, z) * .6 + noise(x * 2.1 + 5, z * 2.1) * .3 + nois
 function polyDist(px, pz, pts) { let best = 1e9, along = 0, run = 0, side = 0; for (let i = 0; i < pts.length - 1; i++) { const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], dx = x2 - x1, dz = z2 - z1, L = Math.hypot(dx, dz) || 1, t = Math.max(0, Math.min(1, ((px - x1) * dx + (pz - z1) * dz) / (L * L))), qx = x1 + dx * t, qz = z1 + dz * t, d = Math.hypot(px - qx, pz - qz); if (d < best) { best = d; along = run + t * L; side = ((px - x1) * dz - (pz - z1) * dx) / L; } run += L; } return { d: best, along, side }; }
 
 export const TOWN_LOOK = {
-  gulch: { far: ['#d8b07a', '#c99a62', '#b9844f'], mesa: ['#c8653f', '#a94f33', '#d98a55', '#e0a46c'], grass: '#9aa046', scrub: 'cactus' },
+  gulch: { far: ['#e6c08a', '#d8aa70', '#c99560'], mesa: ['#c8653f', '#a94f33', '#d98a55', '#e0a46c'], grass: '#9aa046', scrub: 'cactus' },
   ridge: { far: ['#a8988a', '#93857a', '#7d7168'], mesa: ['#7e7266', '#6a5f56', '#958775', '#a89880'], grass: '#8a8a5a', scrub: 'rock' },
   falls: { far: ['#9fb07a', '#8aa06a', '#7a9460'], mesa: ['#6e8f5a', '#5c7d4c', '#8aa870', '#a3b78a'], grass: '#6f9a48', scrub: 'tree' },
 };

@@ -40,15 +40,15 @@ function card() {
           for (let i = 0; i < 12; i++) parts.push({ x: c + .5 + (Math.random() - .5) * .8, y: r + .8, vx: (Math.random() - .5) * 2.5, vy: -1 - Math.random() * 2, g: 6, t: .5, c: '#e9d2a8', s: .08 });
         } }, ico(id), h('span', { cls: 'grow' }, h('span', { cls: 'name' }, d.n), h('small', null, d.d)), costEl(() => buildCost(id), towerGoods(id), cardUps));
         for (const ev of ['pointerenter', 'focus', 'pointerdown']) b.addEventListener(ev, () => { GHOST.type = id; });
-        list.append(b); cardUps.push(() => b.classList.toggle('ghost', GHOST.type === id)); cardUps.push(() => { const locked = d.from && S.best < d.from; b.disabled = locked || S.coins < buildCost(id) || !hasGoods(towerGoods(id)); b.title = locked ? 'Opens once you reach wave ' + d.from : ''; if (locked) b.querySelector('small').textContent = 'Opens once you reach wave ' + d.from + '. ' + d.d; });
+        list.append(b); cardUps.push(() => b.classList.toggle('ghost', GHOST.type === id)); cardUps.push(() => { const locked = d.from && S.best < d.from, offRoad = d.troops && !besideRoad(c, r); b.disabled = locked || offRoad || S.coins < buildCost(id) || !hasGoods(towerGoods(id)); b.title = locked ? 'Opens once you reach wave ' + d.from : ''; b.querySelector('small').textContent = locked ? 'Opens once you reach wave ' + d.from + '. ' + d.d : offRoad ? 'Must stand right beside the road. ' + d.d : d.d; });
       }
     } else if (sel.t) {
       const t = sel.t, d = TOWERS[t.type], back = Math.ceil(d.coins * .5), stats = h('small');
       const brName = t.br ? BRANCH[t.type][t.br].n : null;
       box.append(h('div', { cls: 'cardhead' }, ico(t.br ? t.type + '_' + t.br : t.type), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, brName ? brName + ' ' + d.n.toLowerCase() : d.n, h('i', null, 'Lv ' + (t.lvl + 1))), stats), close));
       cardUps.push(() => { const st = towerStats(t); stats.textContent = rate(st.dmg) + ' damage · ' + rate(st.rate) + ' shots/s · reach ' + st.range.toFixed(1) + (t.jam > 0 ? ' · jammed ' + Math.ceil(t.jam) + 's' : ''); });
-      if (d.troops) { // soldiers: three tracks, a rally point, and sell
-        cardUps.push(() => { const ts = troopStats(t); stats.textContent = ts.count + ' soldier' + (ts.count > 1 ? 's' : '') + ' · back in ' + ts.time.toFixed(1) + 's · ' + fmt(ts.hp) + ' health · ' + fmt(ts.dps) + ' damage/s'; });
+      if (d.troops) { // soldiers: three tracks and sell
+        cardUps.push(() => { const ts = troopStats(t); stats.textContent = ts.count + ' soldier' + (ts.count > 1 ? 's' : '') + ' · back in ' + ts.time.toFixed(1) + 's · ' + fmt(ts.hp) + ' health · ' + fmt(ts.dps) + ' damage/s · march ' + ts.reach.toFixed(1) + ' cells'; });
         for (const k in TRACKS) {
           const T = TRACKS[k], lab = h('span', { cls: 'grow' }), b = h('button', { cls: 'small', on: () => upgradeTrack(t, k) }, 'Upgrade ', costEl(() => trackCost(t, k), null, cardUps));
           box.append(h('div', { cls: 'row track' }, lab, b));
@@ -67,9 +67,8 @@ function card() {
           box.append(note, h('div', { cls: 'bar' }, rb)); cardUps.push(() => { rb.disabled = !canRebuild(t) || S.coins < rebuildCost() || !hasGoods(towerGoods('helipad')); });
         }
         const back2 = Math.ceil(d.coins * .5 + (t.spent || 0) * .3);
-        const mv = h('button', { cls: 'small', on: () => { rallyFor = t; say('Tap a road cell inside the barracks\' reach to move the rally point. Tip: a spot by a bend makes raiders pass twice.'); } }, 'Move rally point');
         const sb = confirmBtn('Sell +' + fmt(back2), 'Tap again: sell, soldiers' + (d.drone ? ' and drone' : '') + ' too', () => { S.coins += back2; S.towers.splice(S.towers.indexOf(t), 1); sel = null; snd('sell', 500, .1, 'triangle', .04, -200); refresh(); });
-        box.append(h('div', { cls: 'bar' }, mv, sb));
+        box.append(h('div', { cls: 'bar' }, sb));
         for (const f of cardUps) f(); return;
       }
       const seg = h('div', { cls: 'seg' }, h('small', null, 'Aim at'));

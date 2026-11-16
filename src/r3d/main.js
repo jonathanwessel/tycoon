@@ -36,7 +36,7 @@ function setup() {
   let r;
   try { r = new THREE.WebGLRenderer({ canvas: c, antialias: false, powerPreference: 'high-performance', stencil: false }); } catch (e) { console.warn('3D view unavailable:', e.message); return null; }
   if (!r.capabilities.isWebGL2) { r.dispose(); return null; }
-  r.setPixelRatio(1); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.toneMapping = THREE.NeutralToneMapping; r.toneMappingExposure = 1; r.outputColorSpace = THREE.SRGBColorSpace;
+  r.setPixelRatio(1); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.toneMapping = THREE.NeutralToneMapping; r.toneMappingExposure = 1.1; r.outputColorSpace = THREE.SRGBColorSpace;
   V.r = r; V.canvas = c; V.scene = new THREE.Scene(); V.cam = new THREE.PerspectiveCamera(35, 1, .5, 200);
   V.scene.fog = new THREE.Fog('#cfe2ea', 34, 95);
   V.sky = makeSky(); V.scene.add(V.sky);
@@ -332,8 +332,8 @@ function light(time) {
   const dir = v3(Math.sin(L.az * .8) * .7 + .35, .95 - .5 * n, .62).normalize(), tgt = v3(COLS / 2, 0, ROWS / 2);
   V.sun.position.copy(tgt).addScaledVector(dir, 30); V.sun.target.position.copy(tgt);
   const sunCol = mixC('#fff1d6', '#ffb47a', dusk).lerp(col('#9fb4ff'), Math.max(0, n - .4) / .6);
-  V.sun.color.copy(sunCol); V.sun.intensity = 3 * L.sunK + 1.1 * n;
-  const amb = L.amb; V.hemi.color.setRGB(amb[0] * .85, amb[1] * .9, amb[2]); V.hemi.groundColor.setRGB(amb[0] * .62, amb[1] * .5, amb[2] * .4); V.hemi.intensity = .95 + 1.1 * n;
+  V.sun.color.copy(sunCol); V.sun.intensity = 3.5 * L.sunK + 1.1 * n;
+  const amb = L.amb; V.hemi.color.setRGB(amb[0] * .85, amb[1] * .9, amb[2]); V.hemi.groundColor.setRGB(amb[0] * .62, amb[1] * .5, amb[2] * .4); V.hemi.intensity = 1.3 + .8 * n;
   // windows and furnaces glow brighter as night falls
   MAT.glow.color.setScalar(.55 + 1.45 * n);
   // lamps and fires from the 2D lighting engine's list
@@ -342,7 +342,7 @@ function light(time) {
   // the look and bloom
   const lk = LOOKS[g.look] || LOOKS.natural, bk = [0, .45, .75, 1][g.bloom] || 0, gu = V.grade.uniforms;
   V.bloom.enabled = g.bloom > 0; V.bloom.strength = (.22 + .55 * n) * bk; V.bloom.threshold = .86 - .2 * n;
-  gu.uSat.value = lk.sat * 1.12 - .05 * n; gu.uCon.value = lk.con; gu.uTint.value.set(...lk.tint); gu.uLift.value.set(...lk.lift); gu.uVig.value = (.2 + .3 * n) * lk.vig; gu.uGrain.value = g.grain ? .05 : 0; gu.uTime.value = time % 10; gu.uFlash.value = Math.min(.5, FXS.flash > 0 ? FXS.flash * 2.5 : 0);
+  gu.uSat.value = lk.sat * 1.18 - .06 * n; gu.uCon.value = lk.con; gu.uTint.value.set(...lk.tint); gu.uLift.value.set(...lk.lift); gu.uVig.value = (.1 + .3 * n) * lk.vig; gu.uGrain.value = g.grain ? .05 : 0; gu.uTime.value = time % 10; gu.uFlash.value = Math.min(.5, FXS.flash > 0 ? FXS.flash * 2.5 : 0);
   return L;
 }
 

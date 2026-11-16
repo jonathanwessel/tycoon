@@ -11,7 +11,9 @@ function powerUse(ex) {
   for (const s of SHOPS) if (!S.off[s.id]) use += blv(s.id) + (ex[s.id] || 0);
   return { cap, use, f: use ? Math.min(1, cap / use) : 1 };
 }
+let DT_NOW = 0; // the step's length, for the Capitol's War Office timer
 function econStep(dt) {
+  DT_NOW = dt;
   const ot = S.ot > 0 ? 3 : 1, pm = prodMult() * ot, cm = craftMult() * ot * powerUse().f, ease = Math.min(1, dt * 3);
   S.ot = Math.max(0, S.ot - dt); for (const k in S.cd) S.cd[k] = Math.max(0, S.cd[k] - dt);
   for (const e of EXT) { const l = S.ext[e.id] || 0; if (l && e.out) add(e.out, l * e.rate * pm * bMult(e.id) * dt); }
@@ -31,8 +33,16 @@ function econStep(dt) {
   const rec = 1 - Math.exp(-(perk('trade') ? .04 : .02) * dt);
   for (const k in S.demand) { S.demand[k] += (1 - S.demand[k]) * rec; if (S.demand[k] > .999) delete S.demand[k]; }
   shipGoods(dt); // shipments leave before auto-sell
-  if (lv('ledger')) for (const k in ITEMS) if (S.auto[k] && S.res[k] > KEEP && dem(k) >= S.sellAbove) sell(k, S.res[k] - KEEP);
+  if (lv('ledger')) for (const k in ITEMS) { const keep = keepOf(k); if (S.auto[k] && S.res[k] > keep && dem(k) >= S.sellAbove) sell(k, S.res[k] - keep); }
   foremenWork();
+}
+/* How much of a good auto-sell leaves in the warehouse: enough to build any tower twice with this town's materials and
+   to fill the caravan contracts on offer (never under KEEP). The Market Board in the Capital can raise it. */
+function keepOf(k) {
+  let n = KEEP;
+  for (const t in TOWERS) { const g = towerGoods(t); if (g[k]) n = Math.max(n, g[k] * 2); }
+  for (const c of S.contracts || []) if (c.k === k) n = Math.max(n, c.qty);
+  return Math.ceil(n * (typeof capKeep === 'function' ? capKeep() : 1));
 }
 function econ(dt) { while (dt > 0) { const s = Math.min(dt, 5); econStep(s); dt -= s; } }
 
@@ -95,10 +105,11 @@ function foremenWork() {
   if (fb.study === undefined) fb.study = 1;
   if (!fb.own) { fb.own = 1; fb.last = S.life || 0; } // saves from before purses were per town counted the whole empire
   if (fb.last === undefined || fb.last > (S.life || 0)) fb.last = S.life || 0;
-  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800);
-  fb.purse = Math.min((fb.purse || 0) + ((S.life || 0) - fb.last) * fb.share, cap); fb.last = S.life || 0;
+  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800), cg = capOpen(), share = cg ? S.capital.share * capSplit().foremen : fb.share; // the Capitol's budget replaces each town's own settings
+  fb.purse = Math.min((fb.purse || 0) + ((S.life || 0) - fb.last) * share, cap); fb.last = S.life || 0;
+  capitalWork(DT_NOW, inc);
   const mine = Object.keys(S.mgr).filter(id => S.mgr[id] === 1 && BY_ID[id]); if (!mine.length) { fb.goal = null; return; }
-  const reserve = fb.keep * 60 * inc;
+  const reserve = (cg ? 0 : fb.keep) * 60 * inc;
   for (let i = 0; i < 8; i++) {
     const base = steadyIncome(), budget = Math.min(fb.purse, S.coins - reserve); let best = null;
     const earn = Math.max(1e-6, inc * fb.share);
@@ -116,7 +127,7 @@ function foremenWork() {
         for (const n of [1, 2, 4, 8, sMs]) { if (n > 25) continue; offer('b', sup.def.id, n, levels(sup, n) + bCost(b, have), steadyIncome({ [id]: 1, [sup.def.id]: n }) - base); }
       }
     }
-    if (fb.study) for (const id of FB_RESEARCH) { const r = RESEARCH.find(q => q.id === id); if (!r || lv(id) >= r.max) continue; offer('r', id, 1, Math.ceil(r.cost * Math.pow(r.g, lv(id))), steadyIncome({ ['r:' + id]: 1 }) - base); }
+    if (fb.study && !cg) for (const id of FB_RESEARCH) { const r = RESEARCH.find(q => q.id === id); if (!r || lv(id) >= r.max) continue; offer('r', id, 1, resCost(r), steadyIncome({ ['r:' + id]: 1 }) - base); }
     // a bundle is bought one level at a time as soon as the purse holds all of it, so the chain grows in step
     fb.goal = best ? (best.kind === 'r' ? 'r:' : '') + best.id : null; fb.goalN = best ? best.n : 0; fb.goalC = best ? best.c : 0;
     if (!best || best.c > budget) break;

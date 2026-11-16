@@ -183,8 +183,8 @@ Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29
 
 - [x] Release A: drag to pan (pinch, twist), two-tap selling, boss bar and banners in the interface, clear plot selection with a ghost tower, a tidy Works tab.
 - [x] Release B: 3D only. `src/render2d.js`, `src/gl.js` and `src/render3d.js` became `src/view.js`; `src/ui.js` was split into `src/ui/`; dead 2D code was removed; presets are 3D presets; a controlled fresh start (`WIPE_V`, 10 bonus deeds) is ready but switched off.
-- [ ] Release C: tutorial.
-- [ ] Release D: the Capital with the Capitol: a global budget for foremen, the War Office (slow tower auto-upgrades) and the Academy (auto-research), plus auto-wave control per town. Uses the fresh start.
+- [x] Release C: tutorial (offered on a new game, ten spotlight steps, replay from Settings).
+- [x] Release D: the Capital (after Silver Falls reaches wave 15): the Capitol budget for foremen, the War Office (a tower upgrade every 5 minutes per town, faster with levels) and the Academy (research); auto waves per town, fought in the background from tower strength; Market Board, Department of Transport, Central Bank, Department of Education, War Office. Shipped with the fresh start (v7, 10 bonus deeds), the Barracks rework (beside the road only, soldiers march back up the road, late-game price, wave-scaled strength), auto-sell keeping enough for towers, a brighter look and snappier menus.
 - [ ] Release E: Economy and Defence tech trees (Influence).
 - [ ] Release F: Stock Exchange.
 - [ ] Release G: policies and the Constitutional Convention (Legacy).

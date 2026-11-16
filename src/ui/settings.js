@@ -44,8 +44,10 @@ function openSettings(t) {
     row('Volume', '', [[.25, 'Low'], [.6, 'Medium'], [1, 'High']], () => S.opt.vol, v => { S.opt.vol = v; S.sound = true; snd('coin', 880, .08, 'square', .04, 440); });
   } else {
     row('Waves', 'Held waves only come when you call them.', [[true, 'Come on their own'], [false, 'Held']], () => !!S.autoWave, v => { if (S.autoWave !== v) toggleAuto(); });
+    body.append(h('div', { cls: 'row setrow' }, h('div', { cls: 'grow' }, h('b', null, 'Tutorial'), h('small', null, 'A three-minute walk through the basics.')), h('button', { cls: 'small', on: () => { $('modal').hidden = true; $('modal').className = 'modal'; tutStart(); } }, 'Play it')));
     row('Motion', 'Calm turns off sliding, shaking and pop-in.', [['auto', 'Like my device'], ['calm', 'Calm'], ['full', 'Full']], () => S.opt.calm, v => { S.opt.calm = v; applyMotion(); });
     row('Damage numbers', '', [[true, 'Show'], [false, 'Hide']], () => S.opt.nums !== false, v => { S.opt.nums = v; });
+    row('Vibration', 'A light buzz when you press a button (phones).', [[true, 'On'], [false, 'Off']], () => S.opt.buzz !== false, v => { S.opt.buzz = v; });
     row('When I switch away', '', [[false, 'Keep running'], [true, 'Pause']], () => !!S.opt.autoPause, v => { S.opt.autoPause = v; });
   }
   run(); m.hidden = false; xb.focus({ preventScroll: true });

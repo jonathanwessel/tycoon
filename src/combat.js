@@ -2,7 +2,7 @@
 /* =========================================================
    Combat
    ========================================================= */
-let troops = [], rallyFor = null, clouds = [], tars = [], foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
+let troops = [], clouds = [], tars = [], foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
 const FXS = { shake: {}, gold: {}, pop: {}, scorch: [], quake: 0, night: 0, banner: null, flash: 0, car: 9, lastCoin: 0, flow: {} };
 const W = { active: false, queue: [], next: null, ntype: 'mixed', type: 'mixed', shown: null, spawnT: 0, gap: .7, countdown: 30, spawned: 0, hpm: 1 };
 const foeHp = w => 10 * Math.pow(1.25, w - 1) * (1 + w * .05) * (1 + Math.min(.15, Math.max(0, w - 12) * .01));
@@ -96,45 +96,59 @@ function towerStats(t) {
   };
 }
 /* --- the Barracks -------------------------------------------------------------------------------------------------
-   Three tracks, each bought on its own at any time: spawn time, number of troops (1 to 6) and strength. Soldiers walk
-   to the rally point (a road cell within reach) and hold it; a raider that reaches one stops and they trade blows.
-   War wagons and boats go straight past; thieves slip by half the time. */
+   A late-game tower built right beside the road. Its soldiers step onto the road and march back along it, against the
+   flow of raiders, until they meet one; a raider that meets a soldier stops and they fight. With nobody coming they
+   hold a few cells up the road (their reach). War wagons and boats go straight past; thieves slip by half the time.
+   Three tracks, bought separately at any time: Drill (respawn time), Recruits (1 to 6 soldiers), Arms (strength).
+   Soldiers are as strong as the waves they meet, so the tower stays useful however far you get. */
 const TRACKS = { time: { n: 'Drill', d: 'Soldiers come back sooner', max: 15 }, count: { n: 'Recruits', d: 'One more soldier', max: 5 }, power: { n: 'Arms', d: 'Tougher, harder-hitting soldiers', max: 25 } };
-const trackCost = (t, k) => Math.ceil(TOWERS[t.type].coins * .5 * Math.pow(1.55, (t.up && t.up[k]) || 0) * (k === 'count' ? 2 : 1));
+const trackCost = (t, k) => Math.ceil(TOWERS[t.type].coins * .4 * Math.pow(1.6, (t.up && t.up[k]) || 0) * (k === 'count' ? 2.5 : 1));
 function troopStats(t) {
-  const u = t.up || {}, p = Math.pow(1.38, u.power || 0) * dmgMult();
-  return { time: 12 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0), hp: 60 * p, dps: 12 * p, range: towerStats(t).range };
+  const u = t.up || {}, p = Math.pow(1.3, u.power || 0), w = foeHp(Math.max(S.wave, TOWERS.barracks.from)) * MAP.hp;
+  return { time: 14 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0), hp: w * 2.2 * p, dps: w * .45 * p * dmgMult(), reach: 3 + .25 * (u.power || 0) };
 }
 function upgradeTrack(t, k) {
   const c = trackCost(t, k); t.up = t.up || {}; if ((t.up[k] || 0) >= TRACKS[k].max || S.coins < c) return false;
   S.coins -= c; t.spent = (t.spent || 0) + c; t.up[k] = (t.up[k] || 0) + 1; snd('build', 440, .12, 'triangle', .05, 440); return true;
 }
-/* The road cell nearest the barracks (its first rally point). */
-function rallyNear(t) { let best = null, bd = 1e9; for (const key of PATH) { const [x, y] = key.split(',').map(Number); if (x < 0 || x >= COLS || (MAP.river !== undefined && onRiverCell(x, y))) continue; const d = Math.hypot(x - t.c, y - t.r); if (d < bd) { bd = d; best = [x, y]; } } return best || [t.c, t.r]; }
-const onRiverCell = (x, y) => MAP.river !== undefined && PATHS[MAP.river].segs.some(s => x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01);
-function setRally(t, x, y) { if (!onRoad(x, y) || onRiverCell(x, y) || Math.hypot(x - t.c, y - t.r) > troopStats(t).range + .01) return false; t.rally = [x, y]; for (const q of troops) if (q.t === t) q.f = null; return true; }
+const roadPaths = () => PATHS.map((_, i) => i).filter(i => i !== MAP.river);
+/* Is this plot right beside the road (a road cell next to it, not the river)? Barracks may only stand there. */
+const besideRoad = (c, r) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => roadPaths().some(p => PATHS[p].segs.some(s => { const x = c + dx, y = r + dy; return x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01; })));
+/* Where the barracks' soldiers join the road: the closest point of a road path. */
+function roadDoor(t) {
+  let best = { p: 0, d: 0 }, bd = 1e9;
+  for (const p of roadPaths()) for (let d = 0; d <= PATHS[p].len; d += .1) { const [x, y] = posAt(d, p), q = Math.hypot(x - t.c, y - t.r); if (q < bd) { bd = q; best = { p, d }; } }
+  return best;
+}
 const foeHit = f => foeHp(S.wave) * FOES[f.type].hp * MAP.hp * .12; // what a raider deals to a soldier, per second
 function barracksTick(t, dt) {
-  const st = troopStats(t); if (!t.rally) t.rally = rallyNear(t);
+  const st = troopStats(t); if (!t.door) t.door = roadDoor(t);
   const mine = troops.filter(q => q.t === t); t.spawnT = (t.spawnT || 0) - dt;
   if (mine.length < st.count && t.spawnT <= 0) {
     const used = new Set(mine.map(q => q.slot)); let slot = 0; while (used.has(slot)) slot++;
-    troops.push({ t, slot, x: t.c, y: t.r, hp: st.hp, max: st.hp, f: null }); t.spawnT = mine.length + 1 < st.count && !t.fought ? .8 : st.time;
+    const [x, y] = posAt(t.door.d, t.door.p);
+    troops.push({ t, slot, p: t.door.p, d: t.door.d, x, y, hp: st.hp, max: st.hp, f: null }); t.spawnT = mine.length + 1 < st.count && !t.fought ? .8 : st.time;
   }
 }
 function troopsTick(dt) {
   for (const q of troops) {
-    const st = troopStats(q.t), [rx, ry] = q.t.rally || [q.t.c, q.t.r], a = q.slot / 6 * Math.PI * 2, hx = rx + (q.slot ? Math.cos(a) * .3 : 0), hy = ry + (q.slot ? Math.sin(a) * .22 : 0);
-    if (q.max < st.hp) { q.hp += st.hp - q.max; q.max = st.hp; } // stronger arms reach soldiers already out
-    if (q.f && (q.f.hp <= 0 || !foes.includes(q.f) || Math.hypot(q.f.x - hx, q.f.y - hy) > .9)) q.f = null;
-    if (!q.f) for (const f of foes) {
-      if (f.hp <= 0 || f.type === 'boss' || f.type === 'boat' || (MAP.river !== undefined && f.p === MAP.river)) continue;
-      if (f.type === 'thief' && f.slip === undefined) f.slip = Math.random() < .5; if (f.slip) continue;
-      if (Math.hypot(f.x - hx, f.y - hy) < .6) { q.f = f; break; }
-    }
-    const gx = q.f ? q.f.x : hx, gy = q.f ? q.f.y : hy, d = Math.hypot(gx - q.x, gy - q.y);
-    q.walk = d > .12; if (q.walk) { const s = Math.min(d, 1.9 * dt); q.x += (gx - q.x) / d * s; q.y += (gy - q.y) / d * s; q.dir = gx >= q.x ? 1 : -1; }
-    q.fight = q.f && d < .4;
+    const st = troopStats(q.t);
+    if (q.max < st.hp) { q.hp += st.hp - q.max; q.max = st.hp; } // stronger arms (and later waves) reach soldiers already out
+    if (q.f && (q.f.hp <= 0 || !foes.includes(q.f) || q.f.p !== q.p || Math.abs(q.f.d - q.d) > .8)) q.f = null;
+    // the raider coming up the road towards this soldier (raiders move to larger d, soldiers march to smaller d)
+    if (!q.f) { let best = null;
+      for (const f of foes) {
+        if (f.hp <= 0 || f.p !== q.p || f.type === 'boss' || f.type === 'boat') continue;
+        if (f.type === 'thief' && f.slip === undefined) f.slip = Math.random() < .5; if (f.slip) continue;
+        if (f.d <= q.d + .2 && f.d > q.d - .5 && (!best || f.d > best.d)) best = f;
+      }
+      q.f = best; }
+    const hold = Math.max(0, q.t.door.d - st.reach) + q.slot * .22; // with no raider in sight, wait this far up the road
+    const goal = q.f ? q.d : hold, step = 1.6 * dt;
+    q.walk = !q.f && Math.abs(goal - q.d) > .05; if (q.walk) q.d += Math.sign(goal - q.d) * Math.min(step, Math.abs(goal - q.d));
+    const [x, y] = posAt(q.d, q.p), off = (q.slot % 2 ? -1 : 1) * Math.ceil(q.slot / 2) * .12; q.dir = goal < q.d ? -1 : 1;
+    q.x = x + off * .4; q.y = y + off;
+    q.fight = !!q.f && Math.abs(q.f.d - q.d) < .45;
     if (q.fight) { q.f.held = .12; hurt(q.f, st.dps * dt, { melee: 1 }); q.hp -= foeHit(q.f) * dt; q.t.fought = 1; }
   }
   for (const q of troops) if (q.hp <= 0) { q.t.spawnT = Math.max(q.t.spawnT || 0, troopStats(q.t).time); for (let i = 0; i < 5; i++) parts.push({ x: q.x + .5, y: q.y + .5, vx: (Math.random() - .5) * 2, vy: -1 - Math.random(), g: 6, t: .4, c: '#5b8bc0', s: .07 }); }
@@ -188,7 +202,7 @@ function upgradeTower(t) { if (needsBranch(t) || TOWERS[t.type].troops) return f
 function branchTower(t, b) { if (!needsBranch(t)) return false; const c = branchCost(t); if (S.coins < c) return false; S.coins -= c; t.br = b; t.lvl++; snd('ms', 660, .25, 'triangle', .06, 440); for (let i = 0; i < 14; i++) parts.push({ x: t.c + .5, y: t.r + .5, vx: Math.cos(i) * 2, vy: Math.sin(i) * 2 - 1, g: 2, t: .7, c: P.yel, s: .08 }); return true; }
 function buildTower(type, c, r) {
   const d = TOWERS[type], cost = buildCost(type);
-  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods) || (d.from && S.best < d.from) || d.rebuilt) return false;
+  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods) || (d.from && S.best < d.from) || d.rebuilt || (d.troops && !besideRoad(c, r))) return false;
   S.coins -= cost; for (const k in goods) S.res[k] -= goods[k];
   S.towers.push({ c, r, type, lvl: 0, tg: 'first' }); return true;
 }
@@ -381,13 +395,13 @@ function buyPerk(id) {
   if (l >= p.max || (p.req && !perk(p.req)) || freeDeeds() < p.cost(l)) return;
   S.perks[id] = l + 1; snd('ms', 660, .25, 'triangle', .06, 440); say(p.n + ' is now rank ' + (l + 1) + '.');
 }
-function wipeField() { troops = []; rallyFor = null; clouds = []; tars = []; foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
+function wipeField() { troops = []; clouds = []; tars = []; foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
 /* Sign a new charter: the town you are in starts over and pays deeds; every other town and the deeds' bonus carry on. */
 function prestige() {
   const g = deedsOnOffer(); if (!g) return;
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
-    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {}, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
+    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
     town: S.town, towns: S.towns, routes: S.routes, inbox: S.inbox, railOpen: S.railOpen, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
   const map = TOWNS[S.town].maps[0];
   S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map);

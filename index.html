@@ -334,7 +334,15 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 @media (prefers-reduced-motion: reduce) { .toast, button, .prog i { transition: none; } .modal, .modal .box, .goal.done, #bWave.soon, nav .dot, #hVaultWrap.low b, .medal, .pausecover, .speedmenu { animation: none; } }
 .calm .toast, .calm button, .calm .prog i { transition: none; }
 .calm .modal, .calm .modal .box, .calm .goal.done, .calm #bWave.soon, .calm nav .dot, .calm #hVaultWrap.low b, .calm .medal, .calm .pausecover, .calm .speedmenu { animation: none; }
-:root { --top: 92px; --navh: 66px; --bot: 130px; --sheet-h: 55vh; }
+:root { --top: 92px; --navh: 66px; --bot: 130px; --sheet-h: 55vh; --spring: cubic-bezier(.2, 1.25, .35, 1); }
+/* modern motion, flat looks: springy entrances, a firm press on every button */
+#card:not([hidden]) { animation: cardin .32s var(--spring); }
+@keyframes cardin { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+.toast.show { transition: opacity .2s, transform .32s var(--spring); }
+.seg button.on { animation: segon .25s var(--spring); }
+@keyframes segon { from { transform: scale(.9); } }
+.row { transition: background-color .15s; } .row:active { background: rgba(255, 255, 255, .03); }
+.calm #card:not([hidden]), .calm .seg button.on { animation: none; } @media (prefers-reduced-motion: reduce) { #card:not([hidden]), .seg button.on { animation: none; } }
 /* the boss's health bar and the wave banners: part of the interface over the map */
 .bossbar { position: absolute; z-index: 24; left: 8px; right: 56px; top: 8px; padding: 6px 8px 8px; background: rgba(22, 26, 42, .9); border: 2px solid #ff4f8b; border-radius: 4px; box-shadow: 0 3px 0 rgba(0, 0, 0, .4); pointer-events: none; animation: rowin .3s cubic-bezier(.2, .8, .2, 1); }
 .bossbar .bn { display: flex; align-items: baseline; gap: 8px; font-weight: 700; font-size: .85rem; }
@@ -354,12 +362,14 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 .calm .bossbar, .calm .banner { animation: none; } @media (prefers-reduced-motion: reduce) { .bossbar, .banner { animation: none; } }
 @media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
   .mapbtn { left: auto; right: 10px; bottom: auto; }
-  #bMis { top: 10px; } #bPause { top: 54px; } #bFull { left: auto; top: 98px; } #bSet { left: auto; top: 142px; }
+  #bMis { top: 10px; } #bCap { top: 54px; } #bPause { top: 98px; } #bFull { left: auto; top: 142px; } #bSet { left: auto; top: 186px; }
 }
 /* the side buttons: one column of chunky pixel buttons; Missions shows how many are ready to claim */
 .mapbtn { border-radius: 6px; border-width: 2px; box-shadow: 0 3px 0 rgba(0, 0, 0, .45); }
 .mapbtn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .45); }
-#bMis.ready { border-color: var(--gold); color: var(--gold); }
+#bMis.ready, #bCap.ready { border-color: var(--gold); color: var(--gold); }
+#bCap { color: #9fd0ff; }
+.row.fund input[type=range] { width: 100%; accent-color: var(--copper); }
 .mcount { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px; background: var(--bad); color: #fff; font: 700 .72rem/15px var(--body); border: 2px solid #12152a; text-align: center; }
 .mcount.pop { animation: mpop .4s steps(5, end); }
 @keyframes mpop { 0% { transform: scale(0); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
@@ -382,6 +392,14 @@ button.afford { animation: afford .6s steps(3, end); }
 @media (prefers-reduced-motion: reduce) { nav.tabs button[aria-selected="true"] img.px, .panel.enter > *, button.afford, .row.msflash, .mcount.pop { animation: none; } }
 .sheethead { display: none; }
 .workbar { display: grid; gap: 6px; }
+/* the tutorial: a dimmed screen with a spotlight, and a speech bubble; taps go through to the game */
+.tut { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.tutspot { position: fixed; box-shadow: 0 0 0 200vmax rgba(10, 12, 22, .55); border: 3px solid var(--gold); border-radius: 10px; transition: left .25s var(--spring), top .25s var(--spring), width .25s, height .25s; animation: tutpulse 1.4s ease-in-out infinite; }
+@keyframes tutpulse { 50% { border-color: #fff0a0; } }
+.tutbub { position: fixed; left: 12px; right: 12px; max-width: 420px; margin: 0 auto; padding: 10px 12px; background: var(--panel); border: 2px solid var(--gold); border-radius: 12px; box-shadow: 0 4px 0 rgba(0, 0, 0, .4); pointer-events: auto; display: grid; gap: 4px; }
+.tutbub p { margin: 0; font-weight: 600; font-size: 1.05rem; } .tutbub small { color: var(--gold); text-transform: uppercase; letter-spacing: .08em; } .tutbub button { justify-self: end; }
+.tutbub.pop { animation: cardin .32s var(--spring); }
+.calm .tutspot, .calm .tutbub.pop { animation: none; } @media (prefers-reduced-motion: reduce) { .tutspot, .tutbub.pop { animation: none; } }
 .buildlist { display: grid; gap: 6px; }
 .buildopt.ghost { border-color: var(--copper); box-shadow: inset 0 0 0 1px var(--copper); }
 @media (max-width: 899px) and (orientation: portrait), (max-width: 599px) {
@@ -418,8 +436,8 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   .controls { position: fixed; z-index: 25; left: 8px; right: 8px; bottom: calc(var(--navh) + 8px); transition: opacity .18s, transform .18s; }
   nav.tabs { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; padding: 5px 6px max(6px, env(safe-area-inset-bottom, 0px)); background: rgba(16, 19, 32, .97); border-top: 2px solid var(--line); }
   nav.tabs button { min-height: 50px; }
-  main.sheet { position: fixed; z-index: 35; left: 0; right: 0; bottom: var(--navh); height: var(--sheet-h); padding: 0 8px 12px; background: var(--bg); border-top: 3px solid var(--copper); border-radius: 6px 6px 0 0; box-shadow: 0 -6px 0 rgba(0, 0, 0, .3); transform: translateY(calc(100% + var(--navh) + 12px)); transition: transform .24s cubic-bezier(.2, .8, .2, 1), visibility 0s .24s; visibility: hidden; }
-  body.sheet-open main.sheet { transform: none; visibility: visible; transition: transform .24s cubic-bezier(.2, .8, .2, 1); }
+  main.sheet { position: fixed; z-index: 35; left: 0; right: 0; bottom: var(--navh); height: var(--sheet-h); padding: 0 8px 12px; background: var(--bg); border-top: 3px solid var(--copper); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 0 rgba(0, 0, 0, .3); transform: translateY(calc(100% + var(--navh) + 12px)); transition: transform .24s cubic-bezier(.2, .8, .2, 1), visibility 0s .24s; visibility: hidden; }
+  body.sheet-open main.sheet { transform: none; visibility: visible; transition: transform .34s var(--spring); }
   body.sheet-drag main.sheet { transition: none; }
   body.sheet-open .controls { opacity: 0; transform: translateY(20px); pointer-events: none; }
   .sheethead { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; margin: 0 -8px 6px; padding: 14px 10px 8px; background: var(--bg); touch-action: none; cursor: grab; }
@@ -427,18 +445,18 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   .sheethead b { flex: 1; font-family: var(--display); font-weight: 400; font-size: 1.15rem; color: var(--copper); }
   #card:not([hidden]) { position: fixed; z-index: 36; left: 8px; right: 8px; margin: 0 auto; max-width: 460px; bottom: calc(var(--navh) + 62px); max-height: 52vh; max-height: 52dvh; overflow-y: auto; }
   .mapbtn { position: fixed; z-index: 26; left: auto; right: 8px; bottom: auto; }
-  #bMis { top: calc(var(--top) + 6px); }
-  #bPause { top: calc(var(--top) + 50px); }
-  #bFull { left: auto; top: calc(var(--top) + 94px); }
-  #bSet { left: auto; top: calc(var(--top) + 138px); }
+  #bMis { top: calc(var(--top) + 6px); } #bCap { top: calc(var(--top) + 50px); }
+  #bPause { top: calc(var(--top) + 94px); }
+  #bFull { left: auto; top: calc(var(--top) + 138px); }
+  #bSet { left: auto; top: calc(var(--top) + 182px); }
   #bFull .go, #bFull .back { display: none; } #bFull .hideui { display: block; }
   .toast { position: fixed; z-index: 45; top: calc(var(--top) + 6px); left: 54px; right: 54px; }
   .bossbar { position: fixed; top: calc(var(--top) + 6px); }
   .banner { position: fixed; top: 38%; }
   /* in 2D the board is centred and its buttons sit in a row beneath it */
-  .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 184px); }
+  .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 228px); }
   /* hide the interface: only the town (and the button that brings the interface back) */
-  body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bMis, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
+  body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bMis, body.mapfull #bCap, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
   body.mapfull #bFull { top: max(10px, env(safe-area-inset-top, 0px)); opacity: .6; }
 }
 </style>
@@ -496,6 +514,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/goals.js"></script>
 <script src="src/combat.js"></script>
 <script src="src/fx.js"></script>
+<script src="src/capital.js"></script>
 <script src="src/view.js"></script>
 <script src="src/ui/core.js"></script>
 <script src="src/ui/actions.js"></script>
@@ -504,6 +523,8 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/ui/sheet.js"></script>
 <script src="src/ui/panels.js"></script>
 <script src="src/ui/hud.js"></script>
+<script src="src/ui/capital.js"></script>
+<script src="src/ui/tutorial.js"></script>
 <script src="src/ui/settings.js"></script>
 <script src="src/app.js"></script>
 <script type="module" src="src/r3d/main.js"></script>

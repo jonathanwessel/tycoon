@@ -34,7 +34,7 @@ function useAbility(id) {
 /* Travel to another town of the empire: its map, buildings and waves; the town you leave keeps producing. */
 function goTown(id) {
   if (!switchTown(id)) return; wipeField(); FXS.convoys = []; save();
-  say('Welcome to ' + TOWN.n + '. ' + (Object.keys(S.towns).length ? 'Your other towns keep working while you are here.' : ''));
+  say('Welcome to ' + TOWN.n + '. ' + (Object.keys(S.towns).length ? 'Your other towns keep working while you are here.' : '') + (S.autoWave ? '' : ' Its waves are held until you tap Hold (or switch them on in the Capitol).'));
   goTab('defend');
 }
 function toggleAuto() {

@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 6, town: 'gulch', eg: 0, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 7, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1 }, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
@@ -36,7 +36,7 @@ let S = fresh();
    belongs to one town. The town you are playing keeps its fields at the top of S (so the rest of the code reads S as
    before); every other town is kept in S.towns[id] and swapped in while it works in the background or when you
    switch to it. */
-const TOWN_KEYS = ['map', 'life', 'res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'towers', 'wave', 'best', 'vaultHp', 'contracts', 'demand', 'sellAbove', 'mgr', 'cd', 'ot', 'fb', 'bestRate', 'goal', 'gq'];
+const TOWN_KEYS = ['map', 'life', 'res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'towers', 'wave', 'best', 'vaultHp', 'contracts', 'demand', 'sellAbove', 'mgr', 'cd', 'ot', 'fb', 'bestRate', 'goal', 'gq', 'autoWave', 'cpurse', 'abT'];
 const NESTED = ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'demand', 'mgr', 'cd'];
 const pickTown = o => { const t = {}; for (const k of TOWN_KEYS) if (o[k] !== undefined) t[k] = o[k]; return t; };
 /* A brand-new town on the given map, with that town's starting goods. */
@@ -44,19 +44,22 @@ function townFresh(map) {
   const t = pickTown(fresh()), T = TOWNS[townOfMap(map)]; t.map = map;
   t.res = {}; for (const k in ITEMS) t.res[k] = 0; Object.assign(t.res, T.start.res);
   t.seen = {}; for (const k of T.start.seen) t.seen[k] = 1;
+  t.autoWave = false; // a newly opened town holds its waves until you have defended it (switch it on there or in the Capitol)
   return t;
 }
 function fillTown(t) { const f = townFresh(t.map || 'gulch'); const out = Object.assign(f, t); for (const k of NESTED) out[k] = Object.assign(townFresh(out.map)[k], t[k]); return out; }
 /* Run fn with town id swapped in as the active one (its fields at the top of S, its buildings in BUILD), then swap back. */
 function withTown(id, fn) {
   if (id === S.town) return fn();
-  const mine = pickTown(S); Object.assign(S, S.towns[id]); useTown(id);
-  try { return fn(); } finally { S.towns[id] = pickTown(S); Object.assign(S, mine); useTown(S.town); }
+  // every per-town field is swapped, including ones a town has not set yet (they must not leak from the other town)
+  const mine = pickTown(S), clear = () => { for (const k of TOWN_KEYS) delete S[k]; };
+  clear(); Object.assign(S, S.towns[id]); useTown(id);
+  try { return fn(); } finally { S.towns[id] = pickTown(S); clear(); Object.assign(S, mine); useTown(S.town); }
 }
 /* Make another town the one you play. Its map is drawn and its waves start; the town you leave keeps producing. */
 function switchTown(id) {
   if (id === S.town || !S.towns[id]) return false;
-  S.towns[S.town] = pickTown(S); Object.assign(S, fillTown(S.towns[id])); delete S.towns[id]; S.town = id;
+  S.towns[S.town] = pickTown(S); for (const k of TOWN_KEYS) delete S[k]; Object.assign(S, fillTown(S.towns[id])); delete S.towns[id]; S.town = id;
   useTown(id); setMap(S.map); S.towers = S.towers.filter(t => TOWERS[t.type] && !onRoad(t.c, t.r));
   return true;
 }
@@ -83,7 +86,7 @@ const routeRate = r => { const cr = carrier(); if (r.per !== 'auto') return Math
 let LOCO_LV = 0;
 const locoLevel = () => LOCO_LV;
 const readLoco = () => { LOCO_LV = (S.town === 'ridge' ? S.shops.locow : S.towns.ridge && S.towns.ridge.shops && S.towns.ridge.shops.locow) || 0; };
-const carrier = () => S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1))), fee: .02, spr: 'loco' } : { n: 'Wagon train', max: 120, fee: .05, spr: 'wagon' };
+const carrier = () => { const tl = typeof capLv === 'function' ? capLv('transport') : 0, k = 1 + .25 * tl, f = Math.pow(.9, tl); return S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1)) * k), fee: .02 * f, spr: 'loco' } : { n: 'Wagon train', max: Math.round(120 * k), fee: .05 * f, spr: 'wagon' }; };
 /* Collect deliveries for this town, and say how much of each good its routes will take this step (workshops leave it). */
 function routeHold(dt) {
   const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
@@ -107,7 +110,11 @@ function econTowns(dt) {
   readLoco();
   // what each town makes, so shipping routes (and foremen valuing goods that arrive by route) know what can be sent
   for (const id of townIds()) if (townOpen(id)) { const c = id === S.town ? chainFlow() : withTown(id, () => chainFlow()); ROUTE_OUT[id] = c.made; ROUTE_NEED[id] = c.need; }
-  econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => econ(dt)); }
+  econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => { econ(dt); autoBattle(dt); });
+  // the Central Bank pays interest on the empire's coins (its income is sampled every 10 seconds)
+  CAPI.t -= dt; if (CAPI.t <= 0) { CAPI.t = 10; CAPI.inc = townIds().filter(townOpen).reduce((a, id) => a + (id === S.town ? steadyIncome() : withTown(id, () => steadyIncome())), 0); }
+  bankWork(dt, CAPI.inc || 0); }
+const CAPI = { t: 0, inc: 0 };
 const KEY = 'copper-gulch-save-v1';
 function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
@@ -121,16 +128,18 @@ function load() {
 /* A fresh start. When a release changes progress too much to carry saves over fairly, raise WIPE_V to that release's
    save version: older saves then start a new empire. Kept: deeds and perks plus WIPE_GIFT bonus deeds as a head start,
    badges, lifetime stats, charters signed, settings and sound. The old save is copied to a backup key first. */
-const WIPE_V = 0, WIPE_GIFT = 10;
+const WIPE_V = 7, WIPE_GIFT = 10; // v7: the Capital and the reworked economy and Barracks
 function freshStart(o) {
   try { localStorage.setItem(KEY + '-before-v' + (o.v || 0), JSON.stringify(o)); } catch (e) {}
   const n = fresh(), gift = WIPE_GIFT;
   n.deeds = (o.deeds || 0) + gift; n.perks = o.perks || {}; n.badges = o.badges || {}; n.charters = o.charters || 0; n.goalsDone = o.goalsDone || 0;
-  n.stats = Object.assign(n.stats, o.stats || {}); n.opt = Object.assign(n.opt, o.opt || {}); n.sound = o.sound !== undefined ? o.sound : n.sound; if (o.tut) n.tut = o.tut;
+  n.stats = Object.assign(n.stats, o.stats || {}); n.opt = Object.assign(n.opt, o.opt || {}); n.sound = o.sound !== undefined ? o.sound : n.sound; n.tut = o.tut || 'done'; // returning players skip the tutorial (Settings can replay it)
+  delete n.opt.gx.view; delete n.opt.gx.light;
   n.movedNote = 'Copper Gulch was rebuilt, so your empire starts fresh. You keep your badges, perks and ' + (o.deeds || 0) + ' deeds, plus ' + gift + ' more as a thank-you: every town works faster for them.';
   return n;
 }
-function adopt(o, wipeV = WIPE_V) {
+let WIPE_OFF = false; // tests of old migrations turn the fresh start off
+function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (!o || typeof o !== 'object' || !o.res) return false;
   if (wipeV && (o.v || 0) < wipeV) o = freshStart(o);
   if (!o.v) { (o.towers || []).forEach(t => { t.r += 2; }); o.v = 2; } // v1 maps had a two-row yard
@@ -144,6 +153,7 @@ function adopt(o, wipeV = WIPE_V) {
     if (o.town && o.town !== 'gulch' && o.towns && o.towns.gulch) { o.towns.gulch.goal = o.goal || 0; o.towns.gulch.gq = null; o.goal = 0; o.gq = null; }
     o.eg = 0; o.v = 6;
   }
+  if (o.v < 7) o.v = 7; // v7: the Capital (its defaults come from fresh()); saves before v7 normally start fresh (WIPE_V)
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
@@ -172,7 +182,7 @@ const perk = id => S.perks[id] || 0;
 const deedMult = () => 1 + .2 * S.deeds;
 const prodMult = () => (1 + .25 * lv('steam')) * deedMult();
 const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * (wx() === 'heat' ? 1.25 : 1);
-const sellMult = () => 1 + .1 * lv('haggle');
+const sellMult = () => (1 + .1 * lv('haggle')) * (1 + .05 * (typeof capLv === 'function' ? capLv('market') : 0));
 const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult();
 const tapYield = () => Math.pow(2, lv('tools'));
 const vaultMax = () => 20 + 5 * lv('vault');

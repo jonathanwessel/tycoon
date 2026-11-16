@@ -13,13 +13,16 @@ const shots = process.argv[2];
   let failed = false;
   for (const [name, vw, vh] of [['phone', 400, 900], ['land', 860, 400], ['desk', 1200, 800]]) {
     const p = await b.newPage({ viewport: { width: vw, height: vh } });
+    { const ev0 = p.evaluate.bind(p); let n = 0; p.evaluate = (...a) => { n++; if (process.env.TRACE) console.log(name, 'step', n, String(a[0]).replace(/s+/g, ' ').slice(0, 90)); return ev0(...a); }; } // TRACE=1 names each step
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
     p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
     await p.goto(URL);
     // the 3D view starts once its module has loaded
-    const on3d = await p.evaluate(async () => { for (let i = 0; i < 60 && !R3.on; i++) await new Promise(r => setTimeout(r, 100)); PERF.noAuto = true; return R3.on; });
+    const on3d = await p.evaluate(async () => { for (let i = 0; i < 60 && !R3.on; i++) await new Promise(r => setTimeout(r, 100)); PERF.noAuto = true; await new Promise(r => setTimeout(r, 1000));
+      const offered = !document.getElementById('modal').hidden && /tutorial/i.test(document.getElementById('modal').textContent); if (offered) { document.getElementById('modal').hidden = true; S.tut = 'done'; } window.__offered = offered; return R3.on; });
+    if (!(await p.evaluate(() => window.__offered))) errs.push('a new game did not offer the tutorial');
     if (!on3d) { console.log(name, 'FAIL: the 3D view did not start'); failed = true; await p.close(); continue; }
     // the map layer and the 3D canvas match the screen
     if (!(await p.evaluate(() => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && Math.abs(cv.height - Math.round(cv.clientHeight * renderScale())) <= 2 && R3.canvas.width === cv.width && cell > 0))) errs.push('map render size does not match the map on screen');
@@ -151,6 +154,18 @@ const shots = process.argv[2];
       return { kept, sold, bar, gone };
     });
     for (const k in sellx) if (!sellx[k]) errs.push((k === 'kept' ? 'sell needs two taps' : k === 'sold' ? 'second tap did not sell' : 'boss bar: ' + k) + ' failed');
+    // the tutorial: every step can be done and it finishes with its reward; the Capital panel opens once founded
+    const tut = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)), at = []; foes = []; W.queue = []; W.active = false; S.towers = []; sel = null; S.wave = 1; S.ext.camp = 0; S.stats.taps = 0; R3.panXT = R3.panZT = 0; R3.yawT = 0; R3.distT = 24; S.mgr = {}; if (SHEET.open) closeSheet(); tab = 'defend'; // no foremen building things on their own
+      tutStart(); await wait(100); const c0 = S.stats.coins; // lifetime earnings: the reward shows there whatever else is spent
+      const acts = [() => { S.stats.taps = 5; }, () => { S.ext.camp = 1; }, () => { sel = { plot: [PLOTS[0].x, PLOTS[0].y] }; }, () => { buildTower('crossbow', PLOTS[0].x, PLOTS[0].y); }, () => { startWave(); },
+        () => { S.towers[0].lvl = 1; }, () => { goTab('works'); }, () => { S.ext.camp = 2; }, () => { goTab('missions'); }, () => { R3.panXT = 1; }];
+      for (const a of acts) { at.push(S.tut); a(); await wait(250); }
+      const r = { done: S.tut === 'done', steps: at.join(','), paid: S.stats.coins >= c0 + TUT_REWARD - 1e-6, hidden: document.querySelector('.tut').hidden };
+      foes = []; W.queue = []; W.active = false; if (SHEET.open) closeSheet();
+      return r;
+    });
+    if (!tut.done || !tut.paid || !tut.hidden || !tut.steps.split(',').every((v, i, a) => !i || +v >= +a[i - 1])) errs.push('tutorial check failed: ' + JSON.stringify(tut));
     // phone layout: tabs open a sheet over the town; the same tab, a map tap, Back and the close button shut it; a card replaces it
     const lay = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms)), open = () => document.body.classList.contains('sheet-open');
@@ -158,7 +173,7 @@ const shots = process.argv[2];
       const r = {}; goTab('works'); await wait(350); r.opens = open() && $('sheet').getBoundingClientRect().top < innerHeight - 200;
       goTab('works'); await wait(100); r.sameTab = !open();
       goTab('market'); await wait(100); cv.dispatchEvent(new MouseEvent('click', { clientX: innerWidth / 2, clientY: innerHeight / 3, bubbles: true })); await wait(100); r.mapTap = !open() && !sel;
-      goTab('empire'); await wait(100); history.back(); await wait(300); r.back = !open();
+      for (let i = 0; i < 20 && SHEET.backing; i++) await wait(50); goTab('empire'); await wait(150); history.back(); await wait(300); r.back = !open();
       goTab('research'); await wait(100); $('sheetX').click(); await wait(100); r.closeBtn = !open();
       goTab('works'); await wait(100); sel = { vault: 1 }; refresh(); await wait(100); r.card = !open() && !$('card').hidden; sel = null; refresh();
       $('bMis').click(); await wait(200); r.missions = open() && $('sheetTitle').textContent === 'Missions' && $('panel').querySelectorAll('.goal').length >= 1; closeSheet(); await wait(100);
@@ -202,6 +217,14 @@ const shots = process.argv[2];
       return { opened, cards, sugg, routes: S.routes.length, inRidge, trainBar, ridgeRows, fallsOpen, river, powerPanel, home: TOWN_ID === 'gulch' };
     });
     if (!emp.opened || emp.cards < 3 || !emp.inRidge || !emp.trainBar || emp.ridgeRows !== 7 || !emp.fallsOpen || !emp.river || !emp.powerPanel || !emp.home || emp.routes < 1) errs.push('empire check failed: ' + JSON.stringify(emp));
+    const cap = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)); S.coins = 1e12; S.best = Math.max(S.best, 40);
+      if (!townOpen('ridge')) unlockTown('ridge'); if (S.towns.ridge) S.towns.ridge.best = Math.max(30, S.towns.ridge.best); if (!townOpen('falls')) unlockTown('falls'); if (S.towns.falls) S.towns.falls.best = Math.max(20, S.towns.falls.best); S.coins = 1e12;
+      const r = { capital: openCapital() }; refresh(); goTab('capital'); await wait(200);
+      r.panel = document.getElementById('panel').textContent.includes('Capitol'); r.button = !document.getElementById('bCap').hidden; r.inst = buyInst('market');
+      if (SHEET.open) closeSheet(); return r;
+    });
+    for (const k in cap) if (!cap[k]) errs.push('Capital check failed: ' + k);
     await p.click('#tab-works');
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight + 1);
     const navVisible = await p.evaluate(() => { const r = document.getElementById('tabs').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.height > 30; });
