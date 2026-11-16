@@ -99,7 +99,13 @@ function steadyIncome(extra, mode) {
    - the research that speeds the whole town up (Steam Power, Assembly Lines, Haggling), if you let them.
    They save for up to half an hour of income; dearer things are left to you (or to a new charter). */
 const FB_RESEARCH = ['steam', 'lines', 'haggle'];
+/* The Foreman Agency perk: hire a foreman for a built building as soon as the coins are there twice over (one a step). */
+function agencyHire() {
+  if (!perk('agency')) return;
+  for (const b of BUILD) { const id = b.def.id; if (S.mgr[id] || !blv(id)) continue; const c = mgrCost(id); if (S.coins >= c * 2) { S.coins -= c; S.mgr[id] = 1; return; } }
+}
 function foremenWork() {
+  agencyHire();
   // each town's purse fills from what that town earns (S.life is per town); coins themselves are shared by the empire
   const fb = S.fb || (S.fb = { share: .5, keep: 0, purse: 0, last: S.life || 0, study: 1 });
   if (fb.study === undefined) fb.study = 1;

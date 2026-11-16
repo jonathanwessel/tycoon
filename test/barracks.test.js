@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { load } = require('../scripts/sim');
 
-// Copper Gulch: the road runs along row 7 from the west; (3, 8) is a plot right beside it, (11, 10) is not
+// Copper Gulch: the road runs along row 7 from the west; (3, 8) is a plot right beside it (every Gulch plot touches the road)
 const setup = g => g.run(`S = fresh(); setMap('gulch'); foes = []; troops = []; shots = []; S.coins = 1e15; S.best = 40; S.wave = 30; W.active = true; W.queue = []; for (const k in S.res) S.res[k] = 1e6;
   buildTower('barracks', 3, 8)`);
 const raider = (g, type, d) => g.run(`spawn('${type}'); (() => { const f = foes[foes.length - 1]; f.d = ${d}; const [x, y] = posAt(f.d, f.p); f.x = x; f.y = y; })()`);
@@ -13,7 +13,7 @@ test('the Barracks is late game (wave 25) and only stands right beside the road'
   g.run(`S = fresh(); setMap('gulch'); S.coins = 1e15; S.best = 20; for (const k in S.res) S.res[k] = 1e6;`);
   assert.strictEqual(g.run(`buildTower('barracks', 3, 8)`), false, 'locked before wave 25');
   g.run('S.best = 30;');
-  assert.strictEqual(g.run(`buildTower('barracks', 11, 10)`), false, 'not beside the road');
+  assert.strictEqual(g.run(`(() => { useTown('ridge'); setMap('ridge'); for (const k in S.res) S.res[k] = 1e6; const ok = buildTower('barracks', 0, 10); useTown('gulch'); setMap('gulch'); return ok; })()`), false, 'touching no road (Iron Ridge, 0, 10)');
   assert.strictEqual(g.run(`buildTower('barracks', 3, 8)`), true, 'beside the road');
   assert.ok(g.run('TOWERS.barracks.coins') >= 50000, 'priced for late game');
 });
@@ -79,4 +79,11 @@ test('auto-sell keeps enough of a good to build towers with it', () => {
   const g = load();
   g.run(`S = fresh(); setMap('gulch'); useTown('ridge'); S.research.ledger = 1; S.auto.stone = 1; S.res.stone = 500; econStep(1);`);
   assert.ok(g.run('S.res.stone') >= g.run('towerGoods("crossbow").stone * 2'), 'kept ' + g.run('S.res.stone') + ' stone for crossbows');
+});
+
+test('a Barracks may touch the road at a corner', () => {
+  const g = load(); g.run(`S = fresh(); setMap('gulch'); S.coins = 1e15; S.best = 40; for (const k in S.res) S.res[k] = 1e6;`);
+  // (11, 8): no road beside it, but the road turns at (10, 7) and (10, 9), diagonal to it
+  assert.strictEqual(g.run('onRoad(11, 8)'), false);
+  assert.strictEqual(g.run(`buildTower('barracks', 11, 8)`), true);
 });

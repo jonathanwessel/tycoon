@@ -40,7 +40,7 @@ function card() {
           for (let i = 0; i < 12; i++) parts.push({ x: c + .5 + (Math.random() - .5) * .8, y: r + .8, vx: (Math.random() - .5) * 2.5, vy: -1 - Math.random() * 2, g: 6, t: .5, c: '#e9d2a8', s: .08 });
         } }, ico(id), h('span', { cls: 'grow' }, h('span', { cls: 'name' }, d.n), h('small', null, d.d)), costEl(() => buildCost(id), towerGoods(id), cardUps));
         for (const ev of ['pointerenter', 'focus', 'pointerdown']) b.addEventListener(ev, () => { GHOST.type = id; });
-        list.append(b); cardUps.push(() => b.classList.toggle('ghost', GHOST.type === id)); cardUps.push(() => { const locked = d.from && S.best < d.from, offRoad = d.troops && !besideRoad(c, r); b.disabled = locked || offRoad || S.coins < buildCost(id) || !hasGoods(towerGoods(id)); b.title = locked ? 'Opens once you reach wave ' + d.from : ''; b.querySelector('small').textContent = locked ? 'Opens once you reach wave ' + d.from + '. ' + d.d : offRoad ? 'Must stand right beside the road. ' + d.d : d.d; });
+        list.append(b); cardUps.push(() => b.classList.toggle('ghost', GHOST.type === id)); cardUps.push(() => { const locked = d.from && S.best < d.from, offRoad = d.troops && !besideRoad(c, r); b.disabled = locked || offRoad || S.coins < buildCost(id) || !hasGoods(towerGoods(id)); b.title = locked ? 'Opens once you reach wave ' + d.from : ''; b.querySelector('small').textContent = locked ? 'Opens once you reach wave ' + d.from + '. ' + d.d : offRoad ? 'Must touch the road (beside it or at a corner). ' + d.d : d.d; });
       }
     } else if (sel.t) {
       const t = sel.t, d = TOWERS[t.type], back = Math.ceil(d.coins * .5), stats = h('small');

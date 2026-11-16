@@ -1,8 +1,61 @@
 # Copper Gulch: plan
 
-Written for whoever executes next. Read "Where things stand" first, then do the phases in order. Each phase is shippable on its own; stop after any of them.
+## Roadmap (current; the scheduled task works through this list top to bottom)
 
-## Copper Gulch 2.0 roadmap (current direction)
+How to use it: take the first unchecked item, build it as one release, run the release checklist below, publish, tick it here in the same commit. One item per run. Notes from each run go under the item ("Notes:"). Never skip ahead, never redo a ticked item unless a check below fails.
+
+### Shipped
+- [x] Economy that scales itself: foremen value routes, milestones and research; workshops share inputs; Auto routes; trains grow with the Locomotive Works (2026.11.15-18).
+- [x] Full-screen town with slide-up menu sheets; side buttons (Missions, Capital, Pause, Hide interface, Settings) (-19, -21).
+- [x] Poison (Snake Oil Still), Frostbite, Tesla research (Conductive Fog, Superconducting Ice), Tar Pit, raiders +15% health after wave 12 (-20).
+- [x] Per-town missions and an empire chain; livelier interface; 3D app icon (-21).
+- [x] Barracks and Drone Helipad (-22, -23).
+- [x] Release A: drag to pan, two-tap selling, boss bar, clear plot selection with a ghost tower, tidy Works tab (-24).
+- [x] Release B: 3D only (src/view.js), src/ui/ split, dead code removed, the controlled fresh start mechanism (-25).
+- [x] Release C+D (one big update with a fresh start to save v7, 10 bonus deeds): tutorial; the Capital with the Capitol budget (foremen, War Office auto tower upgrades, Academy research), per-town auto waves fought in the background, institutions; Barracks beside the road with soldiers marching back up it, late-game price; auto-sell keeps enough for towers; brighter look (-26).
+- [x] Barracks may touch the road at a corner; Foreman Agency perk (8 deeds: hires foremen automatically in every town) (-27).
+
+### Next
+- [ ] **E. Tech trees with Influence.** A new empire currency, Influence: earned slowly from empire income (about the square root of the empire's coins per second, per minute) and from every town charter signed. Two trees in the Capital, drawn as a scrollable node tree in a sheet (new `src/ui/trees.js`, nodes with pixel icons from `src/art.js`; locked nodes show what they need).
+  - Economy tree (Department of Education): Industry (gathering, workshop speed), Commerce (sale prices, contracts), Logistics (route capacity and fees, porter speed), Administration (foremen efficiency, hire costs), Academy automation (how fast and how wisely the Capitol's Academy researches).
+  - Defence tree (War Office): Arms (tower damage), Engineering (War Office auto-upgrade speed, from one upgrade per town every 5 minutes towards one a minute, and cheaper tower upgrades), Garrison (Barracks soldiers and drones), Fortification (vault strength and repairs).
+  - Nodes multiply within their branch, survive town charters, and reset only at the Constitutional Convention (G). Save: `S.capital.inf`, `S.capital.tree`. Tests: Influence accrual, node effects in background towns, charter keeps nodes.
+- [ ] **F. Stock Exchange** (a Capital institution): shares in each town (Copper Gulch Mining Co., Iron Ridge Rail, Silver Falls Electric, later Thunder Mesa Oil). Price follows the town's income trend with noise and news events (a boss beaten, a x2 milestone, a fallen vault); buy and sell with coins; dividends from town income; holding a majority boosts that town's foremen. A price chart per share. Coins only, never real money. Tests: price follows income, dividends, majority bonus, no exploit loop (buy-sell spread).
+- [ ] **G. Policies and the Constitutional Convention (global prestige).**
+  - Policies in the Capitol, in pairs, locked until the next convention: Free Market (prices float wider, bank interest up) vs Planned Economy (steady prices, foremen +50%, calmer stock prices); Militia (cheaper, more soldiers) vs Standing Army (stronger towers, upkeep); Open Borders (cheap, fast routes) vs Protectionism (home production up, routes dearer).
+  - The Convention resets every town, the Capital, Influence, the trees and the Stock Exchange. It keeps badges, lifetime stats, deed perks (including the Foreman Agency, which makes a second run much faster) and pays **Legacy** from lifetime empire income and the deepest wave: x1.25 income and damage per Legacy, plus Legacy-only perks (towns open from the start, the Capitol built at level 1, a starting Influence pot). Deeds themselves convert into Legacy.
+  - It must be clearly worth it: extend `scripts/idle.js` to run two lives and prove the second reaches the first life's peak income in under 40% of the time.
+  - The owner pre-approved a forced fresh start here only if the save can't be migrated (WIPE_V, 10 bonus deeds); prefer a migration.
+- [ ] **H. Thunder Mesa, the fourth town** (oil and flight): oil wells, rubber, aluminium; refinery, tire works, aluminium smelter, engine plant, airship hangar; an airship boss on its own air path (drones and Tesla can hit it, troops can't); unlocked from the Capital (Department of Transport level 5); its own missions (`GOALS_BY_TOWN`), its own share, 3D models with the modelling kit (`src/r3d/kit.js`), its own map palette and backdrop.
+
+### Then, polish (one per run, in this order)
+- [ ] **I1. A walkable 3D Capital.** Today the Capital is a panel. Make it a place: visiting it shows a capital city scene (no road, no waves) with the Capitol dome and each institution as a 3D building on plots; tapping one opens its card. Reuse `src/r3d/buildings.js` patterns and the town-switch machinery, or a separate scene in `src/r3d/main.js`.
+- [ ] **I2. Juice:** build animation (scaffold, then pop with dust), upgrade sparkle, a cinematic boss entrance (camera eases toward the boss, banner), coin bursts flying to the counter.
+- [ ] **I3. Title screen and music:** a slow flyover of the town behind the title and Continue/New buttons; procedural Western music (WebAudio, no files) with a volume setting.
+- [ ] **I4. Save slots and export/import polish;** gamepad support (move a cursor over cells, buttons for the main actions).
+- [ ] **I5. Market depth:** booms and busts per good, orders with deadlines and reputation, per-good auto-sell modes.
+- [ ] **I6. Interface icons rendered from the 3D models** (a render-to-texture pass) so menus match the world.
+
+## Rules from the owner
+- Free forever: no ads, no purchases, no tracking, no outside requests at runtime, no new downloads or CDNs.
+- No personal details (names, emails, LAN addresses, family stories) in code, commits or docs: the repo is public.
+- Look: crisp flat pixel UI, no glossy gradients or glass; modern motion is welcome. Phone first (sheet slides up, side buttons top right), then landscape and desktop.
+- Keep saves: bump `v` in `fresh()` and migrate in `adopt()`; a forced fresh start only as agreed above.
+- Publish working releases often; the owner plays the installed app between sessions.
+
+## Release checklist (every release; stop and fix on any failure)
+1. `node --test test/*.test.js` (tests for every new mechanic, using `scripts/sim.js`).
+2. `node scripts/idle.js 12` prints PASS; `node scripts/balance.js 120 1`: wave 10 at about 6-7 minutes, first deed about 30, best wave about 50.
+3. `node scripts/smoke.js` ends with phone, land and desk ` ok` (extend it for new screens; `TRACE=1` names each step).
+4. Screenshots: `node scripts/shots3d.js <dir> gulch|ridge|falls`; look at them.
+5. `node scripts/bump-version.js "note, no apostrophes"`, then `node scripts/update-test.js` (must print ok), commit, push `main`, wait for the Pages build, confirm the live `version.json`.
+
+## How the code is laid out
+Plain classic scripts sharing one global scope, loaded in order by `index.html`: `src/defs.js` (goods, buildings, towers, foes, towns), `map.js`, `art.js` (pixel icons), `state.js` (save, towns, routes, migrations), `economy.js` (production, foremen, valuation), `goals.js` (missions, badges), `combat.js` (waves, towers, troops, drone), `fx.js`, `capital.js` (Capitol budget, background waves, institutions), `view.js` (layout, graphics settings, lights, camera, taps, overlay), `src/ui/*.js` (interface), `app.js` (loop, install, updates). The 3D town: ES modules in `src/r3d/` on three.js (`vendor/three`). Per-town state is `TOWN_KEYS`; `withTown(id, fn)` swaps a background town in (never nest it).
+
+## History (earlier plans, all done or folded into the roadmap above)
+
+### Copper Gulch 2.0 roadmap (current direction)
 
 The user's goals: a game good enough that people would pay for it (it stays free: no ads, no purchases, no outside requests), a **voxel 3D** engine, **several towns that all run at once** with goods **shipped between them**, coins per second for each town, and real depth. Ship every stage as its own published update, and migrate saves.
 
@@ -33,7 +86,7 @@ Two lessons for later stages:
 
 Economy code: `steadyIncome(extra, mode)` (coins per second with workshops limited by their inputs, upstream first), `foremenWork()` (purse = share of income; save up for the best payback; chain upgrades value a starved workshop together with its bottleneck supplier), `liveIncome()` / `sampleIncome()` (the last minute's real income).
 
-## Where things stand
+### Where things stand
 
 - The whole game is `index.html` (one file, no build, no dependencies). All work lives on `main`; there are no other branches.
 - Published with GitHub Pages from `main` (root folder) at https://jonathanwessel.github.io/tycoon/. Pushing to `main` publishes; Pages rebuilds in about a minute.
@@ -58,7 +111,7 @@ Economy code: `steadyIncome(extra, mode)` (coins per second with workshops limit
 - Not verified: sound by ear, real-device touch feel, the speed button's hold menu on a real phone.
 - Checks: `node scripts/smoke.js` and `node scripts/balance.js` use Playwright if installed, otherwise the installed Edge or Chrome via `scripts/cdp.js` (Node 22+). Run the smoke test after every change.
 
-## Phase 5: Look after the vault
+### Phase 5: Look after the vault
 
 The vault is the player's health bar, and right now the only fast way to heal it is research. Make it something you can see, tap and manage.
 
@@ -74,13 +127,13 @@ The vault is the player's health bar, and right now the only fast way to heal it
 
 Done when: a hurt vault can be repaired between waves, repairs are refused during a wave, the HUD warns at low strength, and the balance bot (below) shows breach counts no worse than before up to wave 30.
 
-## Phase 6: Safety net that runs here
+### Phase 6: Safety net that runs here
 
 1. **Smoke test without Playwright.** Keep `scripts/smoke.js` as it is, and add `scripts/cdp.js`: a tiny DevTools-protocol driver (Node 18+ has `fetch` and `WebSocket` built in) that launches the installed Edge or Chrome headless on a free port with its own temporary profile, and closes it when done. Port the smoke checks onto it as `scripts/smoke-cdp.js`. Same checks: phone and desktop widths, every tower and branch, a boss wave, tap-gather, every tab, a building card, pause and resume, Hold waves, the vault card, console errors, sideways scroll.
 2. **Balance run.** Run `scripts/balance.js` through the same driver to wave 50 and record time to waves 10, 20, 30, 50, the first deed, and breach count. Tune only the definition tables if anything misses these targets: first tower within 1 minute; waves 1 to 3 cannot breach a player with one crossbow; wave 10 boss at 10 to 15 minutes; no stretch over about 3 minutes with nothing affordable; every tower type is the best buy at some point.
 3. **README.md** for the public repo: one line on what the game is, the play link, two screenshots, "No ads, no purchases, no tracking", and how to run the checks. No personal details, no machine-specific setup.
 
-## Phase 7: Make the war wagon an event
+### Phase 7: Make the war wagon an event
 
 Every tenth wave is the boss, and it should feel like one.
 
@@ -91,7 +144,7 @@ Every tenth wave is the boss, and it should feel like one.
 
 Done when: a boss wave is clearly different from a normal wave on a phone screen, and the smoke test still passes through a boss wave.
 
-## Phase 8: Weather
+### Phase 8: Weather
 
 Short events that change tactics and are drawn on the map. One at a time, announced by the "Next" preview so the player can prepare, never on boss waves.
 
@@ -102,18 +155,18 @@ Short events that change tactics and are drawn on the map. One at a time, announ
 
 Implementation: a `WEATHER` table, the chosen weather on `W` (not saved mid-wave), hooks in `towerStats` and the raider speed line in `combat`, drawing in `draw` after the night overlay. Respect `REDUCED`: no moving streaks, just a tint and an icon.
 
-## Phase 9: Longer-term goals
+### Phase 9: Longer-term goals
 
 1. **Badges.** A Badges section in the Charter tab: kill counts, waves reached, contracts filled, goods made, bosses beaten, a whole wave without a leak, a charter on each map. Each badge has a pixel icon, and earning one shows a banner. `S.stats` already tracks kills, contracts, taps and sales; add bosses, flawless waves and goods made.
 2. **Stats page.** Lifetime numbers in the same tab: coins earned, raiders defeated, best wave per map, time played.
 3. **Third map, unlocked by a charter on Forked Canyon.** Suggested: "Trestle Bridge", where the road crosses a ravine on a bridge. Raiders on the bridge cannot be blocked but take +25% damage. Needs its own `MAPS` entry, cactus list and `bake` details (ravine, bridge planks).
 
-## Phase 10: Settings and comfort
+### Phase 10: Settings and comfort
 
 1. **Settings section** (bottom of the Charter tab, moved out of Defend): sound on/off and volume, reduce motion (overrides the system setting), show damage numbers on/off, auto-pause when the page is hidden.
 2. **Speed options:** keep 1×/2×/3× on the button and add a long-press menu.
 
-## Working rules
+### Working rules
 
 - Keep it one self-contained file with no outside requests.
 - Keep confirmations in the page rather than `alert`/`confirm`/`prompt`.
@@ -122,7 +175,7 @@ Implementation: a `WEATHER` table, the chosen weather on `W` (not saved mid-wave
 - Add a `v` bump and an `adopt()` migration before any save-schema change.
 - After each change: run the smoke test, look at one phone screenshot mid-wave, commit, push to `main`. No pull request unless asked.
 
-## Graphics 2.0: stylized low-poly 3D (in progress)
+### Graphics 2.0: stylized low-poly 3D (in progress)
 
 The 3D view is rebuilt on three.js (vendored in vendor/three, MIT licence) with every model built in code (src/r3d/): buildings for all three towns with moving parts and milestone growth, jointed raiders, towers that aim and recoil, wagons, boats and trains, a carved terrain with mesas, roads with ruts, flowing water, soft sun and moon shadows, lamps and fires, bloom and the colour looks.
 
@@ -131,12 +184,12 @@ The 3D view is rebuilt on three.js (vendored in vendor/three, MIT licence) with 
 - [x] G3 people and vehicles (first pass)
 - [x] G4 towers and combat effects (first pass)
 - [x] G5 Iron Ridge and Silver Falls buildings (first pass)
-- [ ] Polish pass from phone feedback: lighting, scale, camera framing
-- [ ] G6 build animations, icons from the models, 3D as the default after a phone check
+- [-] Polish pass from phone feedback: lighting, scale, camera framing
+- [-] G6 build animations, icons from the models, 3D as the default after a phone check
 
 Preview locally with `node scripts/serve.js` (modules do not load from file://). `node scripts/shots3d.js <dir> [town]` takes phone-size screenshots and prints frame timing.
 
-## Economy that scales on its own (foremen + auto-sell)
+### Economy that scales on its own (foremen + auto-sell)
 
 `node scripts/idle.js [hours]` runs all three towns with every foreman on, auto-sell on and the suggested routes, untouched, and checks that income rises every hour, no workshop stands idle and foremen keep buying.
 
@@ -160,7 +213,7 @@ What changed:
 
 Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29-34 min, best wave about 50).
 
-## Poison, tar and Tesla combos
+### Poison, tar and Tesla combos
 
 - [x] Snake Oil Still (700 coins): lobs flasks that leave poison clouds; poison gets past shields; healers cure it. Paths: Plague Cloud (clouds twice as wide and long) or Spreading Fever (poison jumps to neighbours when a raider dies).
 - [x] Frost Lens third path, Frostbite: chilled raiders take damage over time.
@@ -168,24 +221,24 @@ Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29
 - [x] Tar Pit power (from wave 8, 50 s cooldown): tar ahead of the thickest group slows raiders to 40% for 12 s; an explosion sets it alight.
 - [x] Raiders +1% health per wave from wave 13, capped at +15%. The balance bot still reaches wave 50, with the first deed at about 32 minutes.
 
-## Next roadmap (Barracks to Thunder Mesa)
+### Next roadmap (Barracks to Thunder Mesa)
 
 1. [x] Missions per town and an empire chain, with a Missions side button; a livelier interface; a 3D app icon.
 2. [x] Barracks (from wave 15): soldiers hold a rally point on the road and fight raiders. Three tracks: Drill (spawn time), Recruits (up to 6 soldiers), Arms (strength).
 3. [x] Drone Helipad: a Barracks transformation; its attack drone flies within the tower's range. Tracks: battery, range, attack.
-4. [ ] The Capital (after Silver Falls): Foremen Guild, Market Board, Department of Transport, Central Bank, Department of Education, War Office.
-5. [ ] Economy and Defence tech trees, bought with Influence; slow tower auto-upgrade in the Defence tree.
-6. [ ] Stock Exchange: shares in your towns.
-7. [ ] Policies and the Constitutional Convention (global prestige, paying Legacy).
-8. [ ] Thunder Mesa, the fourth town: oil and airships.
+4. [-] The Capital (after Silver Falls): Foremen Guild, Market Board, Department of Transport, Central Bank, Department of Education, War Office.
+5. [-] Economy and Defence tech trees, bought with Influence; slow tower auto-upgrade in the Defence tree.
+6. [-] Stock Exchange: shares in your towns.
+7. [-] Policies and the Constitutional Convention (global prestige, paying Legacy).
+8. [-] Thunder Mesa, the fourth town: oil and airships.
 
-## Revised roadmap (after the Barracks)
+### Revised roadmap (after the Barracks)
 
 - [x] Release A: drag to pan (pinch, twist), two-tap selling, boss bar and banners in the interface, clear plot selection with a ghost tower, a tidy Works tab.
 - [x] Release B: 3D only. `src/render2d.js`, `src/gl.js` and `src/render3d.js` became `src/view.js`; `src/ui.js` was split into `src/ui/`; dead 2D code was removed; presets are 3D presets; a controlled fresh start (`WIPE_V`, 10 bonus deeds) is ready but switched off.
 - [x] Release C: tutorial (offered on a new game, ten spotlight steps, replay from Settings).
 - [x] Release D: the Capital (after Silver Falls reaches wave 15): the Capitol budget for foremen, the War Office (a tower upgrade every 5 minutes per town, faster with levels) and the Academy (research); auto waves per town, fought in the background from tower strength; Market Board, Department of Transport, Central Bank, Department of Education, War Office. Shipped with the fresh start (v7, 10 bonus deeds), the Barracks rework (beside the road only, soldiers march back up the road, late-game price, wave-scaled strength), auto-sell keeping enough for towers, a brighter look and snappier menus.
-- [ ] Release E: Economy and Defence tech trees (Influence).
-- [ ] Release F: Stock Exchange.
-- [ ] Release G: policies and the Constitutional Convention (Legacy).
-- [ ] Release H: Thunder Mesa.
+- [-] Release E: Economy and Defence tech trees (Influence).
+- [-] Release F: Stock Exchange.
+- [-] Release G: policies and the Constitutional Convention (Legacy).
+- [-] Release H: Thunder Mesa.

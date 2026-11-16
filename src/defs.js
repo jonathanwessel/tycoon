@@ -190,6 +190,7 @@ const PERKS = [
   { id: 'teams',   n: 'Teamsters',      d: 'Workshops work 25% faster per rank, and porters hurry.',                                max: 5, cost: l => 1 + l },
   { id: 'archive', n: 'Archives',       d: 'Keep all research when you sign a new charter.',                                         max: 1, cost: () => 4, req: 'start' },
   { id: 'loot',    n: 'Salvage Rights', d: 'Each rank gives raiders a 10% chance to drop goods.',                                    max: 3, cost: l => 2 + l, req: 'fort' },
+  { id: 'agency',  n: 'Foreman Agency', d: 'Hires a foreman for every building in every town as soon as you hold twice the price. Like all perks, kept through charters (and the Constitutional Convention).', max: 1, cost: () => 8 },
   { id: 'trade',   n: 'Trade Charter',  d: 'Contracts pay 25% more per rank, and prices recover twice as fast.',                     max: 3, cost: l => 2 + l, req: 'teams' },
 ];
 const KEEP = 20, COLS = 12, ROWS = 14, YARD = 6, OFFLINE_CAP = 8 * 3600;

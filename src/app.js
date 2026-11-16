@@ -102,8 +102,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-26'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Big update with a fresh start: you keep your deeds, perks and badges plus 10 bonus deeds. New: the Capital (after Silver Falls wave 15) with a global budget, automatic tower upgrades and research, and auto waves per town. A tutorial. The Barracks now stands beside the road and its soldiers march back up it. Auto-sell keeps enough for towers. Brighter look, snappier menus.';
+const GAME_VERSION = '2026.11.15-27'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'A Barracks may now touch the road at a corner. New perk, the Foreman Agency (8 deeds): hires a foreman for every building in every town as soon as you can afford it.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

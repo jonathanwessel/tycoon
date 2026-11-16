@@ -112,8 +112,8 @@ function upgradeTrack(t, k) {
   S.coins -= c; t.spent = (t.spent || 0) + c; t.up[k] = (t.up[k] || 0) + 1; snd('build', 440, .12, 'triangle', .05, 440); return true;
 }
 const roadPaths = () => PATHS.map((_, i) => i).filter(i => i !== MAP.river);
-/* Is this plot right beside the road (a road cell next to it, not the river)? Barracks may only stand there. */
-const besideRoad = (c, r) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => roadPaths().some(p => PATHS[p].segs.some(s => { const x = c + dx, y = r + dy; return x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01; })));
+/* Does this plot touch the road (a road cell beside it or at a corner, not the river)? Barracks may only stand there. */
+const besideRoad = (c, r) => [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].some(([dx, dy]) => roadPaths().some(p => PATHS[p].segs.some(s => { const x = c + dx, y = r + dy; return x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01; })));
 /* Where the barracks' soldiers join the road: the closest point of a road path. */
 function roadDoor(t) {
   let best = { p: 0, d: 0 }, bd = 1e9;

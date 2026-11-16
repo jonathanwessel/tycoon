@@ -284,3 +284,15 @@ test('a fresh start keeps deeds (plus 10), perks, badges and stats, and backs up
   const k = load(); const cur = k.run(`(() => { const o = fresh(); o.ext.camp = 80; return JSON.stringify(o); })()`); k.run(`adopt(${cur})`); assert.strictEqual(k.run('S.ext.camp'), 80, 'a v7 save carries on');
   const m = load(); m.run(`adopt(${old}, 0)`); assert.strictEqual(m.run('S.ext.camp'), 80, 'with the fresh start off, migrated as usual');
 });
+
+test('the Foreman Agency perk hires foremen for built buildings in every town, keeping a cushion', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e9; S.best = 25; unlockTown('ridge'); S.perks.agency = 1; S.coins = 1e9;
+    S.ext.camp = 3; S.ext.mine = 2; S.towns.ridge.ext.ironmine = 4;`);
+  g.run('for (let i = 0; i < 10; i++) econTowns(.5);');
+  assert.strictEqual(g.run('S.mgr.camp'), 1); assert.strictEqual(g.run('S.mgr.mine'), 1);
+  assert.strictEqual(g.run('S.towns.ridge.mgr.ironmine'), 1, 'in a background town too');
+  assert.ok(!g.run('S.mgr.drill'), 'not for buildings not built yet');
+  const h = load(); h.run(`S = fresh(); setMap('gulch'); S.perks.agency = 1; S.ext.camp = 3; S.coins = 1;`); h.run('econTowns(.5)');
+  assert.ok(!h.run('S.mgr.camp'), 'never without the coins');
+});
