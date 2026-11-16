@@ -28,7 +28,7 @@ test('healers cure poison', () => {
 test('Spreading Fever passes poison on when a poisoned raider dies', () => {
   const g = load(); field(g); foe(g, 'raider', 5); foe(g, 'raider', 5.4);
   g.run('poison(foes[0], 1, 4, { spread: 1 }); hurt(foes[0], 1e9);');
-  assert.ok(g.run('foes[1].psn && foes[1].psn.t > 0'), 'the neighbour caught it');
+  assert.ok(g.run('foes[1].psn && foes[1].psn.t > 0'), 'the neighbor caught it');
 });
 
 test('Frostbite: chilled raiders take damage over time', () => {

@@ -34,7 +34,7 @@ const GOALS_BY_TOWN = {
     { t: 'Build a Rolling Mill', p: () => [has('rolling'), 1], r: 3000 },
     { t: 'Build a Boiler Shop', p: () => [has('boilerw'), 1], r: 5000 },
     { t: 'Raise the Blast Furnace to level 10', p: () => [blv('blast'), 10], r: 8000 },
-    { t: 'Defeat the wave 10 armoured train', p: () => [S.best - 1, 10], r: 15000 },
+    { t: 'Defeat the wave 10 armored train', p: () => [S.best - 1, 10], r: 15000 },
     { t: 'Build a Locomotive Works: trains for every route', p: () => [has('locow'), 1], r: 30000 },
   ],
   falls: [
@@ -54,7 +54,7 @@ const GOALS_BY_TOWN = {
     { t: 'Build an Oil Well', p: () => [has('well'), 1], r: 5e5 },
     { t: 'Build the Oil Refinery', p: () => [has('oilref'), 1], r: 8e5 },
     { t: 'Build a Tesla coil: the only tower that reaches the sky', p: () => [S.towers.some(t => t.type === 'tesla') ? 1 : 0, 1], r: 1e6 },
-    { t: 'Build a Bauxite Mine and an Aluminium Smelter', p: () => [has('bauxmine') + has('alusm'), 2], r: 1.5e6 },
+    { t: 'Build a Bauxite Mine and an Aluminum Smelter', p: () => [has('bauxmine') + has('alusm'), 2], r: 1.5e6 },
     { t: 'Build a Rubber Farm and a Tire Works', p: () => [has('rubberf') + has('tirew'), 2], r: 2e6 },
     { t: 'Survive five waves in Thunder Mesa', p: () => [S.best - 1, 5], r: 4e6 },
     { t: 'Ship wire to Thunder Mesa (Empire tab)', p: () => [route('mesa', 'wire'), 1], r: 5e6 },

@@ -36,7 +36,7 @@ const ITEMS = {
   baux:    { n: 'Bauxite',    p: 3 },
   fuel:    { n: 'Fuel',       p: 10 },
   tire:    { n: 'Tires',      p: 9 },
-  alu:     { n: 'Aluminium',  p: 10 },
+  alu:     { n: 'Aluminum',   p: 10 },
   motor:   { n: 'Motors',     p: 90 },
   airship: { n: 'Airships',   p: 1100 },
 };
@@ -84,7 +84,7 @@ const SHOPS_ALL = [
   // Thunder Mesa: balanced at equal levels like the others; motors need wire shipped in from Silver Falls
   { id: 'oilref',   n: 'Oil Refinery',      in: { oil: 2 },                       out: 'fuel',    rate: .25, cost: 500 },
   { id: 'tirew',    n: 'Tire Works',        in: { rubber: 2 },                    out: 'tire',    rate: .2,  cost: 800 },
-  { id: 'alusm',    n: 'Aluminium Smelter', in: { baux: 2 },                      out: 'alu',     rate: .25, cost: 1200 },
+  { id: 'alusm',    n: 'Aluminum Smelter',  in: { baux: 2 },                      out: 'alu',     rate: .25, cost: 1200 },
   { id: 'motorw',   n: 'Engine Plant',      in: { fuel: 1, alu: 1, wire: 1 },     out: 'motor',   rate: .1,  cost: 6000 },
   { id: 'hangar',   n: 'Airship Hangar',    in: { motor: 1, tire: 2, alu: 2 },    out: 'airship', rate: .03, cost: 50000 },
 ];
@@ -197,7 +197,7 @@ const TOWNS = {
            boss: { n: 'War wagon', spr: 'boss' }, goods: {}, start: { res: { plank: 10 }, seen: ['wood', 'ore', 'plank'] }, forge: ['smelt', 'mill'], glow: ['drill', 'glass'] },
   ridge: { n: 'Iron Ridge', era: 'Steam and rail', ext: ['ironmine', 'coalseam', 'quarry'], shops: ['blast', 'rolling', 'boilerw', 'locow'],
            slot: SLOT_RIDGE, tap: { trees: 'stone', rocks: 'iron' }, tapN: { trees: 'Quarry', rocks: 'Dig' }, trees: false, maps: ['ridge'],
-           boss: { n: 'Armoured train', spr: 'train' },
+           boss: { n: 'Armored train', spr: 'train' },
            goods: { crossbow: { stone: 6 }, cannon: { pig: 10 }, frost: { rail: 4 }, still: { pig: 6, coal: 10 }, barracks: { rail: 30, boiler: 6 }, helipad: { boiler: 12, loco: 3 }, tesla: { boiler: 2, rail: 6 }, gatling: { boiler: 3, loco: 1 } },
            start: { res: { stone: 30 }, seen: ['iron', 'stone', 'coal'] }, forge: ['blast', 'boilerw'], glow: [],
            unlock: { from: 'gulch', best: 20, coins: 1e5 } },

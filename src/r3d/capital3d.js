@@ -1,6 +1,6 @@
 /* The Capital as a place: a city square on the board's 12 × 14 cells with the Capitol dome at the head of a stone
    avenue and each institution on its plot either side (an empty lot with survey stakes until it is built). Models are
-   built in code with the kit, like the towns' buildings; their fronts face +z, towards the camera. The site layout
+   built in code with the kit, like the towns' buildings; their fronts face +z, toward the camera. The site layout
    (CAP_SITE) lives in src/capital.js so taps and tests use the same numbers. */
 import * as THREE from 'three';
 import { Kit, col, rng, part } from './kit.js';
@@ -13,7 +13,7 @@ function noise(x, z) { const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix
 const fbm = (x, z) => noise(x, z) * .6 + noise(x * 2.1 + 5, z * 2.1) * .3 + noise(x * 4.3, z * 4.3 + 9) * .1;
 const HALF = Math.PI / 2;
 export const FOUNTAIN = [6, 10]; // the round plaza on the avenue
-export const AVENUE = [4.9, 7.1]; // its kerbs (x)
+export const AVENUE = [4.9, 7.1]; // its curbs (x)
 
 /* --- the ground: lawns, the avenue and its plaza, a gravel pad under each plot, hills beyond ------------------------ */
 export function buildCapitalWorld(SITE, COLS, ROWS) {
@@ -25,7 +25,7 @@ export function buildCapitalWorld(SITE, COLS, ROWS) {
   const onPad = (x, z) => { for (const id in SITE) { const s = SITE[id], r = s.r - .08; if (Math.abs(x - s.x) < r && Math.abs(z - s.z) < r) return id; } return null; };
   const roadD = (x, z) => z > ROWS ? Math.abs(x - (fx + Math.sin((z - ROWS) * .25) * .6 * sstep(ROWS + 1, ROWS + 4, z))) : 9;
   function height(x, z) { const d = boardD(x, z); if (d <= 0) return 0; const h = sstep(1.5, 7, d) * (fbm(x * .17, z * .17) * 2.8 + (z < 0 ? Math.min(3.4, -z * .25) : 0) + d * .05) * (z > ROWS ? .3 : 1); return roadD(x, z) < 1.4 ? h * sstep(.8, 1.4, roadD(x, z)) : h; }
-  function colour(x, z, h) {
+  function color(x, z, h) {
     const n = fbm(x * .7, z * .7), c = new THREE.Color(), d = boardD(x, z);
     if (d <= .01 && onAvenue(x, z)) { c.copy(col('#cbbca4')).multiplyScalar(.93 + n * .1); if ((Math.floor(x * 2) + Math.floor(z * 2)) % 2) c.multiplyScalar(.96); }
     else if (d <= .01 && onPath(x, z)) c.copy(col('#c7ae84')).multiplyScalar(.95 + n * .08);
@@ -42,7 +42,7 @@ export function buildCapitalWorld(SITE, COLS, ROWS) {
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
       const x = x0 + i * st, z = z0 + j * st; if (skip && skip(x, z, st)) continue;
       const a = Vt[j * (nx + 1) + i], b = Vt[j * (nx + 1) + i + 1], c2 = Vt[(j + 1) * (nx + 1) + i], d = Vt[(j + 1) * (nx + 1) + i + 1];
-      const k = colour(x + st / 2, z + st / 2, (a[1] + d[1]) / 2), s1 = 1 + (hash(x * 5, z) - .5) * .04, s2 = 1 + (hash(z, x * 5) - .5) * .04;
+      const k = color(x + st / 2, z + st / 2, (a[1] + d[1]) / 2), s1 = 1 + (hash(x * 5, z) - .5) * .04, s2 = 1 + (hash(z, x * 5) - .5) * .04;
       if ((i + j) % 2) { tri(a, c2, b, k, s1); tri(b, c2, d, k, s2); } else { tri(a, c2, d, k, s1); tri(a, d, b, k, s2); }
     }
   };
@@ -52,7 +52,7 @@ export function buildCapitalWorld(SITE, COLS, ROWS) {
   const terrain = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .9 })); terrain.receiveShadow = true; world.add(terrain);
 
   const k = new Kit({ aoH: .6 }), R = rng(41), lamps = [], movers = [];
-  // kerbs along the avenue, and the fountain on its plaza
+  // curbs along the avenue, and the fountain on its plaza
   for (const x of AVENUE) for (let z = 5.5; z < ROWS + 1.5; z += 1) if (Math.hypot(x - fx, z + .5 - fz) > 1.9) k.box(x, 0, z + .5, .08, .05, .98, 'stoneD');
   k.cyl(fx, 0, fz, 1.05, .22, 'stone', { seg: 16, jit: .05 }); k.cyl(fx, .2, fz, .95, .03, 'water', { seg: 16, mat: 'metal', ao: false });
   k.cyl(fx, 0, fz, .16, .62, 'stoneL', { seg: 8 }); k.cyl(fx, .6, fz, .42, .09, 'stone', { r2: .2, seg: 12 }); k.cyl(fx, .69, fz, .36, .02, 'water', { seg: 12, mat: 'metal', ao: false });
@@ -194,7 +194,7 @@ const INST3D = {
     return 1.38;
   },
   war(k, add) {
-    // the War Office: a stockade with a two-storey blockhouse, watchtowers, a cannon at the gate and a tall flag
+    // the War Office: a stockade with a two-story blockhouse, watchtowers, a cannon at the gate and a tall flag
     const post = (x, z, h = .5) => k.cyl(x, 0, z, .045, h + (hash(x * 3, z * 7) - .5) * .06, 'log', { seg: 6 });
     for (let x = -.84; x <= .84; x += .09) { post(x, -.84); if (Math.abs(x) > .22) post(x, .84); }
     for (let z = -.75; z <= .78; z += .09) { post(-.84, z); post(.84, z); }

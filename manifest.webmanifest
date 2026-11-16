@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Copper Gulch",
   "short_name": "Copper Gulch",
-  "description": "A tycoon, tower defence and incremental game in the Old West. No ads, no purchases, no tracking.",
+  "description": "A tycoon, tower defense and incremental game in the Old West. No ads, no purchases, no tracking.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

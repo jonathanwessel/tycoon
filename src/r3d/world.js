@@ -23,7 +23,7 @@ export function buildWorld(ctx) {
   const { COLS, ROWS, YARD, MAP, PATHS, TOWN_ID, TOWN, SLOT, TREES } = ctx;
   const look = TOWN_LOOK[TOWN_ID] || TOWN_LOOK.gulch, pal = MAP.pal || { yard: '#b99468', a: '#d0aa76', b: '#c9a26c', road: ['#7a5a3e', '#9b7552', '#8a6645', '#9b7552'] };
   const world = new THREE.Group(); world.name = 'world';
-  // road and river as polylines in world units (cell centres), each extended off the board to the west
+  // road and river as polylines in world units (cell centers), each extended off the board to the west
   const way = p => { const w = PATHS[p].way.map(([x, y]) => [x + .5, y + .5]); return [[-16, w[0][1]], ...w]; };
   const roads = PATHS.map((_, i) => i).filter(i => i !== MAP.river && i !== MAP.air).map(way), river = MAP.river !== undefined ? way(MAP.river) : null;
   const roadAt = (x, z) => { let b = { d: 1e9 }; for (const r of roads) { const q = polyDist(x, z, r); if (q.d < b.d) b = q; } return b; };
@@ -41,7 +41,7 @@ export function buildWorld(ctx) {
     }
     return h;
   }
-  function colour(x, z, h) {
+  function color(x, z, h) {
     const inside = x >= 0 && x <= COLS && z >= 0 && z <= ROWS, n = fbm(x * .7, z * .7), c = new THREE.Color();
     if (inside && z < YARD) c.copy(col(pal.yard)).multiplyScalar(.94 + n * .12);
     else { c.copy(col(pal.a)).lerp(col(pal.b), n); const pt = fbm(x * .23 + 40, z * .23); c.lerp(col(look.grass), sstep(.55, .8, pt) * .35).multiplyScalar(.9 + sstep(.3, .7, fbm(x * .4, z * .4 + 20)) * .16); }
@@ -53,7 +53,7 @@ export function buildWorld(ctx) {
     }
     return c;
   }
-  // terrain: fine triangles on and next to the board, coarse ones further out (each triangle one flat colour)
+  // terrain: fine triangles on and next to the board, coarse ones further out (each triangle one flat color)
   const pos = [], cols = [];
   const tri = (a, b, c2, k, sh) => { for (const p of [a, b, c2]) { pos.push(p[0], p[1], p[2]); cols.push(k.r * sh, k.g * sh, k.b * sh); } };
   const grid = (x0, z0, x1, z1, st, skip) => {
@@ -62,7 +62,7 @@ export function buildWorld(ctx) {
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
       const x = x0 + i * st, z = z0 + j * st; if (skip && skip(x, z, st)) continue;
       const a = V[j * (nx + 1) + i], b = V[j * (nx + 1) + i + 1], c2 = V[(j + 1) * (nx + 1) + i], d = V[(j + 1) * (nx + 1) + i + 1];
-      const k = colour(x + st / 2, z + st / 2, (a[1] + d[1]) / 2), s1 = 1 + (hash(x * 5, z) - .5) * .05, s2 = 1 + (hash(z, x * 5) - .5) * .05;
+      const k = color(x + st / 2, z + st / 2, (a[1] + d[1]) / 2), s1 = 1 + (hash(x * 5, z) - .5) * .05, s2 = 1 + (hash(z, x * 5) - .5) * .05;
       if ((i + j) % 2) { tri(a, c2, b, k, s1); tri(b, c2, d, k, s2); } else { tri(a, c2, d, k, s1); tri(a, d, b, k, s2); }
     }
   };
@@ -154,7 +154,7 @@ function waterMaterial() {
   return new THREE.MeshStandardMaterial({ map: t, roughness: .18, metalness: .1, transparent: true, opacity: .9, emissive: new THREE.Color('#0a2a40'), emissiveIntensity: .6 });
 }
 
-/* A sky dome: a gradient from the horizon to the zenith, recoloured with the time of day. */
+/* A sky dome: a gradient from the horizon to the zenith, recolored with the time of day. */
 export function makeSky() {
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,

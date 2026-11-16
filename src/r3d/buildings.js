@@ -1,5 +1,5 @@
-/* Buildings of every town, modelled in code. Each sits on its 2×2 yard plot (local x and z from -0.9 to 0.9, the front
-   faces +z, towards the camera). A model is static parts merged by material, plus named moving parts:
+/* Buildings of every town, modeled in code. Each sits on its 2×2 yard plot (local x and z from -0.9 to 0.9, the front
+   faces +z, toward the camera). A model is static parts merged by material, plus named moving parts:
    spin (turns while the building works), hot (furnace glow, shown while it works) and smoke sockets. */
 import * as THREE from 'three';
 import { Kit, part, rng } from './kit.js';
@@ -187,7 +187,7 @@ const R = {
     return top;
   },
   hall(k, add) {
-    // the foremen's hall: a two-storey saloon with a balcony and a flag
+    // the foremen's hall: a two-story saloon with a balcony and a flag
     k.box(0, 0, -.12, 1.3, 1.1, .85, 'paintG', { jit: .07 }); k.box(0, 1.1, -.12, 1.36, .06, .9, 'woodD');
     falseFront(k, 0, .3, 1.32, 1.28, 'paintG', 'cream');
     k.box(0, .52, .45, 1.34, .05, .32, 'woodL'); for (let i = 0; i < 9; i++) k.box(-.62 + i * .155, .57, .6, .025, .16, .025, 'woodD'); k.box(0, .71, .6, 1.3, .03, .03, 'woodD');
@@ -406,7 +406,7 @@ const R = {
     return .75;
   },
   hangar(k, add) {
-    // a tall arched hangar of riveted aluminium, an airship's nose poking out of its doors, and a mooring mast with a beacon
+    // a tall arched hangar of riveted aluminum, an airship's nose poking out of its doors, and a mooring mast with a beacon
     const r = .78, len = 1.45, s = new THREE.Shape(); s.absarc(0, 0, r, Math.PI, 0, true); s.lineTo(-r, 0);
     const g = new THREE.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: 9 }); g.translate(0, 0, -len / 2 - .12);
     k.add(g, 0, 0, 0, 'tin', { jit: .05 });

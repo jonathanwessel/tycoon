@@ -1,7 +1,7 @@
 /* Copper Gulch 3D: the town drawn with three.js. The game's simulation (plain scripts sharing global state: S, foes,
    shots, parts, fx, SLOT...) runs unchanged; each frame this module mirrors that state into a scene of models built
    in code, lights it (sun and moon with soft shadows, sky light, up to 8 lamps and fires), and finishes it with bloom
-   and the chosen colour look. The bridge in src/view.js owns the camera, picking and the flat overlay. */
+   and the chosen color look. The bridge in src/view.js owns the camera, picking and the flat overlay. */
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -19,7 +19,7 @@ const G_DRONE = []; // drone tracers this frame: [x, y, z, length, yaw, pitch]
 const v3 = (x, y, z) => new THREE.Vector3(x, y, z), TAU = Math.PI * 2;
 const NLIGHTS = 8, PCAP = 900;
 
-/* --- grading: the colour looks (saturation, contrast, tint, lift, vignette, grain) after tone mapping ---------- */
+/* --- grading: the color looks (saturation, contrast, tint, lift, vignette, grain) after tone mapping ---------- */
 const GradeShader = {
   uniforms: { tDiffuse: { value: null }, uSat: { value: 1 }, uCon: { value: .1 }, uTint: { value: v3(1, 1, 1) }, uLift: { value: v3(0, 0, 0) }, uVig: { value: .3 }, uGrain: { value: 0 }, uTime: { value: 0 }, uFlash: { value: 0 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',

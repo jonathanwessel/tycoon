@@ -32,7 +32,7 @@ function bot(MINUTES) {
       if (b.kind === 'shops') for (const k in b.def.in) if (f.prod[k] < f.use[k] * .98) ok = false;
       if (!ok) continue;
       const gain = income(f) - base; if (gain <= 0) continue;
-      opts.push({ cost, score: cost / gain, buy: () => { S.coins -= cost; S[b.kind][id] = have + 1; S.seen[b.def.out] = 1; levelled(b, have, have + 1, true); } });
+      opts.push({ cost, score: cost / gain, buy: () => { S.coins -= cost; S[b.kind][id] = have + 1; S.seen[b.def.out] = 1; leveled(b, have, have + 1, true); } });
     }
     return opts;
   }

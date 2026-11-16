@@ -166,7 +166,7 @@ test('switching to Iron Ridge brings its buildings, map, taps and boss', () => {
   assert.ok(g.run(`BY_ID.locow && !BY_ID.camp`));
   assert.strictEqual(g.run('MAP.n'), 'Iron Ridge');
   assert.strictEqual(g.run(`TOWN.tap.rocks`), 'iron');
-  assert.strictEqual(g.run('bossName()'), 'Armoured train');
+  assert.strictEqual(g.run('bossName()'), 'Armored train');
   assert.deepStrictEqual(JSON.parse(g.run('JSON.stringify(towerGoods("crossbow"))')), { stone: 6 });
   g.run(`S.res.stone = 6; S.coins = 100; buildTower('crossbow', PLOTS[0].x, PLOTS[0].y);`);
   assert.strictEqual(g.run('S.towers.length'), 1, 'a crossbow built from stone');

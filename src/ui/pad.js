@@ -44,7 +44,7 @@ function padTap() {
   if (id === 'trees' || id === 'rocks') { gather(id); PAD.gather = id; PAD.gT = performance.now(); return; }
   tapAt(c + .5, r + .5); refresh();
 }
-/* The cursor keeps on screen: when it nears an edge the camera slides towards it. */
+/* The cursor keeps on screen: when it nears an edge the camera slides toward it. */
 function padKeepInView() {
   if (!R3.on || !R3.cam || (PAD.layer !== 'map' && PAD.layer !== 'card')) return;
   const [px, py, w] = r3Project(PAD.cur[0] + .5, 0, PAD.cur[1] + .5), W = R3.canvas.width, H = R3.canvas.height;

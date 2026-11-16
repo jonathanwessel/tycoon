@@ -140,7 +140,7 @@ function foremenWork() {
     if (!best || best.c > budget) break;
     if (best.kind === 'r') { const r = RESEARCH.find(q => q.id === best.id); fb.purse -= best.c; S.coins -= best.c; S.research[best.id] = lv(best.id) + 1; continue; }
     const b = BY_ID[best.id];
-    for (let j = 0; j < best.n; j++) { const have = blv(best.id), c = bCost(b, have); fb.purse -= c; S.coins -= c; S[b.kind][best.id] = have + 1; levelled(b, have, have + 1, true); }
+    for (let j = 0; j < best.n; j++) { const have = blv(best.id), c = bCost(b, have); fb.purse -= c; S.coins -= c; S[b.kind][best.id] = have + 1; leveled(b, have, have + 1, true); }
   }
 }
 /* Income actually earned, averaged over the last minute (every coin source counts). */
@@ -173,9 +173,9 @@ function buyBuilding(b) {
   const p = buyPlan(b); if (!p.ok) return false;
   const have = blv(b.def.id); S.coins -= p.c; S[b.kind][b.def.id] = have + p.n;
   if (b.def.out && !S.seen[b.def.out]) { S.seen[b.def.out] = 1; rebuild = true; }
-  levelled(b, have, have + p.n); return true;
+  leveled(b, have, have + p.n); return true;
 }
-function levelled(b, from, to, quiet) {
+function leveled(b, from, to, quiet) {
   if (MS(to) > MS(from) && typeof exNews === 'function') exNews('ms'); // the Stock Exchange hears of it
   if (b.def.id === 'locow' && to >= 1) S.railOpen = 1; // the first Locomotive Works brings trains to every route
   if (TOWN_ID !== S.town) { if (MS(to) > MS(from)) say(TOWN.n + ': ' + b.def.n + ' reached level ' + to + ', output doubled.'); return; } // a town working in the background: no effects on this map
@@ -208,7 +208,7 @@ function deliver(i) {
 function gather(src) {
   const k = TOWN.tap[src]; add(k, tapYield()); S.stats.taps++; FXS.shake[src] = .25;
   const [sx, sy] = SLOT[src]; fly(k, sx + 1, sy + 1, CHIP[k]);
-  for (let i = 0; i < 5; i++) parts.push({ x: sx + .6 + Math.random() * .8, y: sy + .8 + Math.random() * .5, vx: (Math.random() - .5) * 2, vy: -1.5 - Math.random(), g: 6, t: .5, c: k === 'wood' ? P.woodL : P.greyL, s: .07 });
+  for (let i = 0; i < 5; i++) parts.push({ x: sx + .6 + Math.random() * .8, y: sy + .8 + Math.random() * .5, vx: (Math.random() - .5) * 2, vy: -1.5 - Math.random(), g: 6, t: .5, c: k === 'wood' ? P.woodL : P.grayL, s: .07 });
   k === 'wood' ? snd('chop', 180, .06, 'square', .05, -90) : snd('dig', 520, .05, 'triangle', .06, -200);
 }
 /* A foreman costs 100 times the building's base price, and every foreman after the first two costs 60% more again,

@@ -27,7 +27,7 @@ function padStep(cur, dir, yaw = 0, cols = COLS, rows = ROWS) {
   return [Math.max(0, Math.min(cols - 1, cur[0] + mx)), Math.max(0, Math.min(rows - 1, cur[1] + mz))];
 }
 /* Spatial focus: from rectangle a ({x, y, w, h}), the index of the best rectangle in list that lies in direction dir,
-   or -1. Ahead means its centre is past a's centre; the score is the gap ahead plus a heavy cost for being off to the
+   or -1. Ahead means its center is past a's center; the score is the gap ahead plus a heavy cost for being off to the
    side (none while the two overlap on the other axis), so a button in the same row or column wins. */
 function padNearest(a, list, dir) {
   const d = PAD_DIR[dir]; if (!d) return -1; const ax = a.x + a.w / 2, ay = a.y + a.h / 2; let best = -1, bs = Infinity;

@@ -30,14 +30,14 @@ test('a new level of a standing building pops and sparkles without scaffolding',
   assert.ok(g.run(`FXS.pop['${id}'] > 0`));
   const [sx, sy] = g.run(`SLOT['${id}']`);
   assert.ok(g.run('FXS.sparks.length') >= 10, 'sparkles');
-  assert.ok(g.run(`FXS.sparks.every(q => Math.abs(q.x - ${sx + 1}) < .01 && Math.abs(q.y - ${sy + 1}) < .01)`), 'centred on the building');
+  assert.ok(g.run(`FXS.sparks.every(q => Math.abs(q.x - ${sx + 1}) < .01 && Math.abs(q.y - ${sy + 1}) < .01)`), 'centered on the building');
   step(g, 2);
   assert.strictEqual(g.run('FXS.sparks.length'), 0, 'sparkles burn out');
 });
 
 test('foremen buying quietly make no scaffolds or sparkles', () => {
   const g = load(); start(g);
-  g.run(`const b = BUILD.find(b => SLOT[b.def.id]); levelled(b, 0, 1, true); levelled(b, 1, 2, true);`);
+  g.run(`const b = BUILD.find(b => SLOT[b.def.id]); leveled(b, 0, 1, true); leveled(b, 1, 2, true);`);
   assert.strictEqual(g.run('Object.keys(FXS.build).length'), 0);
   assert.strictEqual(g.run('FXS.sparks.length'), 0);
 });
@@ -60,7 +60,7 @@ test('sparkles are capped so a burst of upgrades cannot flood the scene', () => 
   assert.ok(g.run('FXS.sparks.length') <= 90);
 });
 
-test('a background town levelling up or upgrading towers puts no effects on the map you are watching', () => {
+test('a background town leveling up or upgrading towers puts no effects on the map you are watching', () => {
   const g = load(); start(g);
   g.run(`S.best = 40; unlockTown('ridge'); S.coins = 1e12;
     withTown('ridge', () => { const b = BUILD.find(b => SLOT[b.def.id]); S.coins = 1e12; for (const k in S.res) S.res[k] = 1e6; buyBuilding(b); buyBuilding(b);

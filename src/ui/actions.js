@@ -1,7 +1,7 @@
 'use strict';
 /* =========================================================
    Interface: things the player does
-   Powers (Dynamite, Tar Pit, Overtime), travelling to another town, holding the waves.
+   Powers (Dynamite, Tar Pit, Overtime), traveling to another town, holding the waves.
    ========================================================= */
 /* Powers the player triggers by hand */
 const ABIL = {

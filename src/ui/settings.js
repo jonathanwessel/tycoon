@@ -35,7 +35,7 @@ function openSettings(t) {
     row('Screen shake', '', [[1, 'On'], [0, 'Off']], () => GX().shake ? 1 : 0, v => setGx('shake', v));
     row('Frame rate', '30 saves battery; the game itself runs the same.', [[60, 'Smooth 60'], [30, 'Battery 30']], () => GX().fps, v => setGx('fps', v));
     body.append(h('h2', null, 'Style'));
-    row('Look', 'Colour grading for the whole map.', Object.keys(LOOKS).map(k => [k, LOOKS[k].n]), () => GX().look, v => setGx('look', v));
+    row('Look', 'Color grading for the whole map.', Object.keys(LOOKS).map(k => [k, LOOKS[k].n]), () => GX().look, v => setGx('look', v));
     row('Film grain', 'A fine moving grain, like old film.', [[1, 'On'], [0, 'Off']], () => GX().grain ? 1 : 0, v => setGx('grain', v), litOff);
     row('Scanlines', 'Lines like an old arcade screen.', [[1, 'On'], [0, 'Off']], () => GX().scan ? 1 : 0, v => setGx('scan', v));
     row('Show frame rate', 'A small counter in the corner of the map.', [[1, 'On'], [0, 'Off']], () => GX().fpsShow ? 1 : 0, v => setGx('fpsShow', v));

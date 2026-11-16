@@ -1,4 +1,4 @@
-/* Raiders, workers, wagons, towers, the vault and scenery props, modelled in code.
+/* Raiders, workers, wagons, towers, the vault and scenery props, modeled in code.
    People are three moving parts (body, left leg, right leg) so a walking crowd stays cheap to draw. */
 import * as THREE from 'three';
 import { Kit, part, rng } from './kit.js';
@@ -54,7 +54,7 @@ FOE.runner = () => {
 function wheel(r, c = 'woodD', hub = 'iron') { return part(k => { k.torus(0, 0, 0, r, r * .16, c, { ts: 10 }); for (let i = 0; i < 3; i++) k.box(0, -r, 0, r * .14, r * 2, r * .14, c, { rz: i * 1.05 }); k.cyl(0, 0, -.03, r * .25, .06, hub, { rx: Math.PI / 2, seg: 8 }); }); }
 function wheels(root, list, r, c) { const ws = list.map(([x, y, z, ry]) => { const w = wheel(r, c); const h = G(); h.add(w); w.rotation.y = ry || Math.PI / 2; h.position.set(x, y, z); root.add(h); return h; }); root.userData.wheels = ws; }
 FOE.boss = () => {
-  // the war wagon: an iron-plated wagon with spikes and a cannon, drawn by two armoured horses
+  // the war wagon: an iron-plated wagon with spikes and a cannon, drawn by two armored horses
   const root = G(); root.userData = {};
   root.add(part(k => {
     k.box(0, .2, -.15, .5, .08, .8, 'woodD'); k.box(0, .28, -.15, .46, .3, .72, 'iron', { mat: 'metal' }); k.box(0, .58, -.15, .5, .05, .76, 'ironL', { mat: 'metal' });
@@ -68,7 +68,7 @@ FOE.boss = () => {
   root.userData.legs = hl; root.userData.gallop = 1; return root;
 };
 FOE.train = () => {
-  // the armoured train: a plated locomotive with a cowcatcher and a tall stack
+  // the armored train: a plated locomotive with a cowcatcher and a tall stack
   const root = G(); root.userData = {};
   root.add(part(k => {
     k.box(0, .12, 0, .42, .08, 1, 'black'); k.cyl(0, .38, -.05, .17, .7, 'iron', { rx: Math.PI / 2, seg: 10, mat: 'metal' }).parts.metal.at(-1).translate(0, 0, -.3);
@@ -103,7 +103,7 @@ FOE.steamer = () => {
   root.userData.smoke = new THREE.Vector3(0, .9, .05); return root;
 };
 FOE.zeppelin = () => {
-  // the sky pirates' airship: an aluminium envelope with red bands and fins, a wooden gondola of pirates, two propellers
+  // the sky pirates' airship: an aluminum envelope with red bands and fins, a wooden gondola of pirates, two propellers
   const root = G(); root.userData = { air: 1 };
   root.add(part(k => {
     k.ball(0, .55, 0, .38, '#c8d0dc', { det: 1, sz: 2.2, mat: 'metal' });

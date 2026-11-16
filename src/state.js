@@ -11,7 +11,7 @@ const GX_PRESETS = {
   high:  { shadow: 2, bloom: 2, res: 1,   parts: 2, weather: 1, shake: 1, fps: 60 },
   ultra: { shadow: 3, bloom: 3, res: 1.5, parts: 3, weather: 1, shake: 1, fps: 60 },
 };
-/* Colour looks: graded in the lighting engine's final pass, or with a CSS filter in simple mode. */
+/* Color looks: graded in the lighting engine's final pass, or with a CSS filter in simple mode. */
 const LOOKS = {
   natural: { n: 'Natural',        sat: 1.04, con: .16, tint: [1, 1, 1],         lift: [0, 0, 0],          vig: 1,   css: '' },
   western: { n: 'Western film',   sat: .8,   con: .28, tint: [1.08, .97, .8],   lift: [.035, .018, 0],    vig: 1.35, css: 'sepia(.28) saturate(.85) contrast(1.08)' },
@@ -281,7 +281,7 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
 }
 
 /* =========================================================
-   Maths
+   Math
    ========================================================= */
 const lv = id => S.research[id] || 0;
 /* Tech trees (bought in the Capital with Influence): a branch's rank, and its compounding factor. */

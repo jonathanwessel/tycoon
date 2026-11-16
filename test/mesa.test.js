@@ -1,4 +1,4 @@
-// node --test — Thunder Mesa, the fourth town: opening it from the Capital, its oil, rubber and aluminium chain, the sky
+// node --test — Thunder Mesa, the fourth town: opening it from the Capital, its oil, rubber and aluminum chain, the sky
 // lane, and the airship boss that only Tesla coils and drones can reach.
 const test = require('node:test');
 const assert = require('node:assert');
@@ -19,7 +19,7 @@ test('Thunder Mesa opens from the Capital once the Department of Transport reach
   assert.strictEqual(g.run(`unlockTown('mesa')`), true);
   assert.strictEqual(g.run('S.coins'), 1e8);
   assert.strictEqual(g.run('S.towns.mesa.map'), 'mesa');
-  assert.strictEqual(g.run('S.towns.mesa.res.alu'), 20, 'starting aluminium for the first crossbows');
+  assert.strictEqual(g.run('S.towns.mesa.res.alu'), 20, 'starting aluminum for the first crossbows');
   assert.strictEqual(g.run('S.towns.mesa.autoWave'), false, 'its waves wait until it has been defended');
 });
 

@@ -1,4 +1,4 @@
-/* The modelling kit: low-poly parts built in code (boxes, logs, cones, roofs, gears...), coloured per vertex from one
+/* The modeling kit: low-poly parts built in code (boxes, logs, cones, roofs, gears...), colored per vertex from one
    palette and merged into as few meshes as possible. Every model in the 3D view is assembled from these. */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -17,7 +17,7 @@ export const PAL = {
 const COLS = {};
 export const col = c => COLS[c] || (COLS[c] = new THREE.Color(PAL[c] || c));
 
-// --- materials (shared by everything; colour comes from the vertices) ----------------------------------------------
+// --- materials (shared by everything; color comes from the vertices) ----------------------------------------------
 export const MAT = {
   solid: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .86, metalness: 0 }),
   metal: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .45, metalness: .55 }),
@@ -30,7 +30,7 @@ MAT.glow.color.setScalar(.6); MAT.fire.color.setScalar(2.2);
 export function rng(seed) { let s = (seed * 9301 + 49297) % 233280 || 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
-/* A Kit collects parts; build() merges them by material into a Group. Positions are the part's base centre (y = bottom). */
+/* A Kit collects parts; build() merges them by material into a Group. Positions are the part's base center (y = bottom). */
 export class Kit {
   constructor(opt = {}) { this.parts = { solid: [], metal: [], glow: [], fire: [] }; this.ao = opt.ao !== false; this.aoH = opt.aoH || .9; }
   add(geo, x, y, z, c, o = {}) {
@@ -41,7 +41,7 @@ export class Kit {
     const n = g.attributes.position.count, pos = g.attributes.position.array, cols = new Float32Array(n * 3), cc = col(c), mat = o.mat || 'solid';
     const ao = this.ao && o.ao !== false && mat !== 'fire' && mat !== 'glow';
     for (let i = 0; i < n; i++) {
-      // ambient occlusion by height: parts darken towards the ground they stand on, which grounds every model
+      // ambient occlusion by height: parts darken toward the ground they stand on, which grounds every model
       const k = ao ? .64 + .36 * Math.min(1, Math.max(0, pos[i * 3 + 1] / this.aoH)) : 1, j = o.jit ? 1 + (o.jit * (((i * 7919) % 13) / 13 - .5)) : 1;
       cols[i * 3] = cc.r * k * j; cols[i * 3 + 1] = cc.g * k * j; cols[i * 3 + 2] = cc.b * k * j;
     }

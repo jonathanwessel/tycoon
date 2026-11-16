@@ -30,7 +30,7 @@ function card() {
       siteCard(box, sel.site, close);
     } else if (sel.plot) {
       const [c, r] = sel.plot;
-      box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower on the glowing plot'), h('small', null, 'Touch a tower to preview it there. Grey costs mean you are short of coins or goods.')), close));
+      box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower on the glowing plot'), h('small', null, 'Touch a tower to preview it there. Gray costs mean you are short of coins or goods.')), close));
       if (!GHOST.type) GHOST.type = 'crossbow';
       const list = h('div', { cls: 'buildlist' }); box.append(list);
       for (const id in TOWERS) {
@@ -105,7 +105,7 @@ function siteCard(box, id, close) {
     return;
   }
   const I = INST[id], name = h('div', { cls: 'name' }), d = h('small'), b = h('button', { cls: 'primary grow1', on: () => { if (buyInst(id)) { sparks(b); say(I.n + (capLv(id) > 1 ? ' upgraded to level ' + capLv(id) + '.' : ' built.')); } } }, h('span'), costEl(() => instCost(id), null, cardUps));
-  const bar = h('div', { cls: 'bar' }, b), go = { exchange: ['Trade shares', 'exchange'], education: ['Economy tree', 'tech'], war: ['Defence tree', 'tech'], market: ['Auto-sell rule', 'capital'] }[id];
+  const bar = h('div', { cls: 'bar' }, b), go = { exchange: ['Trade shares', 'exchange'], education: ['Economy tree', 'tech'], war: ['Defense tree', 'tech'], market: ['Auto-sell rule', 'capital'] }[id];
   let gb = null; if (go) { gb = h('button', { on: () => goTab(go[1]) }, go[0]); bar.append(gb); }
   box.append(h('div', { cls: 'cardhead' }, ico(I.icon), h('div', { cls: 'grow' }, name, d), close), bar);
   cardUps.push(() => { const l = capLv(id); name.textContent = I.n; if (l) name.append(h('i', null, 'Lv ' + l)); d.textContent = I.d(Math.max(1, l)) + (l ? '' : ' (at level 1)');

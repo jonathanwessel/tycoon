@@ -5,7 +5,7 @@
    upgrades), the War Office (slow automatic tower upgrades) and the Academy (automatic research). It also holds each
    town's auto-wave switch; a town left on auto fights its waves in the background (worked out from its towers'
    strength against the wave's), which loops at its boss gate if the towers are too weak, at the cost of a fallen vault.
-   Institutions are bought and levelled with coins and act on every town.
+   Institutions are bought and leveled with coins and act on every town.
    ========================================================= */
 const CAPITAL = { from: 'falls', best: 15, coins: 2e7 };
 const INST = {
@@ -20,7 +20,7 @@ const capOpen = () => !!(S.capital && S.capital.open);
 const capLv = id => (S.capital && S.capital.lv && S.capital.lv[id]) || 0;
 const capKeep = () => (capOpen() && S.capital.keep) || 1;
 const instCost = id => Math.ceil(INST[id].cost * Math.pow(2.6, capLv(id)));
-const warEvery = lv => 300 / (1 + .25 * lv) / (1 + .8 * tk('eng')); // Engineering: from 5 minutes towards 1
+const warEvery = lv => 300 / (1 + .25 * lv) / (1 + .8 * tk('eng')); // Engineering: from 5 minutes toward 1
 const resCost = r => Math.ceil(r.cost * Math.pow(r.g, lv(r.id)) * (1 - .05 * capLv('education')) * tf('academy', .9));
 const ACADEMY = ['ledger', 'steam', 'lines', 'haggle', 'guns', 'bounty', 'tools', 'vault', 'mason'];
 /* Can the Capital be founded now? */
@@ -34,7 +34,7 @@ function buyInst(id) {
   S.coins -= c; S.capital.lv[id] = capLv(id) + 1; snd('build', 520, .15, 'triangle', .05, 330); return true;
 }
 /* The Capital as a place: the Capitol at the head of an avenue and the institutions on plots either side of it, laid
-   out on the same 12 × 14 board as a town so the camera and its controls work unchanged. Each site: centre x and z,
+   out on the same 12 × 14 board as a town so the camera and its controls work unchanged. Each site: center x and z,
    half the plot's width (r), how tall its building stands (h, for taps on a roof) and a short name for its sign. */
 const CAP_SITE = {
   capitol:   { x: 6,   z: 3.1,  r: 2.4, h: 4.2, n: 'The Capitol' },
@@ -111,7 +111,7 @@ const townMap = () => MAPS[S.map] || MAP;
 const wayLen = way => way.reduce((a, p, i) => i ? a + Math.abs(p[0] - way[i - 1][0]) + Math.abs(p[1] - way[i - 1][1]) : 0, 0);
 const bossHp = w => foeHp(w) * 25 * townMap().hp * (TOWN.boss.hp || 1);
 const waveHp = w => Math.min(8 + Math.floor(w * 1.1), 36) * foeHp(w) * 1.25 * townMap().hp + (w % 10 === 0 ? bossHp(w) : 0);
-/* Does this town's defence win wave w? An airship (Thunder Mesa) must also be beaten by what reaches the sky alone. */
+/* Does this town's defense win wave w? An airship (Thunder Mesa) must also be beaten by what reaches the sky alone. */
 function winsWave(w) {
   const M = townMap(), fight = wayLen(M.paths[0]) / 1.1 * .6;
   if (w % 10 !== 0 || M.air === undefined) return townDps() * fight >= waveHp(w);
@@ -142,9 +142,9 @@ const TECH = {
     admin:     { n: 'Administration', icon: 'foreman', d: 'Foremen cost 15% less to hire and are paid 10% more per rank' },
     academy:   { n: 'Academy',        icon: 'flask',   d: 'Research costs 10% less and the Academy gets 15% more per rank' },
   } },
-  war: { n: 'Defence', home: 'War Office', branches: {
+  war: { n: 'Defense', home: 'War Office', branches: {
     arms:      { n: 'Arms',           icon: 'crossbow', d: '+12% tower damage per rank' },
-    eng:       { n: 'Engineering',    icon: 'cannon',   d: 'The War Office upgrades towers far more often (5 minutes towards 1) and upgrades cost 8% less per rank' },
+    eng:       { n: 'Engineering',    icon: 'cannon',   d: 'The War Office upgrades towers far more often (5 minutes toward 1) and upgrades cost 8% less per rank' },
     garrison:  { n: 'Garrison',       icon: 'barracks', d: '+15% soldier and drone strength per rank' },
     fort:      { n: 'Fortification',  icon: 'vault',    d: '+5 vault strength and 15% cheaper repairs per rank' },
   } },
@@ -158,7 +158,7 @@ function buyTech(b) {
 }
 /* --- the Stock Exchange -------------------------------------------------------------------------------------------
    Each town is a company with 1000 shares. A share's fair price is 3 seconds of that town's income; the market price
-   drifts towards it (about two minutes to catch up), with noise every 10 seconds and a mood that news moves: a boss
+   drifts toward it (about two minutes to catch up), with noise every 10 seconds and a mood that news moves: a boss
    beaten or a works doubling its output lifts it, a fallen vault sinks it, and the mood fades back over a few minutes.
    Shareholders get a slice of the town's income as dividends. Over half the shares pays the town's foremen 50% more.
    Buying costs 1% over the price and selling pays 1% under, so a quick buy and sell always loses. Coins only. */

@@ -64,6 +64,6 @@ test('per-town fields never leak between towns when one is swapped in or visited
   g.run(`S.cpurse = { war: 123, acad: 0, last: 0, t: 5 }; S.abT = 7;`);
   assert.strictEqual(g.run(`withTown('ridge', () => S.cpurse === undefined && S.abT === undefined)`), true, 'background swap');
   g.run(`switchTown('ridge')`);
-  assert.strictEqual(g.run('S.cpurse === undefined && S.abT === undefined'), true, 'travelling');
+  assert.strictEqual(g.run('S.cpurse === undefined && S.abT === undefined'), true, 'traveling');
   g.run(`switchTown('gulch')`); assert.strictEqual(g.run('S.cpurse.war'), 123, 'Copper Gulch kept its own');
 });

@@ -31,7 +31,7 @@ function setPaused(on) {
   if (on) $('pauseCover').focus(); else $('bPause').focus({ preventScroll: true });
   snd(on ? 'pause' : 'go', on ? 330 : 440, .08, 'triangle', .04, on ? -110 : 220);
 }
-/* Every frame: the coin counter rolls towards the real total and the wave button fills as raiders fall. */
+/* Every frame: the coin counter rolls toward the real total and the wave button fills as raiders fall. */
 /* The boss bar and the banners, every frame. */
 let banShown = null;
 function bossHud() {
@@ -115,8 +115,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-7'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Three save slots, short save codes, save files you can share, and controller support';
+const GAME_VERSION = '2026.11.16-8'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'American spelling throughout: Defense, Aluminum, Armored train, Color grading';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

@@ -32,15 +32,15 @@ function sparkle(x, y, n = 14, h = .6) {
   if (TOWN_ID !== S.town) return;
   for (let i = 0; i < n && FXS.sparks.length < 90; i++) { const t = .8 + Math.random() * .55; FXS.sparks.push({ x, y, h: h + Math.random() * .35, a: i / n * Math.PI * 2 + Math.random() * .5, r: .3 + Math.random() * .45, vh: .7 + Math.random() * .9, t, t0: t, gold: i % 3 ? 1 : 0 }); }
 }
-const TPOP = new Map(); // towers that just levelled up: a short squash-and-stretch pop (seconds left)
+const TPOP = new Map(); // towers that just leveled up: a short squash-and-stretch pop (seconds left)
 function towerSparkle(t, n = 12) { if (TOWN_ID !== S.town) return; sparkle(t.c + .5, t.r + .5, n, .45); TPOP.set(t, .4); }
-/* The boss rides in: a banner, cinema bars and the camera easing towards it (view.js) unless motion is calm. */
+/* The boss rides in: a banner, cinema bars and the camera easing toward it (view.js) unless motion is calm. */
 function bossEntrance(air) {
   if (TOWN_ID !== S.town) return;
   FXS.bossCam = BOSS_CAM;
   FXS.banner = { t: 2.6, a: bossName(), b: air ? 'Sky pirates over the mesa' : TOWN_ID === 'falls' ? 'Steaming up the river' : TOWN_ID === 'ridge' ? 'Thundering down the line' : 'Riding for the vault', enter: 1 };
 }
-/* How far the camera leans towards the boss (0 to 1): eases in, holds, eases out; nothing while motion is calm. */
+/* How far the camera leans toward the boss (0 to 1): eases in, holds, eases out; nothing while motion is calm. */
 function bossCamK() {
   const t = FXS.bossCam; if (!(t > 0) || REDUCED) return 0;
   const k = Math.min(1, (BOSS_CAM - t) / .8, t / 1); return k * k * (3 - 2 * k);

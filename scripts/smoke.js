@@ -162,7 +162,7 @@ const shots = process.argv[2];
       sel = { t }; refresh(); await wait(100); const btn = [...document.querySelectorAll('#card button')].find(b => /^Sell/.test(b.textContent));
       btn.click(); await wait(50); const kept = S.towers.includes(t); btn.click(); await wait(50); const sold = !S.towers.includes(t);
       foes = []; W.queue = []; spawn('boss'); await wait(300); const bar = !document.getElementById('bossbar').hidden && document.getElementById('bossbar').getBoundingClientRect().height > 10;
-      // the boss rides in: its own banner, cinema bars and the camera leaning towards it (all off with calm motion)
+      // the boss rides in: its own banner, cinema bars and the camera leaning toward it (all off with calm motion)
       const enter = document.getElementById('banA').textContent === bossName() && document.getElementById('banner').classList.contains('enter');
       const cine = REDUCED || document.body.classList.contains('cine'), cam = REDUCED || R3.bk > .05;
       foes = []; await wait(200); const gone = document.getElementById('bossbar').hidden;

@@ -116,7 +116,7 @@ function r3Resize() {
 function r3Camera() {
   const W = R3.canvas.width, H = R3.canvas.height, fov = .62, asp = W / H, th = Math.tan(fov / 2);
   // R3.dist is a zoom (24 = the whole board); the real distance makes the board fit this screen's width and height
-  // a boss riding in: the camera leans towards it and closes in a little (bossCamK in fx.js), then eases back
+  // a boss riding in: the camera leans toward it and closes in a little (bossCamK in fx.js), then eases back
   const bk = !R3.look && !(typeof CAPV !== 'undefined' && CAPV.on) && typeof bossCamK === 'function' ? bossCamK() : 0, boss = bk > 0 && foes.find(f => f.type === 'boss' && f.hp > 0);
   R3.bk = (R3.bk || 0) + ((boss ? bk : 0) - (R3.bk || 0)) * .2; if (R3.bk < .001) R3.bk = 0;
   if (boss) { R3.bx = Math.max(1, Math.min(COLS - 1, boss.x + .5)); R3.bz = Math.max(YARD + 1.5, Math.min(ROWS - 1, boss.y + .5)); }

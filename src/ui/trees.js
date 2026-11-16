@@ -1,7 +1,7 @@
 'use strict';
 /* =========================================================
    Interface: the tech trees
-   Two trees bought with Influence in the Capital: Economy (Department of Education) and Defence (War Office). Each
+   Two trees bought with Influence in the Capital: Economy (Department of Education) and Defense (War Office). Each
    branch is a chain of five ranks, drawn as connected pips; the next rank's price is on its button.
    ========================================================= */
 let techTab = 'econ';

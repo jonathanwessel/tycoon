@@ -147,7 +147,7 @@ function troopsTick(dt) {
     const st = troopStats(q.t);
     if (q.max < st.hp) { q.hp += st.hp - q.max; q.max = st.hp; } // stronger arms (and later waves) reach soldiers already out
     if (q.f && (q.f.hp <= 0 || !foes.includes(q.f) || q.f.p !== q.p || Math.abs(q.f.d - q.d) > .8)) q.f = null;
-    // the raider coming up the road towards this soldier (raiders move to larger d, soldiers march to smaller d)
+    // the raider coming up the road toward this soldier (raiders move to larger d, soldiers march to smaller d)
     if (!q.f) { let best = null;
       for (const f of foes) {
         if (f.hp <= 0 || f.p !== q.p || f.type === 'boss' || f.type === 'boat') continue;
