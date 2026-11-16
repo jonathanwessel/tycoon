@@ -106,6 +106,11 @@ export function makeFoe(type) { const f = (FOE[type] || FOE.raider)(); f.travers
 
 /* Porters carry goods between buildings; foremen stand by their building's door. */
 export function makeWorker(good) { return person({ shirt: 'cream', pants: 'cloth', hat: 'cap', hatC: 'woodL', extra: k => k.box(0, .46, .12, .14, .12, .12, good || 'woodL') }); }
+export function makeDrone() {
+  const root = G(); root.add(part(k => { k.box(0, 0, 0, .2, .07, .2, 'black', { mat: 'metal' }); k.box(0, -.03, .09, .06, .04, .04, 'paintR', { mat: 'fire' }); k.box(0, -.06, 0, .04, .05, .14, 'iron'); for (const a of [.785, 2.356]) k.box(0, .03, 0, .5, .02, .03, 'iron', { ry: a }); }));
+  root.userData.props = [[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([x, z]) => { const pr = part(k => { k.box(0, 0, 0, .2, .006, .025, 'steel', { ao: false }); k.box(0, 0, 0, .025, .006, .2, 'steel', { ao: false }); }, { cast: false }); pr.position.set(x * .17, .06, z * .17); root.add(pr); return pr; });
+  root.traverse(o => { if (o.isMesh) o.castShadow = true; }); return root;
+}
 export function makeSoldier() { return person({ shirt: 'paintB', vest: 'paintB', pants: 'denim', hat: 'cowboy', hatC: 'iron', belt: 'gold', extra: k => { k.box(.17, .12, .05, .03, .5, .03, 'woodD', { rx: -.3, ao: false }); k.box(.17, .5, .14, .02, .12, .02, 'steel', { rx: -.3, ao: false }); } }); }
 export function makeForeman() { return person({ shirt: 'white', vest: 'paintR', pants: 'black', hat: 'bowler', hatC: 'black', extra: k => k.box(.16, .3, .08, .08, .1, .02, 'cream') }); }
 export function makeWagon(kind) {
@@ -129,6 +134,13 @@ export function makeTower(type, br, lvl) {
     if (type === 'crossbow') { for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(sx * .26, 0, sz * .26, .07, .5, .07, 'wood', { rz: -sx * .06, rx: sz * .06 }); k.box(0, .2, 0, .58, .04, .04, 'woodD', { rz: .4 }); k.box(0, .5, 0, .66, .07, .66, 'woodL'); for (let i = 0; i < 6; i++) k.box(-.28 + i * .112, .57, .3, .05, .12, .05, 'woodD'); }
     else if (type === 'cannon') { k.cyl(0, 0, 0, .36, .3, 'stone', { r2: .32, seg: 10, jit: .1 }); for (let i = 0; i < 8; i++) k.box(Math.cos(i * .785) * .3, .3, Math.sin(i * .785) * .3, .12, .1, .12, 'stoneL', { ry: -i * .785 }); }
     else if (type === 'frost') { k.cyl(0, 0, 0, .3, .12, 'stoneL', { seg: 6 }); k.cyl(0, .12, 0, .14, .42, 'stone', { r2: .1, seg: 6 }); k.cyl(0, .54, 0, .2, .05, 'glowI', { seg: 6, mat: 'glow' }); }
+    else if (type === 'helipad') {
+      for (let i = 0; i < 5; i++) for (const [x, z] of [[-.33 + i * .165, -.33], [-.33, -.33 + i * .165]]) k.cyl(x, 0, z, .045, .4, 'log', { seg: 6 });
+      k.cyl(.05, 0, .05, .3, .1, 'stone', { seg: 10 }); k.cyl(.05, .1, .05, .27, .02, 'iron', { seg: 10, mat: 'metal' });
+      for (const [x, z, w, d2] of [[-.06, .05, .03, .22], [.16, .05, .03, .22], [.05, .05, .2, .03]]) k.box(x, .12, z, w, .01, d2, 'gold', { ao: false });
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; k.ball(.05 + Math.cos(a) * .27, .12, .05 + Math.sin(a) * .27, .025, 'paintR', { mat: 'fire' }); }
+      k.box(-.3, 0, .3, .025, .8, .025, 'woodD'); k.box(-.2, .65, .3, .2, .12, .012, 'paintB');
+    }
     else if (type === 'barracks') {
       // a square log palisade with a gate, a tent inside and a blue flag
       for (let i = 0; i < 7; i++) for (const [x, z, ry] of [[-.33 + i * .11, -.33, 0], [-.33 + i * .11, .33, 0], [-.33, -.33 + i * .11, 0], [.33, -.33 + i * .11, 0]]) { if (z === .33 && Math.abs(x) < .1) continue; k.cyl(x, 0, z, .05, .42 + (i % 2) * .05, i % 2 ? 'log' : 'woodL', { seg: 6 }); k.cone(x, .42 + (i % 2) * .05, z, .05, .07, 'woodD', { seg: 6 }); }
@@ -164,6 +176,7 @@ export function makeTower(type, br, lvl) {
     const cr = part(k => { k.cone(0, 0, 0, .14, .28, br === 'b' ? 'paintP' : 'glowI', { seg: 5, mat: 'glow' }); k.cone(0, 0, 0, .14, .16, br === 'b' ? 'paintP' : 'glowI', { seg: 5, mat: 'glow', rx: Math.PI }); if (br === 'a') for (let i = 0; i < 3; i++) k.cone(Math.cos(i * 2.1) * .2, -.05, Math.sin(i * 2.1) * .2, .05, .14, 'glowI', { seg: 4, mat: 'glow' }); }, { cast: false });
     bar.add(cr); root.userData.float = 1;
   }
+  else if (type === 'helipad') bar.add(part(k => k.ball(0, 0, 0, .001, 'woodD')));
   else if (type === 'barracks') bar.add(part(k => k.ball(0, 0, 0, .001, 'woodD')));
   else if (type === 'still') bar.add(part(k => k.ball(0, 0, 0, .001, 'copper')));
   else if (type === 'tesla') bar.add(part(k => { k.ball(0, 0, 0, .14, br === 'b' ? '#ff8fb0' : 'glowW', { mat: 'fire', det: 1 }); k.torus(0, 0, 0, .19, .02, 'copper', { mat: 'metal', ts: 10, rx: Math.PI / 2 }); }, { cast: false }));

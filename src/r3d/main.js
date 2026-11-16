@@ -10,10 +10,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { MAT, col } from './kit.js';
 import { makeBuilding, BUILDING_IDS } from './buildings.js';
-import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, makeSoldier, PROPS } from './units.js';
+import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, makeSoldier, makeDrone, PROPS } from './units.js';
 import { buildWorld, makeSky } from './world.js';
 
 const V = {}; // everything this renderer keeps
+const G_DRONE = []; // drone tracers this frame: [x, y, z, length, yaw, pitch]
 const v3 = (x, y, z) => new THREE.Vector3(x, y, z), TAU = Math.PI * 2;
 const NLIGHTS = 8, PCAP = 900;
 
@@ -204,6 +205,16 @@ function syncFoes(time, dt) {
     if (!corpses.includes(k)) { V.corpses.delete(k); give(v.kind, v.obj); continue; }
     const p = 1 - k.t / .8, o = v.obj; o.rotation.x = Math.min(1.45, p * 4) * (o.userData.boat ? .3 : 1); o.position.y -= dt * (p > .6 ? .5 : 0); animatePerson(o, 0, 0, true);
   }
+  // drones over their helipads
+  V.drones = V.drones || new Map(); const dn = new Set();
+  for (const t of S.towers) if (t.drone && TOWERS[t.type].drone) {
+    dn.add(t); let o = V.drones.get(t); if (!o) { o = makeDrone(); V.dyn.add(o); V.drones.set(t, o); }
+    const d = t.drone, fly = d.mode === 'fly' || d.mode === 'home'; o.position.set(d.x + .5, (fly ? 1.15 : .22) + (fly ? Math.sin(time * 5 + t.c) * .05 : 0), d.y + .5);
+    const f = DRONE_T.get(t); if (f && fly) o.rotation.y = Math.atan2(f.x - d.x, f.y - d.y); o.rotation.x = fly ? .15 : 0;
+    for (const pr of o.userData.props) pr.rotation.y += dt * (fly ? 60 : d.mode === 'charge' ? 6 : 20);
+    if (d.fire > 0 && f) { const ax = d.x + .5, az = d.y + .5, bx = f.x + .5, bz = f.y + .5, L = Math.hypot(bx - ax, bz - az, .8); G_DRONE.push([(ax + bx) / 2, (o.position.y + .35) / 2, (az + bz) / 2, L, -Math.atan2(bz - az, bx - ax), Math.atan2(o.position.y - .35, Math.hypot(bx - ax, bz - az))]); }
+  }
+  for (const [t, o] of V.drones) if (!dn.has(t)) { V.dyn.remove(o); V.drones.delete(t); }
   // soldiers from the barracks
   V.troops = V.troops || new Map(); const ts = new Set();
   for (const q of troops) {
@@ -270,6 +281,7 @@ function syncFx(time, dt) {
   }
   for (const cl of clouds) { const k = Math.min(1, cl.t / .8, (cl.t0 - cl.t) * 4); for (let i = 0; i < 7; i++) { const a = i * .9 + time * .5, rr = cl.r * (.25 + .5 * ((i * 37) % 10) / 10); S_(cl.x + .5 + Math.cos(a) * rr, .2 + (i % 3) * .12 + Math.sin(time * 2 + i) * .04, cl.y + .5 + Math.sin(a) * rr, cl.r * .55 * k, cl.zap > 0 ? col('#d8ff8a') : col(i % 2 ? '#7cc24a' : '#5fae5a'), a); } }
   for (const p of tars) if (p.burn > 0) for (let i = 0; i < 6; i++) { const a = i * 1.05 + time * 3; G_(p.x + .5 + Math.cos(a) * p.r * .5, .12 + Math.abs(Math.sin(time * 9 + i)) * .25, p.y + .5 + Math.sin(a) * p.r * .35, .1, .2 + Math.random() * .15, .1, _c.setRGB(3, 1.3, .3)); }
+  for (const [x, y, z, L, ry, rz] of G_DRONE.splice(0)) G_(x, y, z, L, .03, .03, _c.setRGB(3, 2.5, 1.2), ry, 0);
   // chimney smoke grows and fades
   for (const q of V.smoke) { q.t -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.vy *= 1 - dt * .3; }
   V.smoke = V.smoke.filter(q => q.t > 0);

@@ -203,6 +203,14 @@ function draw(time) {
   cx.globalAlpha = 1;
   for (const w of weeds) { const bounce = Math.abs(Math.sin(w.a * 1.3 + w.ph)) * c * .22; cx.fillStyle = 'rgba(40,24,14,.2)'; cx.beginPath(); cx.ellipse(w.x * c, (w.y + .3) * c, c * .22, c * .06, 0, 0, 7); cx.fill(); cx.save(); cx.translate(w.x * c, w.y * c - bounce); cx.rotate(w.a); sp(cx, 'tumble', 0, 0, c * .5); cx.restore(); }
   for (const b of bombs) { const pr = 1 - b.t / .7, sx0 = X(VAULT[0]), sy0 = Y(VAULT[1]), bx = sx0 + (X(b.x) - sx0) * pr, by_ = sy0 + (Y(b.y) - sy0) * pr - Math.sin(pr * Math.PI) * c * 2; cx.save(); cx.translate(bx, by_); cx.rotate(pr * 9); sp(cx, 'dynamite', 0, 0, c * .55); cx.restore(); cx.fillStyle = Math.floor(time * 24) % 2 ? '#fff0a0' : '#f5a04a'; cx.beginPath(); cx.arc(bx, by_ - c * .3, c * .07, 0, 7); cx.fill(); }
+  // drones: a shadow on the ground, the drone above it, a battery bar, tracer fire
+  for (const t of S.towers) if (t.drone && TOWERS[t.type].drone) {
+    const d = t.drone, x = X(d.x + .5), gy = Y(d.y + .5), fly = d.mode === 'fly' || d.mode === 'home' ? 1 : 0, y = gy - c * (.25 + .55 * fly) - Math.sin(time * 5 + t.c) * c * .04 * fly;
+    cx.fillStyle = 'rgba(40,24,14,.3)'; cx.beginPath(); cx.ellipse(x, gy + c * .1, c * .25, c * .08, 0, 0, 7); cx.fill();
+    sp(cx, 'drone', x, y, c * .32);
+    const ds = droneStats(t); if (d.bat < ds.battery) { const bw = c * .4; cx.fillStyle = '#2a1c22'; cx.fillRect(x - bw / 2 - 1, y - c * .3 - 1, bw + 2, c * .06 + 2); cx.fillStyle = d.bat / ds.battery > .3 ? '#56d3c6' : '#f07067'; cx.fillRect(x - bw / 2, y - c * .3, bw * Math.max(0, d.bat / ds.battery), c * .06); }
+    if (d.fire > 0) { const f = DRONE_T.get(t); if (f) { cx.strokeStyle = '#fff0a0'; cx.lineWidth = Math.max(1, c * .04); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(X(f.x + .5), Y(f.y + .5) - c * .2); cx.stroke(); } }
+  }
   // the rally flag of the barracks being looked at (or moved)
   { const bt = rallyFor || (sel && sel.t && TOWERS[sel.t.type].troops ? sel.t : null); if (bt && bt.rally) { const fx_ = X(bt.rally[0] + .5), fy = Y(bt.rally[1] + .5); cx.fillStyle = '#2a1c22'; cx.fillRect(fx_ - c * .03, fy - c * .55, c * .06, c * .55); cx.fillStyle = '#5b8bc0'; cx.fillRect(fx_ + c * .03, fy - c * .55, c * .28, c * .18); if (rallyFor) { cx.strokeStyle = 'rgba(91,139,192,.8)'; cx.lineWidth = Math.max(1, c * .04); cx.setLineDash([c * .12, c * .08]); cx.beginPath(); cx.arc(X(bt.c + .5), Y(bt.r + .5), troopStats(bt).range * c, 0, 7); cx.stroke(); cx.setLineDash([]); } } }
   // towers and raiders, back to front

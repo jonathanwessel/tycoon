@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-22",
-  "notes": "New Barracks tower from wave 15: soldiers hold a rally point on the road and fight raiders. Upgrade Drill, Recruits and Arms separately, and tap Move rally point to choose where they stand."
+  "version": "2026.11.15-23",
+  "notes": "Drone Helipad: rebuild a Barracks with Drill, Recruits and Arms at 5 into a helipad. Its attack drone flies anywhere within reach, hits even war wagons and boats, and lands to recharge. Upgrade Battery, Range and Guns."
 }

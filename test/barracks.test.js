@@ -56,3 +56,24 @@ test('the rally point must be a road cell within reach', () => {
   assert.strictEqual(g.run('setRally(S.towers[0], 9, 7)'), false, 'out of reach');
   assert.strictEqual(g.run('setRally(S.towers[0], 4, 7)'), true);
 });
+
+test('a Barracks with Drill, Recruits and Arms at 5 rebuilds as a Drone Helipad; it cannot be built directly', () => {
+  const g = load(); setup(g);
+  assert.strictEqual(g.run(`buildTower('helipad', 5, 8)`), false, 'not in the build list');
+  assert.strictEqual(g.run('rebuildHelipad(S.towers[0])'), false, 'tracks not at 5 yet');
+  g.run('for (const k of ["time", "count", "power"]) for (let i = 0; i < 5; i++) upgradeTrack(S.towers[0], k);');
+  assert.strictEqual(g.run('rebuildHelipad(S.towers[0])'), true);
+  assert.strictEqual(g.run('S.towers[0].type'), 'helipad');
+});
+
+test('the drone stays inside its circle, hits even a war wagon, and lands to recharge', () => {
+  const g = load(); setup(g);
+  g.run('for (const k of ["time", "count", "power"]) for (let i = 0; i < 5; i++) upgradeTrack(S.towers[0], k); rebuildHelipad(S.towers[0]); troops = [];');
+  raider(g, 'boss', 1); g.run('foes[0].hp = foes[0].max = 1e12;');
+  let far = 0;
+  for (let i = 0; i < 400; i++) { g.run('combat(.05);'); far = Math.max(far, g.run('Math.hypot(S.towers[0].drone.x - S.towers[0].c, S.towers[0].drone.y - S.towers[0].r)')); }
+  assert.ok(far <= g.run('droneStats(S.towers[0]).range') + 1e-6, 'never beyond reach, max ' + far);
+  assert.ok(g.run('foes.length ? foes[0].hp < foes[0].max : true'), 'the war wagon was hit');
+  g.run('S.towers[0].drone.bat = 0.01; for (let i = 0; i < 60; i++) combat(.05);');
+  assert.ok(['charge', 'pad'].includes(g.run('S.towers[0].drone.mode')), 'landed to recharge');
+});

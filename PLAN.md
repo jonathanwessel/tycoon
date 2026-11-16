@@ -172,7 +172,7 @@ Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29
 
 1. [x] Missions per town and an empire chain, with a Missions side button; a livelier interface; a 3D app icon.
 2. [x] Barracks (from wave 15): soldiers hold a rally point on the road and fight raiders. Three tracks: Drill (spawn time), Recruits (up to 6 soldiers), Arms (strength).
-3. [ ] Drone Helipad: a Barracks transformation; its attack drone flies within the tower's range. Tracks: battery, range, attack.
+3. [x] Drone Helipad: a Barracks transformation; its attack drone flies within the tower's range. Tracks: battery, range, attack.
 4. [ ] The Capital (after Silver Falls): Foremen Guild, Market Board, Department of Transport, Central Bank, Department of Education, War Office.
 5. [ ] Economy and Defence tech trees, bought with Influence; slow tower auto-upgrade in the Defence tree.
 6. [ ] Stock Exchange: shares in your towns.

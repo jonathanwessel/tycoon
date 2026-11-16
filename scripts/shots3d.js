@@ -17,7 +17,7 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
     for (const k in S.res) add(k, 5000);
     const L = [12, 30, 60, 120]; BUILD.forEach((b, i) => { S[b.kind][b.def.id] = L[i % 4]; }); for (const b of BUILD.slice(0, 5)) hire(b.def.id);
     let i = 0; for (const t of Object.keys(TOWERS)) { buildTower(t, PLOTS[i].x, PLOTS[i].y); i++; }
-    const bk = S.towers.find(t => t.type === 'barracks'); if (bk) { for (let k = 0; k < 4; k++) { upgradeTrack(bk, 'count'); upgradeTrack(bk, 'power'); } }
+    const bk = S.towers.find(t => t.type === 'barracks'); if (bk) { for (const k of ['time', 'count', 'power']) for (let i = 0; i < 5; i++) upgradeTrack(bk, k); rebuildHelipad(bk); }
     S.towers.forEach((t, j) => { for (let k = 0; k < 4; k++) upgradeTower(t); branchTower(t, j % 2 ? 'b' : 'a'); });
     setGx('preset', 'high'); setGx('view', '3d'); refresh(); await wait(1500);
     return { on: R3.on };

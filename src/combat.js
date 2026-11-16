@@ -140,6 +140,45 @@ function troopsTick(dt) {
   for (const q of troops) if (q.hp <= 0) { q.t.spawnT = Math.max(q.t.spawnT || 0, troopStats(q.t).time); for (let i = 0; i < 5; i++) parts.push({ x: q.x + .5, y: q.y + .5, vx: (Math.random() - .5) * 2, vy: -1 - Math.random(), g: 6, t: .4, c: '#5b8bc0', s: .07 }); }
   troops = troops.filter(q => q.hp > 0 && S.towers.includes(q.t));
 }
+/* --- the Drone Helipad ------------------------------------------------------------------------------------------
+   A Barracks with Drill 5, Recruits 5 and Arms 5 can be rebuilt as a helipad (its soldiers stay). The drone is tied to
+   the tower's reach, not the road: it flies to the strongest raider inside the circle (war wagons and boats too),
+   strafes it, and when the battery runs low it lands on the pad to recharge. Tracks: battery, range and attack. */
+const DRONE = { battery: { n: 'Battery', d: 'Longer flights', max: 15 }, range: { n: 'Range', d: 'A wider patrol circle', max: 12 }, attack: { n: 'Guns', d: 'More damage, faster fire', max: 25 } };
+const droneCost = (t, k) => Math.ceil(TOWERS.helipad.coins * .25 * Math.pow(1.5, (t.dr && t.dr[k]) || 0));
+function droneStats(t) {
+  const u = t.dr || {};
+  return { battery: 8 * Math.pow(1.22, u.battery || 0), charge: 6, range: TOWERS.helipad.range + .25 * (u.range || 0), dmg: 45 * Math.pow(1.42, u.attack || 0) * dmgMult(), rate: 4 * (1 + .04 * (u.attack || 0)), spd: 3.6 };
+}
+const canRebuild = t => t.type === 'barracks' && ['time', 'count', 'power'].every(k => ((t.up && t.up[k]) || 0) >= 5);
+const rebuildCost = () => Math.ceil(TOWERS.helipad.coins);
+function rebuildHelipad(t) {
+  const goods = towerGoods('helipad'); if (!canRebuild(t) || S.coins < rebuildCost() || !hasGoods(goods)) return false;
+  S.coins -= rebuildCost(); for (const k in goods) S.res[k] -= goods[k]; t.spent = (t.spent || 0) + rebuildCost();
+  t.type = 'helipad'; t.dr = { battery: 0, range: 0, attack: 0 }; t.drone = { x: t.c, y: t.r, bat: droneStats(t).battery, mode: 'pad' }; t.born = .35;
+  snd('ms', 660, .3, 'triangle', .06, 440); return true;
+}
+function upgradeDrone(t, k) {
+  const c = droneCost(t, k); t.dr = t.dr || {}; if ((t.dr[k] || 0) >= DRONE[k].max || S.coins < c) return false;
+  S.coins -= c; t.spent = (t.spent || 0) + c; t.dr[k] = (t.dr[k] || 0) + 1; snd('build', 520, .12, 'triangle', .05, 440); return true;
+}
+const DRONE_T = new WeakMap(); // the raider each drone is after (kept out of the save)
+function droneTick(t, dt) {
+  const st = droneStats(t), d = t.drone || (t.drone = { x: t.c, y: t.r, bat: st.battery, mode: 'pad' }); d.cd = (d.cd || 0) - dt;
+  const inCircle = f => f.hp > 0 && Math.hypot(f.x - t.c, f.y - t.r) <= st.range;
+  if (d.mode === 'charge') { d.bat = Math.min(st.battery, d.bat + st.battery / st.charge * dt); if (d.bat >= st.battery) d.mode = 'pad'; return; }
+  let f = DRONE_T.get(t); if (!f || !inCircle(f)) { f = null; let bv = 0; for (const o of foes) if (inCircle(o) && o.hp > bv) { bv = o.hp; f = o; } DRONE_T.set(t, f); }
+  const home = !f || d.bat <= 0 || d.mode === 'home', gx = home ? t.c : f.x, gy = home ? t.r : f.y, dist = Math.hypot(gx - d.x, gy - d.y);
+  if (d.mode === 'pad' && !f) return; // waiting on the pad
+  if (!home) d.mode = 'fly';
+  if (dist > .05) { const s = Math.min(dist, st.spd * dt); d.x += (gx - d.x) / dist * s; d.y += (gy - d.y) / dist * s; }
+  // never beyond the tower's reach
+  const r = Math.hypot(d.x - t.c, d.y - t.r); if (r > st.range) { d.x = t.c + (d.x - t.c) / r * st.range; d.y = t.r + (d.y - t.r) / r * st.range; }
+  if (d.mode === 'fly') { d.bat -= dt; if (d.bat <= 0) d.mode = 'home'; }
+  if (!home && dist < .9 && d.cd <= 0) { d.cd = 1 / st.rate; hurt(f, st.dmg, { pierce: 1 }); d.fire = .08; d.aim = Math.atan2(f.y - d.y, f.x - d.x); }
+  d.fire = Math.max(0, (d.fire || 0) - dt);
+  if (home && dist < .08) { d.x = t.c; d.y = t.r; d.mode = 'charge'; }
+}
 const towerCount = type => S.towers.filter(t => t.type === type).length;
 const buildCost = type => Math.ceil(TOWERS[type].coins * Math.pow(1.2, towerCount(type)));
 const upCost = t => Math.ceil(TOWERS[t.type].coins * .8 * Math.pow(1.75, t.lvl));
@@ -149,7 +188,7 @@ function upgradeTower(t) { if (needsBranch(t) || TOWERS[t.type].troops) return f
 function branchTower(t, b) { if (!needsBranch(t)) return false; const c = branchCost(t); if (S.coins < c) return false; S.coins -= c; t.br = b; t.lvl++; snd('ms', 660, .25, 'triangle', .06, 440); for (let i = 0; i < 14; i++) parts.push({ x: t.c + .5, y: t.r + .5, vx: Math.cos(i) * 2, vy: Math.sin(i) * 2 - 1, g: 2, t: .7, c: P.yel, s: .08 }); return true; }
 function buildTower(type, c, r) {
   const d = TOWERS[type], cost = buildCost(type);
-  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods) || (d.from && S.best < d.from)) return false;
+  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods) || (d.from && S.best < d.from) || d.rebuilt) return false;
   S.coins -= cost; for (const k in goods) S.res[k] -= goods[k];
   S.towers.push({ c, r, type, lvl: 0, tg: 'first' }); return true;
 }
@@ -231,7 +270,7 @@ function combat(dt) {
   for (const t of S.towers) {
     t.cd = (t.cd || 0) - dt; t.kick = Math.max(0, (t.kick || 0) - dt);
     if (t.jam > 0) { t.jam -= dt; continue; }
-    if (TOWERS[t.type].troops) { barracksTick(t, dt); continue; }
+    if (TOWERS[t.type].troops) { barracksTick(t, dt); if (TOWERS[t.type].drone) droneTick(t, dt); continue; }
     if (t.cd > 0) continue;
     const st = towerStats(t), best = pickTarget(t, st); if (!best) continue;
     t.cd = 1 / st.rate; t.aim = Math.atan2(best.y - t.r, best.x - t.c); t.kick = .12;

@@ -113,6 +113,7 @@ function card() {
       const [c, r] = sel.plot;
       box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower here'), h('small', null, 'Grey costs mean you are short of coins or goods.')), close));
       for (const id in TOWERS) {
+        if (TOWERS[id].rebuilt) continue; // made by rebuilding another tower, not built
         const d = TOWERS[id], b = h('button', { cls: 'buildopt', on: () => {
           if (!buildTower(id, c, r)) return;
           const t = S.towers[S.towers.length - 1]; t.born = .35; sel = { t }; snd('build', 330, .12, 'triangle', .05, 330);
@@ -131,6 +132,18 @@ function card() {
           const T = TRACKS[k], lab = h('span', { cls: 'grow' }), b = h('button', { cls: 'small', on: () => upgradeTrack(t, k) }, 'Upgrade ', costEl(() => trackCost(t, k), null, cardUps));
           box.append(h('div', { cls: 'row track' }, lab, b));
           cardUps.push(() => { const l = (t.up && t.up[k]) || 0, fin = l >= T.max; lab.textContent = T.n + ' ' + l + '/' + T.max + ' · ' + T.d; b.hidden = fin; b.disabled = S.coins < trackCost(t, k); });
+        }
+        if (d.drone) {
+          cardUps.push(() => { const ds = droneStats(t), dr = t.drone || {}; stats.textContent = ''; stats.append(fmt(troopStats(t).count) + ' soldiers · drone ' + fmt(ds.dmg) + ' damage × ' + ds.rate.toFixed(1) + '/s · battery ' + Math.max(0, dr.bat || 0).toFixed(0) + '/' + ds.battery.toFixed(0) + 's · reach ' + ds.range.toFixed(1)); });
+          box.append(h('small', null, 'Drone'));
+          for (const k in DRONE) {
+            const T = DRONE[k], lab = h('span', { cls: 'grow' }), b = h('button', { cls: 'small', on: () => upgradeDrone(t, k) }, 'Upgrade ', costEl(() => droneCost(t, k), null, cardUps));
+            box.append(h('div', { cls: 'row track' }, lab, b));
+            cardUps.push(() => { const l = (t.dr && t.dr[k]) || 0; lab.textContent = T.n + ' ' + l + '/' + T.max + ' · ' + T.d; b.hidden = l >= T.max; b.disabled = S.coins < droneCost(t, k); });
+          }
+        } else {
+          const rb = h('button', { cls: 'primary grow1', on: () => rebuildHelipad(t) }, 'Rebuild as Drone Helipad ', costEl(() => rebuildCost(), towerGoods('helipad'), cardUps)), note = h('small', null, 'With Drill, Recruits and Arms all at 5, this Barracks can be rebuilt as a Drone Helipad: an attack drone that flies anywhere within reach. The soldiers stay.');
+          box.append(note, h('div', { cls: 'bar' }, rb)); cardUps.push(() => { rb.disabled = !canRebuild(t) || S.coins < rebuildCost() || !hasGoods(towerGoods('helipad')); });
         }
         const back2 = Math.ceil(d.coins * .5 + (t.spent || 0) * .3);
         const mv = h('button', { cls: 'small', on: () => { rallyFor = t; say('Tap a road cell inside the barracks\' reach to move the rally point. Tip: a spot by a bend makes raiders pass twice.'); } }, 'Move rally point');
@@ -293,6 +306,7 @@ const PANELS = {
     }
     p.append(h('h2', null, 'Towers'), h('p', null, TOWER_TIPS));
     for (const id in TOWERS) {
+      if (TOWERS[id].rebuilt) continue;
       const d = TOWERS[id];
       p.append(h('div', { cls: 'row' }, ico(id), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, d.n), h('small', null, d.d + (BRANCH[id] ? ' Paths at level 5: ' + Object.values(BRANCH[id]).map(B => B.n).join(', ').replace(/, ([^,]*)$/, ' or $1') + '.' : '') + (d.from ? ' Opens at wave ' + d.from + '.' : ''))), costEl(() => buildCost(id), towerGoods(id), ups)));
     }

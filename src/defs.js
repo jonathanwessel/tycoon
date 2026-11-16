@@ -88,6 +88,7 @@ const TOWERS = {
   frost:    { n: 'Frost Lens', coins: 300,  goods: { lens: 8 },              dmg: 5,  rate: 1,    range: 2.1, slow: 2, d: 'Chills everything in reach.' },
   still:    { n: 'Snake Oil Still', coins: 700, goods: { lens: 4, coal: 6 },  dmg: 9,  rate: .7,   range: 2.4, poison: 1, d: 'Lobs flasks that burst into poison clouds. Poison seeps past shields.' },
   barracks: { n: 'Barracks',   coins: 2500, goods: { plank: 40, ingot: 20 }, dmg: 0, rate: 1, range: 2.3, troops: 1, from: 15, d: 'Sends soldiers to hold a spot on the road. Raiders who reach them stop and fight. Upgrade spawn time, troops and strength.' },
+  helipad:  { n: 'Drone Helipad', coins: 30000, goods: { engine: 4, steel: 12 }, dmg: 0, rate: 1, range: 2.8, troops: 1, drone: 1, from: 15, rebuilt: 'barracks', d: 'A Barracks with a landing pad: its attack drone flies anywhere within reach, strafes the strongest raider, and lands to recharge.' },
   tesla:    { n: 'Tesla Coil', coins: 1500, goods: { gear: 10, engine: 2 },  dmg: 90, rate: .8,   range: 2.6, chain: 3, d: 'Lightning jumps between raiders.' },
   gatling:  { n: 'Gatling',    coins: 3000, goods: { steel: 10, clock: 4 },  dmg: 60, rate: 6,    range: 2.6, d: 'A hail of bullets.' },
 };
@@ -169,13 +170,13 @@ const TOWNS = {
   ridge: { n: 'Iron Ridge', era: 'Steam and rail', ext: ['ironmine', 'coalseam', 'quarry'], shops: ['blast', 'rolling', 'boilerw', 'locow'],
            slot: SLOT_RIDGE, tap: { trees: 'stone', rocks: 'iron' }, tapN: { trees: 'Quarry', rocks: 'Dig' }, trees: false, maps: ['ridge'],
            boss: { n: 'Armoured train', spr: 'train' },
-           goods: { crossbow: { stone: 6 }, cannon: { pig: 10 }, frost: { rail: 4 }, still: { pig: 6, coal: 10 }, barracks: { stone: 60, pig: 20 }, tesla: { boiler: 2, rail: 6 }, gatling: { boiler: 3, loco: 1 } },
+           goods: { crossbow: { stone: 6 }, cannon: { pig: 10 }, frost: { rail: 4 }, still: { pig: 6, coal: 10 }, barracks: { stone: 60, pig: 20 }, helipad: { boiler: 4, loco: 1 }, tesla: { boiler: 2, rail: 6 }, gatling: { boiler: 3, loco: 1 } },
            start: { res: { stone: 30 }, seen: ['iron', 'stone', 'coal'] }, forge: ['blast', 'boilerw'], glow: [],
            unlock: { from: 'gulch', best: 20, coins: 1e5 } },
   falls: { n: 'Silver Falls', era: 'Electricity', ext: ['cumine', 'sandpit', 'wheel'], shops: ['refinery', 'wirew', 'glassb', 'bulbw', 'telw'],
            slot: SLOT_FALLS, tap: { trees: 'sand', rocks: 'cu' }, tapN: { trees: 'Dig sand', rocks: 'Mine' }, trees: false, maps: ['falls'], power: true,
            boss: { n: 'Ironclad steamer', spr: 'steamer' },
-           goods: { crossbow: { copper: 4 }, cannon: { copper: 10 }, frost: { glassp: 8 }, still: { copper: 6, glassp: 6 }, barracks: { copper: 30, wire: 10 }, tesla: { wire: 10, bulb: 2 }, gatling: { tele: 1, wire: 12 } },
+           goods: { crossbow: { copper: 4 }, cannon: { copper: 10 }, frost: { glassp: 8 }, still: { copper: 6, glassp: 6 }, barracks: { copper: 30, wire: 10 }, helipad: { tele: 1, bulb: 6 }, tesla: { wire: 10, bulb: 2 }, gatling: { tele: 1, wire: 12 } },
            start: { res: { copper: 20 }, seen: ['cu', 'sand', 'copper'] }, forge: ['refinery'], glow: ['bulbw', 'telw'],
            unlock: { from: 'ridge', best: 15, coins: 1e6 } },
 };
