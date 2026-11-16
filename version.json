@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.16-10",
-  "notes": "Menu icons are now drawn from the 3D models of the buildings, towers, raiders and the Capital"
+  "version": "2026.11.16-11",
+  "notes": "Fix: the town no longer stays blank after the phone takes the 3D view away, it reloads straight back in"
 }

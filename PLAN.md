@@ -62,7 +62,7 @@ How to use it: take the first unchecked item, build it as one release, run the r
 ## Release checklist (every release; stop and fix on any failure)
 1. `node --test test/*.test.js` (tests for every new mechanic, using `scripts/sim.js`).
 2. `node scripts/idle.js 12` prints PASS; `node scripts/balance.js 120 1`: wave 10 at about 6-7 minutes, first deed about 30, best wave about 50.
-3. `node scripts/smoke.js` ends with phone, land and desk ` ok` (extend it for new screens; `TRACE=1` names each step).
+3. `node scripts/ctx-test.js` prints ok (a phone taking the 3D graphics context away must reload straight back into the game); `node scripts/smoke.js` ends with phone, land and desk ` ok` (extend it for new screens; `TRACE=1` names each step).
 4. Screenshots: `node scripts/shots3d.js <dir> gulch|ridge|falls`; look at them.
 5. `node scripts/bump-version.js "note, no apostrophes"`, then `node scripts/update-test.js` (must print ok), commit, push `main`, wait for the Pages build, confirm the live `version.json`.
 

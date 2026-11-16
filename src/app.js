@@ -105,7 +105,8 @@ function start(data) {
     if (gains) welcome(away, earned, gains);
     else if (!S.life && !S.towers.length) say('Tap a plot beside the road to build a crossbow. Hold the trees and rocks to gather. Raiders arrive in 30 seconds.');
   };
-  if (data && data.S) later('continue'); else showTitle(later); // a live reload while developing skips the title
+  let resume = false; try { resume = sessionStorage.getItem('copper-gulch-ctx-resume') === '1'; sessionStorage.removeItem('copper-gulch-ctx-resume'); } catch (e) {}
+  if ((data && data.S) || resume) later('continue'); else showTitle(later); // a live reload while developing, or one that rebuilt the 3D view (src/view.js), skips the title
   for (const ev of ['pointerdown', 'keydown', 'touchend', 'click']) document.addEventListener(ev, musicStart, { capture: true, passive: true }); // sound may only start after a tap
   document.addEventListener('visibilitychange', () => { musicSleep(document.hidden); if (document.hidden) { if (S.opt.autoPause) setPaused(true); save(); } });
   window.addEventListener('pagehide', save);
@@ -115,8 +116,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-10'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Menu icons are now drawn from the 3D models of the buildings, towers, raiders and the Capital';
+const GAME_VERSION = '2026.11.16-11'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Fix: the town no longer stays blank after the phone takes the 3D view away, it reloads straight back in';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

@@ -20,6 +20,25 @@ function fit() {
   cell = Math.min(cv.width / COLS, cv.height / ROWS); // the overlay's text and bars size from this
   r3Resize();
 }
+/* A phone can take the 3D view's graphics memory away at any time (the app sent to the background, or short of
+   memory), which leaves an empty screen behind the menus. The sure way to rebuild every model, texture and render
+   target is to save and reload, straight back into the game (no title screen). That happens when the browser hands
+   the context back, or 3 seconds after the page is visible again if it does not. Three reloads within two minutes
+   mean something is wrong with the device: then say so, with a button to try again, instead of looping. */
+const CTX_KEY = 'copper-gulch-ctx';
+function ctxRecent() { try { const t = Date.now(); return (JSON.parse(sessionStorage.getItem(CTX_KEY)) || []).filter(x => t - x < 120000); } catch (e) { return []; } }
+function ctxReload() {
+  if (!document.hidden && CTX.gone) {
+    const r = ctxRecent();
+    if (r.length >= 3) { $('loading3d').hidden = true; $('no3d').hidden = false; $('no3d').querySelector('b').textContent = 'The 3D view stopped'; $('no3d').querySelector('span').textContent = 'This device keeps taking the graphics memory away. Close other apps, or lower the graphics preset in Settings, then reload.'; return; }
+    try { r.push(Date.now()); sessionStorage.setItem(CTX_KEY, JSON.stringify(r)); sessionStorage.setItem(CTX_KEY + '-resume', '1'); } catch (e) {}
+    save(); location.reload();
+  }
+}
+const CTX = { gone: false };
+window.ctxLost = () => { CTX.gone = true; R3.on = false; R3.ok = false; $('loading3d').hidden = false; clearTimeout(window.ctxLost.t); window.ctxLost.t = setTimeout(ctxWait, 3000); };
+window.ctxBack = () => { clearTimeout(window.ctxLost.t); ctxWait(); };
+function ctxWait() { if (document.hidden) document.addEventListener('visibilitychange', () => setTimeout(ctxReload, 300), { once: true }); else ctxReload(); }
 /* Graphics settings: start the 3D view (or say why it cannot), apply scanlines and the render scale. */
 function applyGfx() {
   const g = GX();

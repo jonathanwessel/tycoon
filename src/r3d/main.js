@@ -61,7 +61,8 @@ function setup() {
   V.booms = []; V.rings = [];
   V.boomGeo = new THREE.IcosahedronGeometry(1, 1); V.ringGeo = new THREE.TorusGeometry(1, .05, 4, 32).rotateX(Math.PI / 2);
   V.flashM = new THREE.MeshBasicMaterial({ color: '#ffffff' }); V.slowM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#9fd8ff', emissive: '#1a4a6a', roughness: .5 }); V.psnM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#a8ff7a', emissive: '#1e4a10', roughness: .6 }); V.jamM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#777777', roughness: 1 });
-  c.addEventListener('webglcontextlost', e => { e.preventDefault(); if (window.R3) { R3.on = false; R3.ok = false; } c.hidden = true; });
+  c.addEventListener('webglcontextlost', e => { e.preventDefault(); c.hidden = true; if (typeof window.ctxLost === 'function') window.ctxLost(); }); // R3 is a classic-script global, not on window: src/view.js switches it off
+  c.addEventListener('webglcontextrestored', () => { if (typeof window.ctxBack === 'function') window.ctxBack(); }); // src/view.js rebuilds the view
   V.quality = -1; V.key = '';
   return c;
 }

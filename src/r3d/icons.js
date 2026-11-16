@@ -123,6 +123,6 @@ export function iconsStep(r, budget = 5) {
     try { setIcon3d(j.name, renderOne(r, j)); I.done++; } catch (e) { I.bad.push(j.name + ': ' + e.message); }
   } while (I.q.length && performance.now() - t < budget);
   I.ms += performance.now() - t;
-  if (!I.q.length) { I.rtA.dispose(); I.rtB.dispose(); I.out.dispose(); I.end = performance.now(); }
+  if (!I.q.length) { I.rtA.dispose(); I.rtB.dispose(); I.out.dispose(); for (const m of I.mats.values()) m.dispose(); I.mats.clear(); I.end = performance.now(); }
 }
 export const iconsInfo = () => ({ done: I.done, left: I.q ? I.q.length : -1, bad: I.bad.slice(), ms: Math.round(I.ms), wall: I.end ? Math.round(I.end - I.t0) : 0 });
