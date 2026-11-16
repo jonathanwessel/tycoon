@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const SIM_FILES = ['defs.js', 'map.js', 'art.js', 'state.js', 'economy.js', 'goals.js', 'combat.js', 'fx.js', 'capital.js'];
+const SIM_FILES = ['defs.js', 'map.js', 'art.js', 'state.js', 'economy.js', 'goals.js', 'combat.js', 'fx.js', 'capital.js', 'convention.js'];
 
 function load(opts = {}) {
   const store = new Map(Object.entries(opts.storage || {}));

@@ -94,6 +94,7 @@ const BADGES = [
   { id: 'fallso',  n: 'Bright Lights',      d: 'Open Silver Falls.',                               icon: 'bulb',     ok: () => townOpen('falls') },
   { id: 'wired',   n: 'Wired',              d: 'Make a telegraph.',                                icon: 'tele',     ok: () => townIds().some(id => (id === S.town ? S.seen : S.towns[id].seen || {}).tele) },
   { id: 'chfalls', n: 'Charter of Light',   d: 'Sign a charter in Silver Falls.',                  icon: 'bulb',     ok: () => !!S.chMap.falls },
+  { id: 'delegate', n: 'Founding Delegate', d: 'Hold a Constitutional Convention.',                icon: 'office',   ok: () => (S.stats.conventions || 0) >= 1 },
 ];
 function checkBadges(quiet) {
   for (const b of BADGES) if (!S.badges[b.id] && b.ok()) {

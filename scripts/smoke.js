@@ -223,6 +223,12 @@ const shots = process.argv[2];
       const r = { capital: openCapital() }; refresh(); goTab('capital'); await wait(200);
       r.panel = document.getElementById('panel').textContent.includes('Capitol'); r.button = !document.getElementById('bCap').hidden; r.inst = buyInst('market'); S.capital.inf = 1e4; goTab('tech'); await wait(200); r.tree = document.getElementById('panel').textContent.includes('Influence') && document.querySelectorAll('.row.tech').length >= 5; r.node = buyTech('arms');
       r.exch = buyInst('exchange'); for (let i = 0; i < 3; i++) econTowns(10); goTab('exchange'); await wait(200); r.stocks = document.querySelectorAll('.stk canvas').length >= 3; r.trade = exBuy('gulch', 10) === 10 && exSell('gulch', 5) === 5;
+      // policies in the Capitol (two taps adopt one), then the Convention sheet and a Convention held from it
+      goTab('capital'); await wait(200); r.policies = document.querySelectorAll('.row.pol').length === 6; const adopt = document.querySelector('.row.pol button'); adopt.click(); adopt.click(); await wait(100); r.policy = pol('econ') === 'free';
+      goTab('convention'); await wait(200); r.convSheet = document.getElementById('panel').textContent.includes('Legacy perks');
+      S.stats.coins = Math.max(S.stats.coins, 1e12); refresh(); const hold = [...document.querySelectorAll('#panel button')].find(b => b.textContent.includes('Hold the Convention')); r.convReady = !!hold && !hold.disabled;
+      if (hold) { hold.click(); hold.click(); } await wait(400); r.convened = legacyPts() > 0 && !capOpen() && townIds().length === 1 && TOWN_ID === 'gulch' && S.stats.conventions === 1;
+      S.coins = 1e6; for (let i = 0; i < 3; i++) econTowns(1); refresh(); await wait(300);
       if (SHEET.open) closeSheet(); return r;
     });
     for (const k in cap) if (!cap[k]) errs.push('Capital check failed: ' + k);

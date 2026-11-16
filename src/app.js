@@ -102,8 +102,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-1'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Stock Exchange: trade shares in your towns, dividends, news and price charts';
+const GAME_VERSION = '2026.11.16-2'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Policies in the Capitol and the Constitutional Convention: start the empire over for Legacy, a lasting bonus, and Legacy perks';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

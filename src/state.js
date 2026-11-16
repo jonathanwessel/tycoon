@@ -23,7 +23,8 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 9, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 } }, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 10, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
+    legacy: { pts: 0, perks: {}, n: 0, from: 0, best: 0 }, paidDeeds: 0, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
@@ -86,7 +87,7 @@ const routeRate = r => { const cr = carrier(); if (r.per !== 'auto') return Math
 let LOCO_LV = 0;
 const locoLevel = () => LOCO_LV;
 const readLoco = () => { LOCO_LV = (S.town === 'ridge' ? S.shops.locow : S.towns.ridge && S.towns.ridge.shops && S.towns.ridge.shops.locow) || 0; };
-const carrier = () => { const tl = typeof capLv === 'function' ? capLv('transport') : 0, k = (1 + .25 * tl) * tf('logistics', 1.2), f = Math.pow(.9, tl) * tf('logistics', .9); return S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1)) * k), fee: .02 * f, spr: 'loco' } : { n: 'Wagon train', max: Math.round(120 * k), fee: .05 * f, spr: 'wagon' }; };
+const carrier = () => { const tl = typeof capLv === 'function' ? capLv('transport') : 0, ob = polIs('trade', 'open'), k = (1 + .25 * tl) * tf('logistics', 1.2) * (ob ? 1.5 : 1), f = Math.pow(.9, tl) * tf('logistics', .9) * (ob ? .5 : polIs('trade', 'protect') ? 2.5 : 1); return S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1)) * k), fee: .02 * f, spr: 'loco' } : { n: 'Wagon train', max: Math.round(120 * k), fee: .05 * f, spr: 'wagon' }; };
 /* Collect deliveries for this town, and say how much of each good its routes will take this step (workshops leave it). */
 function routeHold(dt) {
   const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
@@ -156,10 +157,12 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (o.v < 7) o.v = 7; // v7: the Capital (its defaults come from fresh()); saves before v7 normally start fresh (WIPE_V)
   if (o.v < 8) { if (o.capital) { o.capital.inf = o.capital.inf || 0; o.capital.tech = o.capital.tech || {}; } o.v = 8; } // v8: Influence and the tech trees
   if (o.v < 9) { if (o.capital && !o.capital.ex) o.capital.ex = { s: {}, news: [], t: 0 }; o.v = 9; } // v9: the Stock Exchange
+  if (o.v < 10) { if (o.capital && !o.capital.pol) o.capital.pol = {}; o.paidDeeds = o.paidDeeds || 0; o.v = 10; } // v10: policies, the Convention and Legacy (the first life counts every coin earned so far)
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
-  for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt']) S[k] = Object.assign(fresh()[k], o[k]);
+  for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt', 'legacy']) S[k] = Object.assign(fresh()[k], o[k]);
+  if (S.capital && !S.capital.pol) S.capital.pol = {};
   if (!o.stats || o.stats.coins === undefined) S.stats.coins = S.life || 0; // older saves: start the lifetime count from this charter
   if (!S.bestMap[S.map]) S.bestMap[S.map] = S.best;
   // graphics options: fill in anything new, and carry over the old Lit/Simple switch
@@ -184,11 +187,18 @@ const lv = id => S.research[id] || 0;
 const tk = b => (S.capital && S.capital.tech && S.capital.tech[b]) || 0;
 const tf = (b, f) => Math.pow(f, tk(b));
 const perk = id => S.perks[id] || 0;
+/* Policies (chosen in the Capitol, one side of each pair, held until the next Convention) and Legacy (paid by the
+   Constitutional Convention, kept for good): x1.25 to gathering, workshops and damage for every point earned. */
+const polIs = (k, v) => !!(S.capital && S.capital.open && S.capital.pol && S.capital.pol[k] === v);
+const legacyPts = () => (S.legacy && S.legacy.pts) || 0;
+const legacyMult = () => Math.pow(1.25, legacyPts());
+const lperk = id => (S.legacy && S.legacy.perks && S.legacy.perks[id]) || 0;
+const homeMult = () => polIs('trade', 'protect') ? 1.2 : 1;
 const deedMult = () => 1 + .2 * S.deeds;
-const prodMult = () => (1 + .25 * lv('steam')) * deedMult() * tf('industry', 1.15);
-const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * (wx() === 'heat' ? 1.25 : 1) * tf('industry', 1.15);
-const sellMult = () => (1 + .1 * lv('haggle')) * (1 + .05 * (typeof capLv === 'function' ? capLv('market') : 0)) * tf('commerce', 1.1);
-const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult() * tf('arms', 1.12);
+const prodMult = () => (1 + .25 * lv('steam')) * deedMult() * legacyMult() * homeMult() * tf('industry', 1.15);
+const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * legacyMult() * homeMult() * (wx() === 'heat' ? 1.25 : 1) * tf('industry', 1.15);
+const sellMult = () => (1 + .1 * lv('haggle')) * (1 + .05 * (typeof capLv === 'function' ? capLv('market') : 0)) * tf('commerce', 1.1) * (polIs('econ', 'free') ? 1.15 : 1);
+const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult() * legacyMult() * tf('arms', 1.12);
 const tapYield = () => Math.pow(2, lv('tools'));
 const vaultMax = () => 20 + 5 * lv('vault') + 5 * tk('fort');
 /* Milestones: output doubles at levels 10, 25, 50, then every 100. */
@@ -205,7 +215,7 @@ function outRate(k) {
   for (const s of SHOPS) if (s.out === k) r += blv(s.id) * s.rate * craftMult() * bMult(s.id);
   return r;
 }
-const depth = k => 60 + 120 * outRate(k);
+const depth = k => (60 + 120 * outRate(k)) * (polIs('econ', 'free') ? .5 : polIs('econ', 'planned') ? 2 : 1); // Free Market: prices swing wider; Planned: steadier
 const price = k => ITEMS[k].p * sellMult() * dem(k);
 const sellValue = (k, n) => { const dp = depth(k); return ITEMS[k].p * sellMult() * dem(k) * dp * (1 - Math.exp(-n / dp)); };
 function sell(k, n) {

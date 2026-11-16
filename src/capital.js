@@ -137,7 +137,7 @@ const exBuyPrice = id => exStock(id).p * (1 + EX_SPREAD), exSellPrice = id => ex
 /* News from whichever town is being worked (TOWN_ID): moves its share's mood and goes on the ticker. */
 function exNews(kind) {
   if (!exOpen() || !townOpen(TOWN_ID)) return; const N = EX_NEWS[kind], st = exStock(TOWN_ID), x = exBook();
-  st.mood = Math.max(.5, Math.min(2, st.mood * N.m));
+  st.mood = Math.max(.5, Math.min(2, st.mood * Math.pow(N.m, polIs('econ', 'planned') ? .5 : 1)));
   x.news.unshift({ id: TOWN_ID, k: kind, s: COMPANY[TOWN_ID] + N.s, at: Date.now() }); if (x.news.length > 8) x.news.length = 8;
 }
 const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2; // about a standard normal
@@ -151,7 +151,7 @@ function exchangeWork(dt) {
     if (!step) continue;
     const span = Math.max(10, dt), f = exFair(id) * st.mood;
     if (!st.hist.length || !(st.p > 0)) st.p = f;
-    else st.p = Math.exp(Math.log(st.p) + (Math.log(f) - Math.log(st.p)) * (1 - Math.exp(-span / 120)) + gauss() * .025);
+    else st.p = Math.exp(Math.log(st.p) + (Math.log(f) - Math.log(st.p)) * (1 - Math.exp(-span / 120)) + gauss() * .025 * (polIs('econ', 'free') ? 1.6 : polIs('econ', 'planned') ? .4 : 1));
     st.mood = 1 + (st.mood - 1) * Math.exp(-span / 240);
     st.hist.push(st.p); if (st.hist.length > EX_HIST) st.hist.splice(0, st.hist.length - EX_HIST);
   }
@@ -171,5 +171,5 @@ function eduKeep(r) { const n = 2 * capLv('education'), o = {}; if (n) for (cons
 function bankWork(dt, empireInc) {
   if (capOpen()) S.capital.inf = (S.capital.inf || 0) + Math.sqrt(Math.max(0, empireInc)) / 60 * dt; // Influence builds up here too, once a tick
   const l = capLv('bank'); if (!capOpen() || !l) return;
-  const base = Math.min(S.coins, empireInc * 600 * l); if (base > 0) earn(base * .002 * l / 60 * dt);
+  const base = Math.min(S.coins, empireInc * 600 * l); if (base > 0) earn(base * .002 * l / 60 * dt * (polIs('econ', 'free') ? 2 : 1));
 }

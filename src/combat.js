@@ -89,7 +89,7 @@ function towerStats(t) {
   const d = TOWERS[t.type], b = t.br && BRANCH[t.type] ? BRANCH[t.type][t.br] : {}, w = wx();
   const wr = w === 'dust' && t.type !== 'frost' && t.type !== 'tesla' ? .75 : 1, wd = (w === 'rain' && t.type === 'crossbow' ? .85 : 1) * (w === 'moon' ? 1.1 : 1);
   return {
-    dmg: d.dmg * (b.dmg || 1) * Math.pow(1.45, t.lvl) * dmgMult() * wd, range: (d.range + (b.range || 0) + Math.min(1, t.lvl * .06)) * wr, rate: d.rate * (b.rate || 1),
+    dmg: d.dmg * (b.dmg || 1) * Math.pow(1.45, t.lvl) * dmgMult() * wd * (polIs('army', 'standing') ? 1.25 : 1), range: (d.range + (b.range || 0) + Math.min(1, t.lvl * .06)) * wr, rate: d.rate * (b.rate || 1),
     splash: b.splash || d.splash || 0, chain: b.chain || d.chain || 0, falloff: b.falloff || .7, slow: d.slow || 0,
     cone: b.cone, freeze: b.freeze, brittle: b.brittle, stun: b.stun, pierce: b.pierce,
     poison: d.poison, cloud: b.cloud || 1, spread: b.spread, frostbite: b.frostbite,
@@ -102,10 +102,11 @@ function towerStats(t) {
    Three tracks, bought separately at any time: Drill (respawn time), Recruits (1 to 6 soldiers), Arms (strength).
    Soldiers are as strong as the waves they meet, so the tower stays useful however far you get. */
 const TRACKS = { time: { n: 'Drill', d: 'Soldiers come back sooner', max: 15 }, count: { n: 'Recruits', d: 'One more soldier', max: 5 }, power: { n: 'Arms', d: 'Tougher, harder-hitting soldiers', max: 25 } };
-const trackCost = (t, k) => Math.ceil(TOWERS[t.type].coins * .4 * Math.pow(1.6, (t.up && t.up[k]) || 0) * (k === 'count' ? 2.5 : 1));
+const militia = () => polIs('army', 'militia') ? .6 : 1; // the Militia policy: cheaper Barracks and drills
+const trackCost = (t, k) => Math.ceil(TOWERS[t.type].coins * .4 * Math.pow(1.6, (t.up && t.up[k]) || 0) * (k === 'count' ? 2.5 : 1) * militia());
 function troopStats(t) {
   const u = t.up || {}, p = Math.pow(1.3, u.power || 0), w = foeHp(Math.max(S.wave, TOWERS.barracks.from)) * MAP.hp;
-  return { time: 14 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0), hp: w * 2.2 * p * tf('garrison', 1.15), dps: w * .45 * p * dmgMult() * tf('garrison', 1.15), reach: 3 + .25 * (u.power || 0) };
+  return { time: 14 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0) + (polIs('army', 'militia') ? 1 : 0), hp: w * 2.2 * p * tf('garrison', 1.15), dps: w * .45 * p * dmgMult() * tf('garrison', 1.15), reach: 3 + .25 * (u.power || 0) };
 }
 function upgradeTrack(t, k) {
   const c = trackCost(t, k); t.up = t.up || {}; if ((t.up[k] || 0) >= TRACKS[k].max || S.coins < c) return false;
@@ -194,7 +195,7 @@ function droneTick(t, dt) {
   if (home && dist < .08) { d.x = t.c; d.y = t.r; d.mode = 'charge'; }
 }
 const towerCount = type => S.towers.filter(t => t.type === type).length;
-const buildCost = type => Math.ceil(TOWERS[type].coins * Math.pow(1.2, towerCount(type)));
+const buildCost = type => Math.ceil(TOWERS[type].coins * Math.pow(1.2, towerCount(type)) * (TOWERS[type].troops ? militia() : 1));
 const upCost = t => Math.ceil(TOWERS[t.type].coins * .8 * Math.pow(1.75, t.lvl) * tf('eng', .92));
 const needsBranch = t => t.lvl >= 4 && !t.br && !!BRANCH[t.type];
 const branchCost = t => upCost(t) * 2;
@@ -389,7 +390,7 @@ function combat(dt) {
    ========================================================= */
 function deedsOnOffer() { const g = Math.max(0, Math.floor((S.best - 30) / 5)) + Math.floor(Math.sqrt(S.life / 1e7)); return g ? g + MAP.deed : 0; }
 const spentDeeds = () => PERKS.reduce((a, p) => { for (let i = 0; i < perk(p.id); i++) a += p.cost(i); return a; }, 0);
-const freeDeeds = () => S.deeds - spentDeeds();
+const freeDeeds = () => S.deeds - spentDeeds() + (S.paidDeeds || 0); // perks kept through a Convention stay paid for
 function buyPerk(id) {
   const p = PERKS.find(p => p.id === id), l = perk(id);
   if (l >= p.max || (p.req && !perk(p.req)) || freeDeeds() < p.cost(l)) return;
@@ -403,12 +404,15 @@ function prestige() {
   if (S.capital && S.capital.ex && S.capital.ex.s) for (const id in S.capital.ex.s) { S.capital.ex.s[id].own = 0; S.capital.ex.s[id].cost = 0; } // shares go with the coins, or they would carry coins through
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
-    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
+    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, legacy: S.legacy, paidDeeds: S.paidDeeds, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
     town: S.town, towns: S.towns, routes: S.routes, inbox: S.inbox, railOpen: S.railOpen, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
   const map = TOWNS[S.town].maps[0];
-  S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map);
+  S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map); headStart();
+  wipeField(); save(); say('New charter signed for ' + TOWN.n + '. You hold ' + S.deeds + ' deeds, and every town works faster for them.');
+}
+/* What the deed perks give a town that starts over (a charter, or Copper Gulch at a Convention). */
+function headStart() {
   const st = perk('start'); if (st) { if (S.town === 'ridge') { S.ext.ironmine = S.ext.quarry = 5 * st; S.shops.blast = 1; } else { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; } }
   const cf = perk('coffers'); if (cf) S.coins += 500 * Math.pow(10, cf - 1);
   for (let i = 0; i < perk('fort'); i++) { const p = PLOTS[i * 2]; if (p) S.towers.push({ c: p.x, r: p.y, type: 'crossbow', lvl: 2, tg: 'first' }); }
-  wipeField(); save(); say('New charter signed for ' + TOWN.n + '. You hold ' + S.deeds + ' deeds, and every town works faster for them.');
 }

@@ -13,8 +13,9 @@ PANELS.capital = p => {
     return;
   }
   const c = S.capital, inf = h('small');
-  const exB = h('button', { on: () => goTab('exchange') }, ico('chart', ''), ' Stock Exchange');
-  p.append(h('div', { cls: 'bar' }, h('button', { cls: 'primary', on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), exB, inf));
+  const exB = h('button', { on: () => goTab('exchange') }, ico('chart', ''), ' Stock Exchange'), cvB = h('button', { on: () => goTab('convention') }, ico('office', ''), ' Convention');
+  p.append(h('div', { cls: 'bar' }, h('button', { cls: 'primary', on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), exB, cvB, inf));
+  ups.push(() => cvB.classList.toggle('ready', conventionReady()));
   ups.push(() => { exB.hidden = !exOpen(); });
   ups.push(() => { inf.textContent = fmt(c.inf || 0) + ' influence'; });
   // --- the Capitol: the budget --------------------------------------------------------------------------------------
@@ -29,6 +30,7 @@ PANELS.capital = p => {
     p.append(h('div', { cls: 'row fund' }, ico(icon), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, n, ' ', val), h('small', null, d), sl)));
     ups.push(() => { val.textContent = pct(c.share * capSplit()[k]) + ' of income'; });
   }
+  policyRows(p);
   // --- waves in every town -------------------------------------------------------------------------------------------
   p.append(h('h2', null, 'Waves'), h('p', null, 'A town on auto fights its waves even while you are elsewhere. If its towers are too weak for its boss it loops at that boss, and each time its vault falls it loses coins.'));
   for (const id of townIds().filter(townOpen)) {

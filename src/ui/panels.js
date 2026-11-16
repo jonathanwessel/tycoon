@@ -233,7 +233,7 @@ const PANELS = {
   charter(p) {
     const held = h('b'), freeL = h('small'), offer = h('p'), signs = h('div', { cls: 'bar' });
     p.append(h('h2', null, 'Deeds'), h('div', { cls: 'deeds' }, held, freeL),
-      h('p', null, 'Every deed you hold adds 20% to gathering, workshop speed and tower damage in every town, for good. Spend deeds on perks below; spending does not lose the bonus.'),
+      h('p', null, 'Every deed you hold adds 20% to gathering, workshop speed and tower damage in every town. Spend deeds on perks below; spending does not lose the bonus. At a Constitutional Convention (in the Capital) deeds become Legacy, and perks stay.'),
       h('h2', null, 'New charter for ' + TOWN.n), h('p', null, 'Sell ' + TOWN.n + ' and start it over for deeds. This town loses its coins, stock, buildings, research and towers, and you give up all your shares on the Stock Exchange; your other towns, deeds, perks, badges and goals stay.'), offer, signs);
     const sign = h('button', { cls: 'primary', on: () => prestige() }, 'Sign a new charter for ' + TOWN.n); signs.append(sign); ups.push(() => { sign.disabled = !deedsOnOffer(); });
     ups.push(() => {
@@ -263,7 +263,7 @@ const PANELS = {
     const hm = s => { s = Math.floor(s); const hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60; return hh ? hh + 'h ' + mm + 'm' : mm + 'm'; };
     for (const [n, f] of [['Coins per second now', () => '+' + rate(liveIncome())], ['Potential coins per second (all surplus sold)', () => '+' + rate(steadyIncome())], ['Best coins per second', () => '+' + rate(S.bestRate || 0)], ['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['Bosses destroyed', () => fmt(S.stats.bosses)],
       ['Waves with no leaks', () => fmt(S.stats.flawless)], ['Goods made', () => fmt(S.stats.made)], ['Contracts filled', () => fmt(S.stats.contracts)],
-      ['Charters signed', () => S.charters], ...Object.keys(TOWNS).map(id => ['Best wave · ' + TOWNS[id].n, () => townOpen(id) ? townBest(id) : '—']), ['Time played', () => hm(S.stats.played)]]) {
+      ['Charters signed', () => S.charters], ['Conventions held', () => S.stats.conventions || 0], ['Legacy', () => legacyPts() + ' (×' + fmt2(legacyMult()) + ')'], ...Object.keys(TOWNS).map(id => ['Best wave · ' + TOWNS[id].n, () => townOpen(id) ? townBest(id) : '—']), ['Time played', () => hm(S.stats.played)]]) {
       const v = h('b'); recs.append(h('div', null, h('span', null, n), v)); ups.push(() => { v.textContent = f(); });
     }
     // settings live in their own panel (gear button on the map)

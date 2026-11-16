@@ -367,7 +367,7 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 /* the side buttons: one column of chunky pixel buttons; Missions shows how many are ready to claim */
 .mapbtn { border-radius: 6px; border-width: 2px; box-shadow: 0 3px 0 rgba(0, 0, 0, .45); }
 .mapbtn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .45); }
-#bMis.ready, #bCap.ready { border-color: var(--gold); color: var(--gold); }
+#bMis.ready, #bCap.ready, .bar button.ready { border-color: var(--gold); color: var(--gold); }
 #bCap { color: #9fd0ff; }
 .row.fund input[type=range] { width: 100%; accent-color: var(--copper); }
 .mcount { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px; background: var(--bad); color: #fff; font: 700 .72rem/15px var(--body); border: 2px solid #12152a; text-align: center; }
@@ -395,6 +395,10 @@ button.afford { animation: afford .6s steps(3, end); }
 /* tech trees: a chain of five pips per branch */
 .infbar { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 2px solid var(--gold); border-radius: 10px; background: rgba(242, 208, 74, .08); }
 .infbar b { color: var(--gold); font-size: 1.2rem; }
+.polhead { font-weight: 600; color: var(--copper); margin: 8px 0 2px; }
+.row.pol.on { border-left: 4px solid var(--gold); padding-left: 6px; background: rgba(242, 208, 74, .08); }
+.row.pol.off { opacity: .55; }
+.polstate { font-weight: 600; } .row.pol.on .polstate { color: var(--gold); }
 .pips { display: flex; align-items: center; gap: 0; margin-top: 6px; }
 .pips i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); background: var(--panel-2); position: relative; }
 .pips i + i { margin-left: 18px; } .pips i + i::before { content: ''; position: absolute; right: 100%; top: 5px; width: 20px; height: 2px; background: var(--line); }
@@ -531,6 +535,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/combat.js"></script>
 <script src="src/fx.js"></script>
 <script src="src/capital.js"></script>
+<script src="src/convention.js"></script>
 <script src="src/view.js"></script>
 <script src="src/ui/core.js"></script>
 <script src="src/ui/actions.js"></script>
@@ -541,6 +546,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/ui/hud.js"></script>
 <script src="src/ui/capital.js"></script>
 <script src="src/ui/trees.js"></script>
+<script src="src/ui/convention.js"></script>
 <script src="src/ui/exchange.js"></script>
 <script src="src/ui/tutorial.js"></script>
 <script src="src/ui/settings.js"></script>
