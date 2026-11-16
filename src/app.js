@@ -73,8 +73,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-13'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Silver Falls: a third town with electricity. Copper, wire and glass make light bulbs and telegraphs, Water Wheels power the workshops, river pirates row in, and an ironclad steamer comes up the river.';
+const GAME_VERSION = '2026.11.15-14'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Fix: updates now always load the newest code (some copies kept showing Update ready without updating).';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

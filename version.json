@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-13",
-  "notes": "Silver Falls: a third town with electricity. Copper, wire and glass make light bulbs and telegraphs, Water Wheels power the workshops, river pirates row in, and an ironclad steamer comes up the river."
+  "version": "2026.11.15-14",
+  "notes": "Fix: updates now always load the newest code (some copies kept showing Update ready without updating)."
 }

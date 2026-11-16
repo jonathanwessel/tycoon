@@ -1,23 +1,28 @@
 // Service worker: lets Copper Gulch install as an app and run offline.
-// The page is fetched from the network first so new versions arrive as soon as they are published;
-// the cached copy is only used when offline. Bump VERSION with every release so old caches are cleared.
-const VERSION = '2026.11.15-13';
+// The page and the game's code are fetched from the network first (revalidated, never from a stale browser cache) so a
+// new version runs as soon as it is published; the cached copies are only used when offline. Icons come from the cache.
+// Bump VERSION with every release (scripts/bump-version.js) so old caches are cleared.
+const VERSION = '2026.11.15-14';
 const CACHE = 'copper-gulch-' + VERSION;
 const SHELL = ["./","./index.html","./manifest.webmanifest","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./icons/icon-maskable-512.png","./src/app.js","./src/art.js","./src/combat.js","./src/defs.js","./src/economy.js","./src/fx.js","./src/gl.js","./src/goals.js","./src/map.js","./src/render2d.js","./src/render3d.js","./src/state.js","./src/ui.js"];
 
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); });
+// Install: download every file fresh. A plain addAll can be answered from the browser's own HTTP cache, which once
+// filled a new version's cache with the previous version's code.
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('copper-gulch-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('message', e => { if (e.data === 'skip') self.skipWaiting(); });
 self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
-  if (new URL(req.url).pathname.endsWith('/version.json')) return; // always straight from the network: it is how the page spots new releases
-  const page = req.mode === 'navigate' || req.url.endsWith('/index.html');
-  if (page) {
-    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return res; })
-      .catch(() => caches.match('./index.html')));
+  const req = e.request, url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.endsWith('/version.json')) return; // always straight from the network: it is how the page spots new releases
+  const page = req.mode === 'navigate' || url.pathname.endsWith('/index.html');
+  const code = page || /\.(js|webmanifest|json)$/.test(url.pathname);
+  if (code) { // network first, revalidated; keep a copy for offline play
+    const key = page ? './index.html' : req;
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(key, copy)); } return res; })
+      .catch(() => caches.match(key)));
     return;
   }
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })));

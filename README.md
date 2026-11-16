@@ -33,6 +33,7 @@ Open `index.html` in a browser. There is no build step and nothing to install.
 
 ## Checks
 
+- `node scripts/update-test.js` checks that a published update reaches an open (or installed) copy of the game.
 - `node --test` runs the simulation tests: the game's own economy, combat and save code loaded into Node (`scripts/sim.js`), no browser needed.
 - `node scripts/balance.js [minutes] [runs]` lets a bot play the real game logic in Node and reports how long each milestone takes (a 90-minute game in a few seconds).
 
