@@ -411,6 +411,18 @@ function syncSelect(time, dt) {
   const bc = FXS.badCell; V.cross.visible = !!(bc && bc.t > 0);
   if (V.cross.visible) { bc.t -= dt; V.cross.position.set(bc.x + .5, Math.max(-.04, ground(bc.x + .5, bc.y + .5)) + .03, bc.y + .5); V.cross.userData.mat.opacity = Math.min(1, bc.t * 2); }
 }
+/* --- the controller's cursor (PAD in src/pad.js): four pale corner brackets over its cell, dimmer while a card is open */
+function syncPad(time) {
+  const P = typeof PAD !== 'undefined' ? PAD : null, on = !!(P && P.show && !(typeof TITLE !== 'undefined' && TITLE.on) && (P.layer === 'map' || P.layer === 'card'));
+  if (!V.pad) {
+    const m = new THREE.MeshBasicMaterial({ color: '#eaf4ff', transparent: true, opacity: .95, depthWrite: false }), g = new THREE.Group();
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const [w, d, ox, oz] of [[.3, .07, .35, .48], [.07, .3, .48, .35]]) { const q = new THREE.Mesh(new THREE.BoxGeometry(w, .06, d), m); q.position.set(sx * ox, 0, sz * oz); g.add(q); }
+    g.renderOrder = 5; g.userData.mat = m; V.pad = g; V.scene.add(g);
+  }
+  V.pad.visible = on; if (!on) return;
+  const [c, r] = P.cur, y = inCap() ? .05 : Math.max(0, ground(c + .5, r + .5)) + .06, k = .5 + .5 * Math.sin(time * 5);
+  V.pad.position.set(c + .5, y, r + .5); V.pad.scale.setScalar(1.02 + k * .05); V.pad.userData.mat.opacity = P.layer === 'card' ? .4 : .75 + .25 * k;
+}
 /* --- the Capital: a city square drawn instead of the town while you visit it (CAPV.on, set by the interface) ------ */
 const inCap = () => typeof CAPV !== 'undefined' && CAPV.on;
 function showTown(on) {
@@ -469,8 +481,8 @@ function render(time, cam) {
   V.sky.position.copy(V.cam.position);
   const cap = inCap(); showTown(!cap);
   light(time);
-  if (cap) { syncCapital(time, dt); V.composer.render(); return; }
-  syncBuildings(time, dt); syncTowers(time, dt); syncFoes(time, dt); syncFx(time, dt); syncSelect(time, dt);
+  if (cap) { syncCapital(time, dt); syncPad(time); V.composer.render(); return; }
+  syncBuildings(time, dt); syncTowers(time, dt); syncFoes(time, dt); syncFx(time, dt); syncSelect(time, dt); syncPad(time);
   // taps shake when gathered; the vault shows its reinforcement and shudders when hit
   const ts = FXS.shake.trees > 0 ? Math.sin(time * 70) * .06 : 0, rs = FXS.shake.rocks > 0 ? Math.sin(time * 80) * .04 : 0;
   V.tapTrees.forEach((o, i) => { o.rotation.z = ts * (i % 2 ? 1 : -1); o.rotation.x = Math.sin(time * 1.3 + i) * .015; }); V.tapRocks.forEach(o => { o.position.x += rs * .1; o.rotation.y = rs; });

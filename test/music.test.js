@@ -1,5 +1,5 @@
 // node --test — the music (tunes written from a seed, scheduled a little ahead, silent when off) and the title
-// screen's save handling (save v12, a new empire puts the old one aside, swapping back and forth).
+// screen's save v12 (save slots are tested in saves.test.js).
 const test = require('node:test');
 const assert = require('node:assert');
 const { load } = require('../scripts/sim');
@@ -96,33 +96,3 @@ test('save v12 adds the music volume; older saves get the default, a chosen sile
   assert.strictEqual(g.run('S.opt.music'), 0);
 });
 
-test('a new game puts the empire aside with its progress; swapping brings it back and puts the new one aside', () => {
-  const g = load();
-  g.run(`S = fresh(); setMap('gulch'); S.coins = 5e6; S.life = 9e6; S.stats.coins = 9e6; S.wave = 37; S.deeds = 4; S.opt.music = .3; S.opt.calm = 'calm'; S.seenVersion = 'x'; S.tut = 'done';
-    buildTower('crossbow', PLOTS[0].x, PLOTS[0].y); S.coins = 5e6; save();`);
-  assert.strictEqual(g.run('asideInfo()'), null, 'nothing put aside yet');
-  assert.ok(g.run('newEmpire()'));
-  assert.ok(g.run('S.coins < 1000 && S.wave === 1 && S.deeds === 0 && !S.towers.length && S.tut === undefined'), 'a bare plot (and the tutorial is offered)');
-  assert.ok(g.run(`S.opt.music === .3 && S.opt.calm === 'calm' && S.seenVersion === 'x'`), 'settings stay with the device');
-  assert.deepStrictEqual(g.run('JSON.stringify(asideInfo())'), JSON.stringify({ town: 'Copper Gulch', wave: 37, towns: 1, coins: 9e6 }));
-  assert.strictEqual(g.run(`JSON.parse(localStorage.getItem(KEY)).wave`), 1, 'the new empire is saved');
-  // play the new one a little, then swap back
-  g.run('S.coins = 777; S.wave = 3; S.opt.music = 1;');
-  assert.ok(g.run('swapAside()'));
-  assert.ok(g.run('S.coins === 5e6 && S.wave === 37 && S.deeds === 4 && S.towers.length === 1'), 'the old empire is back as it was');
-  assert.strictEqual(g.run('S.opt.music'), 1, 'with the current settings');
-  assert.ok(g.run('Date.now() - S.last < 5000'), 'no time-away earnings for the time it was put aside');
-  assert.strictEqual(g.run('asideInfo().wave'), 3, 'and the new empire is put aside');
-  assert.ok(g.run('swapAside()')); assert.ok(g.run('S.coins === 777 && S.wave === 3'));
-});
-
-test('a damaged slot or full storage never loses the current empire', () => {
-  const g = load();
-  g.run(`S = fresh(); setMap('gulch'); S.coins = 123456; S.wave = 12; save(); localStorage.setItem(ASIDE, '{not json');`);
-  assert.strictEqual(g.run('asideInfo()'), null);
-  assert.strictEqual(g.run('swapAside()'), false); assert.ok(g.run('S.coins === 123456 && S.wave === 12'));
-  g.run(`localStorage.setItem(ASIDE, JSON.stringify({ v: 12, res: 5, towers: 'x', towns: 3 }));`);
-  g.run('try { swapAside(); } catch (e) {}'); assert.ok(g.run('S.coins === 123456 && S.wave === 12'), 'a slot that will not load leaves things as they were');
-  g.run(`const set = localStorage.setItem; localStorage.setItem = () => { throw new Error('full'); }; globalThis.__r = newEmpire(); localStorage.setItem = set;`);
-  assert.strictEqual(g.run('__r'), false); assert.ok(g.run('S.coins === 123456 && S.wave === 12'), 'no new game unless the old one is safely put aside');
-});

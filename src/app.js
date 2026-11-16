@@ -98,7 +98,7 @@ function start(data) {
   const later = kind => {
     announceVersion();
     if (kind === 'new') { setTimeout(tutOffer, 700); return; }
-    if (kind === 'swap') { say('Back in ' + TOWN.n + '. The other empire is put aside until you swap again.'); return; }
+    if (kind === 'swap') { say(slotSwapNote()); return; }
     if (S.tut === undefined && !S.towers.length && !S.charters && !Object.keys(S.towns).length) setTimeout(tutOffer, 900); else if (S.tut === undefined) S.tut = 'done'; // a brand-new game is offered the tutorial
     else if (typeof S.tut === 'number') setTimeout(tutShow, 900);
     if (S.movedNote) { const n = S.movedNote; delete S.movedNote; setTimeout(() => say(n), 1500); }
@@ -115,8 +115,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-6'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Title screen with a flyover of your town, Western music made as you play, New game with a swap back to the empire put aside';
+const GAME_VERSION = '2026.11.16-7'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Three save slots, short save codes, save files you can share, and controller support';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
@@ -166,16 +166,6 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 function announceVersion() {
   const seen = S.seenVersion; S.seenVersion = GAME_VERSION;
   if (seen && seen !== GAME_VERSION) setTimeout(() => say('Updated to version ' + GAME_VERSION + '.' + (GAME_NEWS ? ' ' + GAME_NEWS : '')), 1200);
-}
-function saveFile() {
-  save(); const blob = new Blob([JSON.stringify(S)], { type: 'application/json' }), a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'copper-gulch-save-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000); say('Save file downloaded. Keep it somewhere safe.');
-}
-function loadFile() {
-  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
-  inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { if (!adopt(JSON.parse(t))) throw 0; wipeField(); W.countdown = 15; applyMotion(); applyGfx(); save(); say('Save loaded from file.'); }).catch(() => say('That file is not a Copper Gulch save.')); };
-  inp.click();
 }
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) hot.snapshot(() => { save(); return { S }; });

@@ -6,7 +6,7 @@
 const $ = id => document.getElementById(id);
 function h(tag, attrs, ...kids) {
   const e = document.createElement(tag);
-  for (const k in attrs || {}) { if (k === 'on') e.addEventListener('click', attrs.on); else if (k === 'cls') e.className = attrs.cls; else e.setAttribute(k, attrs[k]); }
+  for (const k in attrs || {}) { if (k === 'on') e.addEventListener('click', attrs.on); else if (k === 'cls') e.className = attrs.cls; else if (attrs[k] != null) e.setAttribute(k, attrs[k]); }
   for (const k of kids) if (k != null) e.append(k);
   return e;
 }

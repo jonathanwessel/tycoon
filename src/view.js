@@ -170,6 +170,7 @@ function r3Project(x, y, z) {
     const k = 2 * dist * Math.tan(cam.fov / 2) / H, c = Math.cos(R3.yaw), s = Math.sin(R3.yaw), ky = k / Math.max(.4, Math.sin(R3.pitch));
     R3.panXT += -dx * k * c - dy * ky * s; R3.panZT += dx * k * s - dy * ky * c; clampPan();
   };
+  R3.panBy = pan; // the controller's right stick
   cv.addEventListener('pointerdown', e => {
     if (!R3.on) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (pts.size === 1) down = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, turn: e.button === 2 || e.shiftKey, vx: 0, vy: 0, t: performance.now() };

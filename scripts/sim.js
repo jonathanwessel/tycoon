@@ -5,13 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const SIM_FILES = ['defs.js', 'map.js', 'art.js', 'state.js', 'economy.js', 'goals.js', 'combat.js', 'fx.js', 'capital.js', 'convention.js', 'music.js'];
+const SIM_FILES = ['defs.js', 'map.js', 'art.js', 'state.js', 'economy.js', 'goals.js', 'combat.js', 'fx.js', 'capital.js', 'convention.js', 'music.js', 'pad.js'];
 
 function load(opts = {}) {
   const store = new Map(Object.entries(opts.storage || {}));
   const el = () => ({ getContext: () => null, getBoundingClientRect: () => ({ width: 0, height: 0 }), classList: { add() {}, remove() {}, toggle() {} }, style: {}, append() {}, remove() {}, animate: () => ({}) });
   const sandbox = {
-    console, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, performance: { now: () => Date.now() },
+    console, btoa, atob, Blob, Response, CompressionStream, DecompressionStream, TextEncoder, TextDecoder, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, performance: { now: () => Date.now() },
     window: {}, navigator: {}, document: { querySelector: () => null, querySelectorAll: () => [], createElement: el, body: el(), documentElement: el(), hidden: true },
     localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) },
   };

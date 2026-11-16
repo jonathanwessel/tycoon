@@ -267,20 +267,50 @@ const shots = process.argv[2];
       if (SHEET.open) closeSheet(); return r;
     });
     for (const k in cap) if (!cap[k]) errs.push('Capital check failed: ' + k);
-    // the title screen again from Settings: start a new empire (the old one is put aside), then swap back to it
+    // the title screen again from Settings: a new game goes into a free slot, then slot 1 comes back from the title;
+    // Settings, Saves: a code made and read back, loaded into slot 3, then the waiting slots erased
     const tt = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms)), r = {}, leg = legacyPts();
       openSettings('game'); await wait(100); document.getElementById('setTitle').click(); await wait(300);
       r.back = TITLE.on && document.getElementById('tGo').textContent.startsWith('Continue') && !!document.getElementById('tNew');
-      document.getElementById('tNew').click(); await wait(100); r.asks = !!document.getElementById('tYes');
-      document.getElementById('tYes').click(); await wait(1100);
-      r.fresh = !TITLE.on && S.wave === 1 && legacyPts() === 0 && !!asideInfo(); r.tut = !document.getElementById('modal').hidden && /tutorial/i.test(document.getElementById('modal').textContent);
+      document.getElementById('tNew').click(); await wait(1100);
+      r.fresh = !TITLE.on && S.wave === 1 && legacyPts() === 0 && slotOn() === 2 && slotInfo(1).legacy === leg; r.tut = !document.getElementById('modal').hidden && /tutorial/i.test(document.getElementById('modal').textContent);
       document.getElementById('modal').hidden = true; S.tut = 'done';
-      showTitle(kind => { r.kind = kind; }); await wait(300); r.swapBtn = !!document.getElementById('tSwap'); document.getElementById('tSwap').click(); await wait(500);
-      r.swapped = r.kind === 'swap' && legacyPts() === leg && leg > 0 && !TITLE.on && asideInfo().wave === 1;
-      r.music = musicVol() > 0; return r;
+      showTitle(kind => { r.kind = kind; }); await wait(300); r.slotBtn = !!document.getElementById('tSlot1'); document.getElementById('tSlot1').click(); await wait(500);
+      r.swapped = r.kind === 'swap' && legacyPts() === leg && leg > 0 && !TITLE.on && slotOn() === 1 && slotInfo(2).wave === 1;
+      openSettings('saves'); await wait(150); r.rows = document.querySelectorAll('#modal .slotrow').length === 3;
+      document.getElementById('saveIn').value = await saveCode(slotSave(1)); document.getElementById('svRead').click(); await wait(300);
+      const pend = document.getElementById('svPend'); r.pend = !!pend && pend.textContent.includes('wave ' + S.wave);
+      document.getElementById('svInto3').click(); await wait(200); r.into3 = !slotInfo(3).empty && slotInfo(3).wave === S.wave && slotOn() === 1;
+      for (const n of [3, 2]) { const e = document.getElementById('svErase' + n); e.click(); e.click(); await wait(150); } r.erased = slotInfo(2).empty && slotInfo(3).empty && slotOn() === 1;
+      closeSettings(); r.music = musicVol() > 0; return r;
     });
     for (const k in tt) if (!tt[k]) errs.push('title round trip failed: ' + k + ' ' + JSON.stringify(tt));
+    // a controller (a scripted stand-in for the Gamepad API): wake the cursor, walk it to a plot and pick it, use the
+    // card, the menu sheet, pause and Settings, then a touch hides it again
+    const pd = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)), r = {}, B = () => Array.from({ length: 17 }, () => ({ pressed: false, value: 0 }));
+      const pad = { id: 'Test pad', connected: true, axes: [0, 0, 0, 0], buttons: B() }; let t = performance.now();
+      const frame = keys => { pad.buttons = B(); for (const k of keys || []) pad.buttons[PAD_BTN[k]] = { pressed: true, value: 1 }; t += 16; padFrame(pad, t); };
+      const press = async k => { frame([k]); frame(); await wait(60); };
+      if (SHEET.open) closeSheet(); sel = null; R3.yaw = R3.yawT = 0; refresh(); await wait(100);
+      await press('a'); r.woke = PAD.show && document.body.classList.contains('pad') && !sel;
+      const pl = PLOTS.find(q => !S.towers.some(w => w.c === q.x && w.r === q.y));
+      for (let i = 0; i < 40 && (PAD.cur[0] !== pl.x || PAD.cur[1] !== pl.y); i++) await press(PAD.cur[0] < pl.x ? 'right' : PAD.cur[0] > pl.x ? 'left' : PAD.cur[1] < pl.y ? 'down' : 'up');
+      r.walked = PAD.cur[0] === pl.x && PAD.cur[1] === pl.y; await wait(100); r.marker = !!(R3D.V.pad && R3D.V.pad.visible);
+      await press('a'); await wait(150); frame(); await wait(50);
+      r.card = !!(sel && sel.plot) && !document.getElementById('card').hidden && PAD.layer === 'card' && document.getElementById('card').contains(document.activeElement);
+      await press('b'); r.unsel = !sel;
+      const tab0 = tab; await press('y'); await wait(100); r.sheet = docked() ? PAD.inSheet : SHEET.open;
+      await press('rb'); await wait(150); frame(); await wait(50); r.tab = tab !== tab0 && document.getElementById('sheet').contains(document.activeElement);
+      await press('b'); await wait(150); r.sheetShut = docked() ? !PAD.inSheet : !SHEET.open;
+      await press('start'); r.paused = paused; await press('a'); r.resumed = !paused;
+      await press('back'); await wait(100); r.settings = !document.getElementById('modal').hidden; frame(); await press('right');
+      r.setFocus = document.getElementById('modal').contains(document.activeElement); await press('b'); await wait(100); r.setShut = document.getElementById('modal').hidden;
+      document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await wait(50); r.hid = !PAD.show && !document.body.classList.contains('pad');
+      await wait(100); r.markerHid = !R3D.V.pad.visible; return r;
+    });
+    for (const k in pd) if (!pd[k]) errs.push('controller check failed: ' + k + ' ' + JSON.stringify(pd));
     await p.click('#tab-works');
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight + 1);
     const navVisible = await p.evaluate(() => { const r = document.getElementById('tabs').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.height > 30; });

@@ -508,6 +508,14 @@ body.titling .mapwrap { position: absolute; inset: 0; margin: 0; width: auto; he
 .tmenu button.big { min-height: 60px; display: grid; justify-items: center; gap: 0; font-size: 1.25rem; }
 .tmenu button.big small { font-size: .9rem; font-weight: 600; color: var(--copper-ink); opacity: .78; }
 .tmenu .tq { margin: 0; font-weight: 600; } .tmenu .tq.warn { color: var(--bad); }
+.tmenu button.tslot { display: grid; justify-items: start; text-align: left; gap: 1px; } .tmenu button.tslot small { font-size: .78rem; font-weight: 600; opacity: .75; }
+/* Settings, Saves: one block per slot, the save waiting to be loaded, messages */
+.slotrow { display: grid; gap: 3px; padding: 8px 10px; margin: 6px 0; border: 2px solid var(--line); border-radius: 3px; background: var(--bg); }
+.slotrow.on { border-color: var(--copper); } .slotrow small { color: var(--muted); } .slotrow .bar { margin-top: 4px; flex-wrap: wrap; }
+.slotrow.svpend { border-color: var(--teal); border-style: dashed; }
+.svmsg { margin: 6px 0; padding: 6px 10px; border-left: 4px solid var(--teal); background: var(--bg); font-weight: 600; }
+/* a controller in use: a bold focus ring on the button it is on */
+body.pad :focus { outline: 3px solid var(--gold) !important; outline-offset: 2px; }
 .tfoot { display: flex; align-items: center; gap: 8px; justify-content: space-between; color: var(--muted); font-size: .8rem; }
 .calm .title, .calm .tsign, .calm .title.out { animation: none; } @media (prefers-reduced-motion: reduce) { .title, .tsign, .title.out { animation: none; } }
 @media (orientation: landscape) and (max-height: 520px) { /* a phone on its side: a small sign and the menu along the bottom, the town between */
@@ -580,6 +588,7 @@ body.titling .mapwrap { position: absolute; inset: 0; margin: 0; width: auto; he
 <script src="src/capital.js"></script>
 <script src="src/convention.js"></script>
 <script src="src/music.js"></script>
+<script src="src/pad.js"></script>
 <script src="src/view.js"></script>
 <script src="src/ui/core.js"></script>
 <script src="src/ui/actions.js"></script>
@@ -594,6 +603,8 @@ body.titling .mapwrap { position: absolute; inset: 0; margin: 0; width: auto; he
 <script src="src/ui/exchange.js"></script>
 <script src="src/ui/tutorial.js"></script>
 <script src="src/ui/settings.js"></script>
+<script src="src/ui/saves.js"></script>
+<script src="src/ui/pad.js"></script>
 <script src="src/ui/title.js"></script>
 <script src="src/app.js"></script>
 <script type="module" src="src/r3d/main.js"></script>

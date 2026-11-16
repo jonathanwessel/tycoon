@@ -77,6 +77,19 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('policies');
   await p.evaluate(async () => { S.stats.coins = 4e11; S.deeds = 12; S.legacy.pts = 3; goTab('convention'); await new Promise(r => setTimeout(r, 900)); });
   await shot('convention');
+  // save slots: Settings, Saves with a save waiting to be loaded, and the title screen listing the other slot
+  await p.evaluate(async () => { if (SHEET.open) closeSheet(); const o = Object.assign(fresh(), { town: 'gulch', wave: 23, last: Date.now() - 3 * 86400e3 }); o.stats.coins = 4.2e7; loadInto(2, o);
+    SAVES.pend = { o, s: saveSummary(o) }; openSettings('saves'); await new Promise(r => setTimeout(r, 400)); });
+  await shot('saves');
+  await p.evaluate(async () => { closeSettings(); SAVES.pend = null; showTitle(null); await new Promise(r => setTimeout(r, 1200)); });
+  await shot('titleslots');
+  // a controller: the cursor on the board, then a tower card with the focus ring on a button
+  await p.evaluate(async () => { closeTitle('continue'); await new Promise(r => setTimeout(r, 1600)); const B = () => Array.from({ length: 17 }, () => ({ pressed: false, value: 0 }));
+    let t = performance.now(); const fr = k => { const pad = { axes: [0, 0, 0, 0], buttons: B() }; if (k) pad.buttons[PAD_BTN[k]] = { pressed: true, value: 1 }; t += 16; padFrame(pad, t); };
+    fr('a'); fr(); PAD.cur = [PLOTS[3].x, PLOTS[3].y]; fr(); await new Promise(r => setTimeout(r, 500)); window.__fr = fr; });
+  await shot('pad');
+  await p.evaluate(async () => { const t = S.towers[0]; PAD.cur = [t.c, t.r]; __fr('a'); __fr(); await new Promise(r => setTimeout(r, 300)); __fr(); __fr('right'); __fr(); await new Promise(r => setTimeout(r, 500)); });
+  await shot('padcard');
   console.log(town, JSON.stringify(t), errs.length ? 'ERRORS ' + errs.join(' | ') : 'no errors');
   await b.close(); srv.close(); process.exit(0);
 })();

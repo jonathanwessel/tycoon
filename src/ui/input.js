@@ -19,8 +19,12 @@ cv.addEventListener('pointerdown', ev => {
 for (const e of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListener(e, stopHold);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('click', ev => {
-  if (CAPV.on) { const id = capPick(ev); sel = id && !(sel && sel.site === id) ? { site: id } : null; return; } // the Capital: its buildings
-  const [gx, gy] = gridAt(ev);
+  if (CAPV.on) return capTap(capPick(ev)); // the Capital: its buildings
+  const [gx, gy] = gridAt(ev); tapAt(gx, gy);
+});
+function capTap(id) { sel = id && !(sel && sel.site === id) ? { site: id } : null; }
+/* A tap (or the controller's A) at board point [gx, gy]: select what is there, or say why not. */
+function tapAt(gx, gy) {
   if (gy < YARD) {
     const id = slotAt(gx, gy);
     if (id === 'trees' || id === 'rocks') return;
@@ -33,8 +37,9 @@ cv.addEventListener('click', ev => {
   if (t) { sel = sel && sel.t === t ? null : { t }; return; }
   if (c === VAULT[0] && rw === VAULT[1]) { sel = sel && sel.vault ? null : { vault: 1 }; return; }
   if (onRoad(c, rw)) { sel = null; FXS.badCell = { x: c, y: rw, t: .9 }; return say('Towers go beside the road, not on it.'); }
+  if (c < 0 || c >= COLS || rw >= ROWS) { sel = null; return; } // off the board
   sel = sel && sel.plot && sel.plot[0] === c && sel.plot[1] === rw ? null : { plot: [c, rw] };
-});
+}
 cv.addEventListener('click', () => refresh()); // show the card at once instead of on the next UI tick
 let hov = null;
 cv.addEventListener('pointermove', ev => { if (ev.pointerType === 'mouse') hov = gridAt(ev); });

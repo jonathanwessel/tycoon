@@ -119,7 +119,7 @@ function econTowns(dt) {
   bankWork(dt, CAPI.inc || 0); exchangeWork(dt); }
 const CAPI = { t: 0, inc: 0, by: {} };
 const KEY = 'copper-gulch-save-v1';
-function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); return true; } catch (e) { return false; } }
 function load() {
   try {
     const t = localStorage.getItem(KEY); if (!t) return; const o = JSON.parse(t);
@@ -141,28 +141,103 @@ function freshStart(o) {
   n.movedNote = 'Copper Gulch was rebuilt, so your empire starts fresh. You keep your badges, perks and ' + (o.deeds || 0) + ' deeds, plus ' + gift + ' more as a thank-you: every town works faster for them.';
   return n;
 }
-/* New game and the empire put aside. Starting over puts the current empire aside (one slot, kept in its own key) and
-   the title screen can swap back to it. Settings stay with the device, not the empire. */
-const ASIDE = KEY + '-put-aside';
-function asideInfo() {
-  try { const o = JSON.parse(localStorage.getItem(ASIDE)); if (!o || typeof o !== 'object' || !o.res) return null; const id = TOWNS[o.town] ? o.town : 'gulch';
-    return { town: TOWNS[id].n, wave: o.wave || 1, towns: 1 + Object.keys(o.towns || {}).length, coins: (o.stats && o.stats.coins) || 0 }; } catch (e) { return null; }
+/* Save slots. A device keeps three empires: the one in play is saved under KEY, the others wait in their slot keys
+   (frozen while they wait: no time-away earnings). Which slot is in play is kept with the device (SLOT_ON), not in the
+   save, so a charter, a Convention or an exported file never carries it; settings stay with the device too. */
+const SLOTS = 3, SLOT_ON = KEY + '-slot', ASIDE = KEY + '-put-aside', UNDO = KEY + '-before-load';
+const slotKey = n => KEY + '-slot-' + n;
+const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, del: k => { try { localStorage.removeItem(k); } catch (e) {} },
+  set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } } };
+function slotOn() { const n = parseInt(LS.get(SLOT_ON), 10); return n >= 1 && n <= SLOTS ? n : 1; }
+/* The one empire "put aside" by version 2026.11.16-6 moves into a free slot. */
+function slotsTidy() {
+  const t = LS.get(ASIDE); if (!t) return; const on = slotOn();
+  for (let n = 1; n <= SLOTS; n++) if (n !== on && !LS.get(slotKey(n))) { if (LS.set(slotKey(n), t)) LS.del(ASIDE); return; }
 }
-function newEmpire() {
-  try { localStorage.setItem(ASIDE, JSON.stringify(S)); } catch (e) { return false; } // never start over unless the old empire is safely put aside
-  const n = fresh(); n.opt = S.opt; n.sound = S.sound; n.seenVersion = S.seenVersion;
-  adopt(n); wipeField(); save(); return true;
+/* What a save holds, for a slot row or an import preview; null when it is not a save. */
+function saveSummary(o) {
+  if (!o || typeof o !== 'object' || !o.res || typeof o.res !== 'object' || Array.isArray(o.res)) return null; const id = TOWNS[o.town] ? o.town : 'gulch';
+  return { town: TOWNS[id].n, wave: +o.wave || 1, towns: 1 + Object.keys(o.towns || {}).length, coins: (o.stats && +o.stats.coins) || 0,
+    legacy: (o.legacy && +o.legacy.pts) || 0, last: +o.last || 0, v: +o.v || 0 };
 }
-/* Swap: the empire put aside comes back (frozen while it was away: no time-away earnings), the current one goes aside. */
-function swapAside() {
-  let o = null; try { o = JSON.parse(localStorage.getItem(ASIDE)); } catch (e) {}
-  if (!o || typeof o !== 'object' || !o.res) return false;
-  const cur = JSON.stringify(S), opt = S.opt, sound = S.sound, seen = S.seenVersion;
+function slotInfo(n) {
+  const on = n === slotOn(); if (on) return Object.assign({ n, on, empty: false }, saveSummary(S));
+  const t = LS.get(slotKey(n)); if (!t) return { n, on, empty: true };
+  let o = null; try { o = JSON.parse(t); } catch (e) {}
+  const s = saveSummary(o); return s ? Object.assign({ n, on, empty: false }, s) : { n, on, empty: false, bad: true };
+}
+function slotList() { slotsTidy(); const r = []; for (let n = 1; n <= SLOTS; n++) r.push(slotInfo(n)); return r; }
+function freeSlot() { const f = slotList().find(s => s.empty); return f ? f.n : 0; }
+/* Settings, sound and the version seen belong to the device and stay when another empire comes in. */
+function bringIn(o) {
+  const dev = { opt: S.opt, sound: S.sound, seenVersion: S.seenVersion }, back = JSON.stringify(S);
   let ok = false; try { ok = adopt(o); } catch (e) {}
-  if (!ok) { adopt(JSON.parse(cur)); return false; } // a damaged slot leaves the current empire as it was
-  try { localStorage.setItem(ASIDE, cur); } catch (e) {}
-  S.opt = opt; S.sound = sound; S.seenVersion = seen; S.last = Date.now(); wipeField(); save(); return true;
+  if (!ok) { adopt(JSON.parse(back)); return false; } // a save that will not load leaves the empire in play as it was
+  Object.assign(S, dev); S.last = Date.now(); wipeField(); return true;
 }
+/* Play slot n: the empire in play goes into its own slot first (nothing changes if that write fails), then slot n
+   comes in, or a new empire if it is empty. Returns 'new', 'swap', or '' when nothing changed. */
+function playSlot(n) {
+  const on = slotOn(); if (n === on || !(n >= 1 && n <= SLOTS)) return '';
+  const t = LS.get(slotKey(n)); let o = null;
+  if (t) { try { o = JSON.parse(t); } catch (e) { return ''; } if (!saveSummary(o)) return ''; }
+  S.last = Date.now(); if (!LS.set(slotKey(on), JSON.stringify(S))) return '';
+  if (!bringIn(o || fresh())) { LS.del(slotKey(on)); return ''; }
+  LS.set(SLOT_ON, String(n));
+  if (save()) LS.del(slotKey(n)); // its copy in the slot key goes only once it is safely saved as the empire in play
+  return o ? 'swap' : 'new';
+}
+/* New game: in a free slot if there is one (nothing is lost); otherwise over the empire in play, which is kept as an
+   undo copy (undoLoad) until the next load or start over. */
+function newEmpire() {
+  const f = freeSlot(); if (f) return playSlot(f) === 'new';
+  if (!LS.set(UNDO, JSON.stringify(S))) return false; // never start over unless the old empire is safely kept
+  bringIn(fresh()); save(); return true;
+}
+/* Erase a waiting slot; the empire in play starts over instead (with an undo copy). */
+function eraseSlot(n) {
+  if (n !== slotOn()) { LS.del(slotKey(n)); return true; }
+  if (!LS.set(UNDO, JSON.stringify(S))) return false;
+  bringIn(fresh()); save(); return true;
+}
+/* Bring a save (already read and checked) into slot n. Into the slot in play it replaces the empire, which is kept
+   as an undo copy; into a waiting slot it is stored as it is and upgraded when it is played. */
+function loadInto(n, o) {
+  if (!saveSummary(o) || !(n >= 1 && n <= SLOTS)) return false;
+  if (n !== slotOn()) return LS.set(slotKey(n), JSON.stringify(o));
+  if (!LS.set(UNDO, JSON.stringify(S))) return false;
+  if (!bringIn(o)) return false; save(); return true;
+}
+function undoInfo() { let o = null; try { o = JSON.parse(LS.get(UNDO)); } catch (e) {} return saveSummary(o); }
+function undoLoad() {
+  let o = null; try { o = JSON.parse(LS.get(UNDO)); } catch (e) {} if (!saveSummary(o)) return false;
+  if (!bringIn(o)) return false; save(); LS.del(UNDO); return true;
+}
+/* Save codes and files. A code is the save compressed (deflate) and written in base64 after "CG1."; older plain base64
+   codes and raw JSON pasted from a file still load. A save from a newer version than this one is refused. */
+function checkSave(o) { const s = saveSummary(o); if (!s) return { err: 'bad' }; if (s.v > fresh().v) return { err: 'newer' }; return { o, s }; }
+function readSave(text) {
+  const t = String(text || '').trim(); let o = null; if (!t) return { err: 'empty' };
+  try { o = JSON.parse(t[0] === '{' ? t : decodeURIComponent(escape(atob(t.replace(/\s+/g, ''))))); } catch (e) { return { err: 'bad' }; }
+  return checkSave(o);
+}
+function b64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(t) { const s = atob(t), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+const SQUASH = typeof CompressionStream !== 'undefined' && typeof Response !== 'undefined' && typeof Blob !== 'undefined';
+async function saveCode(o) {
+  const j = JSON.stringify(o); if (!SQUASH) return btoa(unescape(encodeURIComponent(j)));
+  return 'CG1.' + b64(new Uint8Array(await new Response(new Blob([j]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()));
+}
+async function readSaveCode(text) {
+  const t = String(text || '').replace(/\s+/g, '');
+  if (!/^CG1\./.test(t)) return readSave(text);
+  if (!SQUASH) return { err: 'old' };
+  try { return checkSave(JSON.parse(await new Response(new Blob([unb64(t.slice(4))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text())); } catch (e) { return { err: 'bad' }; }
+}
+function saveFileName(o) { const s = saveSummary(o) || { town: 'empire', wave: 1 }, d = new Date();
+  return 'copper-gulch-' + s.town.toLowerCase().replace(/[^a-z]+/g, '-') + '-wave-' + s.wave + '-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json'; }
+/* The empire in a slot, as a save object (for a file or a code). */
+function slotSave(n) { if (n === slotOn()) { S.last = Date.now(); return JSON.parse(JSON.stringify(S)); } try { return JSON.parse(LS.get(slotKey(n))); } catch (e) { return null; } }
 let WIPE_OFF = false; // tests of old migrations turn the fresh start off
 function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (!o || typeof o !== 'object' || !o.res) return false;

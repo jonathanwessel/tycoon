@@ -270,13 +270,8 @@ const PANELS = {
     }
     // settings live in their own panel (gear button on the map)
     p.append(h('h2', null, 'Settings'), h('div', { cls: 'bar' }, h('button', { on: () => openSettings('gfx') }, 'Graphics'), h('button', { on: () => openSettings('sound') }, 'Sound'), h('button', { on: () => openSettings('game') }, 'Game')));
-    const ta = h('textarea', { id: 'saveBox', 'aria-label': 'Save code', placeholder: 'Save code appears here. Paste one to load it.' });
-    let armed = false; const wipe = h('button', { cls: 'danger small', on: () => { if (!armed) { armed = true; wipe.textContent = 'Tap again to erase everything'; return; } S = fresh(); setMap(S.map); wipeField(); save(); say('Started over.'); } }, 'Erase save');
-    p.append(h('h2', null, 'Save'), h('p', null, 'The game saves in this browser every few seconds and keeps working for up to 8 hours while you are away. Copy a save code to move to another device.'), ta,
-      h('div', { cls: 'bar' },
-        h('button', { cls: 'small', on: () => { save(); ta.value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); ta.select(); say('Save code ready. Copy it from the box.'); } }, 'Make save code'),
-        h('button', { cls: 'small', on: () => { try { if (!adopt(JSON.parse(decodeURIComponent(escape(atob(ta.value.trim())))))) throw 0; wipeField(); W.countdown = 15; save(); say('Save loaded.'); } catch (e) { say('That save code is not valid. Paste the whole code and try again.'); } } }, 'Load save code'),
-        h('button', { cls: 'small', on: saveFile }, 'Save to file'), h('button', { cls: 'small', on: loadFile }, 'Load from file'), wipe));
+    p.append(h('h2', null, 'Save'), h('p', null, 'The game saves in this browser every few seconds and keeps working for up to 8 hours while you are away. Three save slots, save files and save codes (to move to another device) are in Settings, Saves.'),
+      h('div', { cls: 'bar' }, h('button', { cls: 'small', id: 'bSaves', on: () => openSettings('saves') }, 'Save slots and backups'), h('button', { cls: 'small', on: () => saveToFile(slotOn()) }, 'Save to file')));
     // the app: install, storage protection, version
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !APP.installed;
     const appNote = h('p'), inst = h('button', { cls: 'primary', on: installApp }, 'Install Copper Gulch'), ver = h('p');
