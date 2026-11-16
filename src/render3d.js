@@ -6,7 +6,7 @@
    taps back into map cells, projecting world points to the screen, and the flat overlay (levels, health bars,
    floating numbers, the boss bar and banners) drawn on a canvas above the 3D one.
    ========================================================= */
-const R3 = { on: false, ok: false, tried: false, yaw: 0, yawT: 0, pitch: .92, dist: 24, distT: 24, dragged: false };
+const R3 = { on: false, ok: false, tried: false, yaw: 0, yawT: 0, pitch: .92, dist: 24, distT: 24, dragged: false, panX: 0, panZ: 0, panXT: 0, panZT: 0, vx: 0, vy: 0 };
 const M4 = {
   mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; },
   persp(fy, asp, n, f) { const t = 1 / Math.tan(fy / 2), o = new Float32Array(16); o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f); return o; },
@@ -46,7 +46,11 @@ function r3Camera() {
   const fitD = Math.max(24, (COLS / 2 + .7) / (th * asp), 8.2 / th), dist = R3.dist * fitD / 24;
   // with a menu sheet open on a phone, look further down the board so the town shows above the sheet
   R3.shift = (R3.shift || 0) + (((typeof SHEET !== 'undefined' && SHEET.open) ? SHEET.h * dist * .38 : 0) - (R3.shift || 0)) * .15;
-  const tgt = R3.look ? [R3.look[0], 0, R3.look[1]] : [COLS / 2, 0, ROWS / 2 + .6 + R3.shift]; // R3.look: aim somewhere else (the icon renderer)
+  // with a plot or tower selected on a phone, glide so it sits in the upper part of the screen, above its card
+  const fc = typeof sel !== 'undefined' && sel && (sel.plot || (sel.t && [sel.t.c, sel.t.r])), phone = typeof docked === 'function' && !docked();
+  R3.fx = (R3.fx || 0) + (((fc && phone) ? fc[0] + .5 - (COLS / 2 + R3.panX) : 0) - (R3.fx || 0)) * .12;
+  R3.fz = (R3.fz || 0) + (((fc && phone) ? fc[1] + .5 + dist * .2 - (ROWS / 2 + .6 + R3.panZ) : 0) - (R3.fz || 0)) * .12;
+  const tgt = R3.look ? [R3.look[0], 0, R3.look[1]] : [COLS / 2 + R3.panX + R3.fx, 0, ROWS / 2 + .6 + R3.shift + R3.panZ + R3.fz]; // R3.look: aim somewhere else (the icon renderer)
   const eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * dist, Math.sin(R3.pitch) * dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * dist];
   const V = M4.look(eye, tgt, [0, 1, 0]), Pm = M4.persp(fov, W / H, .5, 200);
   R3.cam = { eye, tgt, fov, asp: W / H, VP: M4.mul(Pm, V) };
@@ -64,26 +68,53 @@ function r3Project(x, y, z) {
   const m = R3.cam.VP, cx_ = m[0] * x + m[4] * y + m[8] * z + m[12], cy = m[1] * x + m[5] * y + m[9] * z + m[13], w = m[3] * x + m[7] * y + m[11] * z + m[15];
   return [(cx_ / w * .5 + .5) * R3.canvas.width, (1 - (cy / w * .5 + .5)) * R3.canvas.height, w];
 }
-// camera controls: drag to turn, wheel or pinch to zoom, double-tap to reset; a drag never counts as a tap
+// camera controls. Phones: one finger drags the town, two fingers pinch to zoom and twist to turn. Mouse: drag pans,
+// right-drag or Shift-drag turns, the wheel zooms. A double tap resets. Panning glides to a stop; the board never leaves
+// the screen. A drag never counts as a tap.
 (() => {
-  let down = null, pts = new Map(), pinch = 0;
-  cv.addEventListener('pointerdown', e => { if (!R3.on) return; pts.set(e.pointerId, [e.clientX, e.clientY]); down = { x: e.clientX, y: e.clientY, yaw: R3.yawT, moved: false }; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  let down = null; const pts = new Map(); let two = null;
+  const clampPan = () => { R3.panXT = Math.max(-COLS * .55, Math.min(COLS * .55, R3.panXT)); R3.panZT = Math.max(-ROWS * .6, Math.min(ROWS * .6, R3.panZT)); };
+  // move the target so the ground under the pointer follows it
+  const pan = (dx, dy) => {
+    const cam = R3.cam || r3Camera(), H = cv.clientHeight || 600, dist = Math.hypot(cam.eye[0] - cam.tgt[0], cam.eye[1] - cam.tgt[1], cam.eye[2] - cam.tgt[2]);
+    const k = 2 * dist * Math.tan(cam.fov / 2) / H, c = Math.cos(R3.yaw), s = Math.sin(R3.yaw), ky = k / Math.max(.4, Math.sin(R3.pitch));
+    R3.panXT += -dx * k * c - dy * ky * s; R3.panZT += dx * k * s - dy * ky * c; clampPan();
+  };
+  cv.addEventListener('pointerdown', e => {
+    if (!R3.on) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) down = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, turn: e.button === 2 || e.shiftKey, vx: 0, vy: 0, t: performance.now() };
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; two = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), a: Math.atan2(b[1] - a[1], b[0] - a[0]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; if (down) down.moved = true; }
+    R3.vx = R3.vy = 0;
+  });
   cv.addEventListener('pointermove', e => {
     if (!R3.on || !down || !pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) R3.distT = Math.max(12, Math.min(34, R3.distT * pinch / d)); pinch = d; down.moved = true; return; }
-    const dx = e.clientX - down.x; if (Math.abs(dx) > 8) { down.moved = true; stopHold(); }
-    if (down.moved) R3.yawT = down.yaw - dx / cv.clientWidth * 3;
+    if (pts.size === 2 && two) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      R3.distT = Math.max(9, Math.min(36, R3.distT * two.d / d)); let da = ang - two.a; da = Math.atan2(Math.sin(da), Math.cos(da)); R3.yawT -= da; pan(mx - two.mx, my - two.my);
+      two = { d, a: ang, mx, my }; down.moved = true; stopHold(); return;
+    }
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8 && !down.moved) { down.moved = true; stopHold(); }
+    if (!down.moved) return;
+    const dx = e.clientX - down.lx, dy = e.clientY - down.ly, now = performance.now(), dt = Math.max(1, now - down.t);
+    if (down.turn) R3.yawT -= dx / cv.clientWidth * 3; else { pan(dx, dy); down.vx = dx / dt; down.vy = dy / dt; }
+    down.lx = e.clientX; down.ly = e.clientY; down.t = now;
   });
-  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = 0; if (down && down.moved) R3.dragged = true; if (!pts.size) down = null; };
+  const up = e => {
+    pts.delete(e.pointerId); if (pts.size < 2) two = null;
+    if (down && down.moved) { R3.dragged = true; if (!down.turn && !pts.size) { R3.vx = down.vx; R3.vy = down.vy; R3.glide = pan; } }
+    if (!pts.size) down = null;
+  };
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListener(ev, up);
   cv.addEventListener('click', e => { if (R3.dragged) { R3.dragged = false; e.stopImmediatePropagation(); } }, true);
-  cv.addEventListener('wheel', e => { if (!R3.on) return; e.preventDefault(); R3.distT = Math.max(12, Math.min(34, R3.distT * (1 + Math.sign(e.deltaY) * .1))); }, { passive: false });
-  cv.addEventListener('dblclick', () => { if (R3.on) { R3.yawT = 0; R3.distT = 24; } });
+  cv.addEventListener('wheel', e => { if (!R3.on) return; e.preventDefault(); R3.distT = Math.max(9, Math.min(36, R3.distT * (1 + Math.sign(e.deltaY) * .1))); }, { passive: false });
+  cv.addEventListener('dblclick', () => { if (R3.on) { R3.yawT = 0; R3.distT = 24; R3.panXT = R3.panZT = 0; } });
 })();
 
 /* --- drawing a frame ---------------------------------------------------------------------------------------- */
 function r3Render(time) {
   R3.yaw += (R3.yawT - R3.yaw) * .15; R3.dist += (R3.distT - R3.dist) * .15;
+  if (R3.glide && Math.hypot(R3.vx, R3.vy) > .02) { R3.glide(R3.vx * 16, R3.vy * 16); R3.vx *= .9; R3.vy *= .9; } // a flick glides to a stop
+  R3.panX += (R3.panXT - R3.panX) * .3; R3.panZ += (R3.panZT - R3.panZ) * .3;
   const cam = r3Camera(); R3.ux.canvas.hidden = R3.canvas.hidden;
   R3D.render(time, cam);
   r3Overlay(time);
@@ -97,7 +128,7 @@ function r3Overlay(time) {
   if (SLOT.hall) tag('Foremen', SLOT.hall[0] + 1, 2.05, SLOT.hall[1] + 1); if (SLOT.office) tag(S.deeds ? S.deeds + ' deeds' : 'Deeds', SLOT.office[0] + 1, 2.05, SLOT.office[1] + 1, S.deeds ? '#f2d04a' : null);
   // the selected plot or tower, and its reach
   if (sel && (sel.plot || sel.t)) {
-    const [pc, pr] = sel.plot || [sel.t.c, sel.t.r], reach = sel.t ? towerStats(sel.t).range : 2.4;
+    const [pc, pr] = sel.plot || [sel.t.c, sel.t.r], reach = sel.t ? (TOWERS[sel.t.type].drone ? droneStats(sel.t).range : towerStats(sel.t).range) : TOWERS[GHOST.type || 'crossbow'].range;
     ux.strokeStyle = 'rgba(255,240,160,.8)'; ux.lineWidth = Math.max(1, c * .05); ux.setLineDash([c * .14, c * .1]); ux.beginPath();
     for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2, [px, py] = r3Project(pc + .5 + Math.cos(a) * reach, .05, pr + .5 + Math.sin(a) * reach); i ? ux.lineTo(px, py) : ux.moveTo(px, py); }
     ux.stroke(); ux.setLineDash([]);

@@ -32,7 +32,23 @@ function setPaused(on) {
   snd(on ? 'pause' : 'go', on ? 330 : 440, .08, 'triangle', .04, on ? -110 : 220);
 }
 /* Every frame: the coin counter rolls towards the real total and the wave button fills as raiders fall. */
+/* The boss bar and the banners, every frame. */
+let banShown = null;
+function bossHud() {
+  const boss = foes.find(f => f.type === 'boss' && f.hp > 0), bar = $('bossbar');
+  bar.hidden = !boss;
+  if (boss) {
+    $('bossName').textContent = bossName(); $('bossNote').textContent = boss.rage ? 'full steam' : boss.ph1 ? 'crew off' : 'stop it before the vault';
+    $('bossHp').textContent = fmt(Math.max(0, boss.hp)); $('bossFill').style.width = Math.max(0, boss.hp / boss.max) * 100 + '%';
+    if (boss.flash > 0 && !bar.classList.contains('hit')) { bar.classList.add('hit'); setTimeout(() => bar.classList.remove('hit'), 180); }
+  }
+  const b = FXS.banner, el = $('banner');
+  if (b && !paused && b !== banShown) { banShown = b; el.className = 'banner' + (b.gold ? ' gold' : '') + (b.boss || (S.wave % 10 === 0 && !b.gold) ? ' boss' : ''); $('banA').textContent = b.a; $('banB').textContent = b.b || ''; $('banB').hidden = !b.b; el.hidden = false; }
+  if (b && b.t < .35 && !el.classList.contains('out')) el.classList.add('out');
+  if (!b && !el.hidden) { el.hidden = true; banShown = null; }
+}
 function tickHud(dt) {
+  bossHud();
   if (shownCoins === null || REDUCED || !isFinite(shownCoins)) shownCoins = S.coins;
   shownCoins += (S.coins - shownCoins) * Math.min(1, dt * 9); if (Math.abs(S.coins - shownCoins) < .5) shownCoins = S.coins;
   const t = fmt(shownCoins); if (t !== coinTxt) { coinTxt = t; $('hCoins').textContent = t; }
@@ -83,8 +99,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-23'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Drone Helipad: rebuild a Barracks with Drill, Recruits and Arms at 5 into a helipad. Its attack drone flies anywhere within reach, hits even war wagons and boats, and lands to recharge. Upgrade Battery, Range and Guns.';
+const GAME_VERSION = '2026.11.15-24'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Drag the map to pan (two fingers pinch and twist). Selling a tower now takes two taps. The boss health bar is back, for every boss. Choosing a plot shows it glowing with a preview of the tower. The Works tab starts with your buildings; foreman settings have their own panel.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

@@ -342,7 +342,7 @@ function draw(time) {
 function drawHUD() {
   const c = cell;
   // the war wagon gets a proper health bar across the top of the map
-  const boss = foes.find(f => f.type === 'boss' && f.hp > 0);
+  const boss = null; // the boss bar is part of the interface now (bossHud in app.js)
   if (boss) {
     const bx = c * .45, bw = cv.width - c * .9, by = c * .5, bh = c * .24, fr = Math.max(0, boss.hp / boss.max);
     cx.fillStyle = 'rgba(22,26,42,.88)'; cx.fillRect(bx - c * .12, by - c * .42, bw + c * .24, bh + c * .56);
@@ -354,7 +354,7 @@ function drawHUD() {
     cx.fillStyle = 'rgba(255,255,255,.25)'; cx.fillRect(bx, by, bw * fr, bh * .3);
     cx.fillStyle = 'rgba(236,230,216,.7)'; for (const m of [.5, .25]) cx.fillRect(bx + bw * m - 1, by - c * .04, Math.max(2, c * .04), bh + c * .08);
   }
-  if (FXS.banner && !paused) {
+  if (false && FXS.banner && !paused) { // banners are part of the interface now (bossHud in app.js)
     // the band opens from its middle, the words slide in from the left and leave to the right
     const b = FXS.banner; b.T = b.T || b.t;
     const inP = Math.min(1, (b.T - b.t) / .4), outP = Math.min(1, b.t / .35), ease = 1 - Math.pow(1 - inP, 3), back = 1 + 2.2 * Math.pow(inP - 1, 3) + 1.2 * Math.pow(inP - 1, 2);

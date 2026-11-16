@@ -334,6 +334,23 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 .calm .toast, .calm button, .calm .prog i { transition: none; }
 .calm .modal, .calm .modal .box, .calm .goal.done, .calm #bWave.soon, .calm nav .dot, .calm #hVaultWrap.low b, .calm .medal, .calm .pausecover, .calm .speedmenu { animation: none; }
 :root { --top: 92px; --navh: 66px; --bot: 130px; --sheet-h: 55vh; }
+/* the boss's health bar and the wave banners: part of the interface over the map */
+.bossbar { position: absolute; z-index: 24; left: 8px; right: 56px; top: 8px; padding: 6px 8px 8px; background: rgba(22, 26, 42, .9); border: 2px solid #ff4f8b; border-radius: 4px; box-shadow: 0 3px 0 rgba(0, 0, 0, .4); pointer-events: none; animation: rowin .3s cubic-bezier(.2, .8, .2, 1); }
+.bossbar .bn { display: flex; align-items: baseline; gap: 8px; font-weight: 700; font-size: .85rem; }
+.bossbar .bn b { color: #ff8fb0; text-transform: uppercase; letter-spacing: .05em; }
+.bossbar .bn span { color: var(--muted); font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bossbar .bn em { font-style: normal; color: var(--fg); }
+.bossbar .bb { position: relative; height: 12px; margin-top: 4px; background: #3a1c26; border: 2px solid #12152a; }
+.bossbar .bb i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #f07067, #ff4f8b); transition: width .15s; }
+.bossbar .bb s { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(236, 230, 216, .7); text-decoration: none; }
+.bossbar .bb s:nth-of-type(1) { left: 50%; } .bossbar .bb s:nth-of-type(2) { left: 25%; }
+.bossbar.hit .bb { animation: bosshit .18s steps(2); } @keyframes bosshit { 50% { transform: translateX(2px); } }
+.banner { position: absolute; z-index: 23; left: 0; right: 0; top: 42%; display: grid; justify-items: center; gap: 2px; padding: 12px 8px; background: rgba(22, 26, 42, .86); border-block: 3px solid var(--copper); pointer-events: none; animation: banin .45s cubic-bezier(.2, .8, .2, 1); }
+.banner.gold { border-color: var(--gold); } .banner.boss { border-color: var(--bad); }
+.banner b { font-family: var(--display); font-weight: 400; font-size: 1.9rem; color: var(--copper); } .banner.gold b { color: var(--gold); } .banner.boss b { color: #ff8fb0; }
+.banner span { font-weight: 600; } .banner.out { animation: banout .35s ease-in forwards; }
+@keyframes banin { from { transform: scaleY(0) translateX(-30%); opacity: 0; } } @keyframes banout { to { transform: translateX(40%); opacity: 0; } }
+.calm .bossbar, .calm .banner { animation: none; } @media (prefers-reduced-motion: reduce) { .bossbar, .banner { animation: none; } }
 @media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
   .mapbtn { left: auto; right: 10px; bottom: auto; }
   #bMis { top: 10px; } #bPause { top: 54px; } #bFull { left: auto; top: 98px; } #bSet { left: auto; top: 142px; }
@@ -363,6 +380,21 @@ button.afford { animation: afford .6s steps(3, end); }
 .calm nav.tabs button[aria-selected="true"] img.px, .calm .panel.enter > *, .calm button.afford, .calm .row.msflash, .calm .mcount.pop { animation: none; }
 @media (prefers-reduced-motion: reduce) { nav.tabs button[aria-selected="true"] img.px, .panel.enter > *, button.afford, .row.msflash, .mcount.pop { animation: none; } }
 .sheethead { display: none; }
+.workbar { display: grid; gap: 6px; }
+.buildlist { display: grid; gap: 6px; }
+.buildopt.ghost { border-color: var(--copper); box-shadow: inset 0 0 0 1px var(--copper); }
+@media (max-width: 899px) and (orientation: portrait), (max-width: 599px) {
+  /* building on a plot: the options in one sideways row, so the glowing plot stays in view above the card */
+  #card.build { max-height: 40vh; max-height: 40dvh; }
+  #card.build .buildlist { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+  #card.build .buildopt { flex: 0 0 148px; scroll-snap-align: start; display: grid; justify-items: start; align-content: start; gap: 4px; }
+  #card.build .buildopt small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .78rem; }
+  #card.build .cardhead small { display: none; }
+}
+.fmbtn { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 10px; }
+.fmbtn img.px { width: 26px; height: 26px; } .fmbtn b { display: block; } .fmbtn small { display: block; color: var(--muted); line-height: 1.2; } .fmbtn .chev { font-size: 1.4rem; color: var(--copper); }
+.gathhead { display: flex; align-items: center; gap: 6px; } .gathhead h2 { flex: 1; margin: 0; } .gathhead button { display: inline-flex; align-items: center; gap: 4px; }
+button.arm { animation: afford .4s steps(2) infinite; }
 #bFull .hideui { display: none; }
 @media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
   body.v3 .mapwrap { width: 100%; height: max(180px, calc(100vh - 210px)); height: max(180px, calc(100dvh - 210px)); aspect-ratio: auto; } /* leaves room for the wave controls and stock below */
@@ -401,6 +433,8 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   #bSet { left: auto; top: calc(var(--top) + 138px); }
   #bFull .go, #bFull .back { display: none; } #bFull .hideui { display: block; }
   .toast { position: fixed; z-index: 45; top: calc(var(--top) + 6px); left: 54px; right: 54px; }
+  .bossbar { position: fixed; top: calc(var(--top) + 6px); }
+  .banner { position: fixed; top: 38%; }
   /* in 2D the board is centred and its buttons sit in a row beneath it */
   body:not(.v3) .mapbtn, body:not(.v3) #bMis, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { position: absolute; top: calc(100% + 8px); bottom: auto; } /* the centred 2D board is transformed, so these sit in its own coordinates */
   body:not(.v3) #bMis { right: 138px; } body:not(.v3) #bPause { right: 92px; } body:not(.v3) #bFull { right: 46px; } body:not(.v3) #bSet { right: 0; }
@@ -426,6 +460,8 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
     <div class="mapwrap">
       <canvas id="cv" aria-label="Map of the gulch. Hold trees and rocks to gather, tap a building to upgrade it, tap an empty plot by the road to build a tower."></canvas>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="bossbar" id="bossbar" hidden><div class="bn"><b id="bossName"></b><span id="bossNote"></span><em id="bossHp"></em></div><div class="bb"><i id="bossFill"></i><s></s><s></s></div></div>
+      <div class="banner" id="banner" hidden><b id="banA"></b><span id="banB"></span></div>
       <button class="mapbtn" id="bMis" aria-label="Missions" title="Missions (M)"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 1h9v2h2v11a1 1 0 0 1-1 1H4a2 2 0 0 1-2-2V3h1zM5 5v1h6V5zm0 3v1h6V8zm0 3v1h4v-1z"/></svg><b class="mcount" hidden></b></button>
       <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>
       <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="hideui" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 8c2-3.5 4.5-5 7-5s5 1.5 7 5c-2 3.5-4.5 5-7 5S3 11.5 1 8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="2.2" fill="currentColor"/></svg><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>

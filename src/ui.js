@@ -93,7 +93,7 @@ function card() {
   const key = sel.t ? 't' + S.towers.indexOf(sel.t) + '/' + sel.t.lvl + sel.t.br : sel.b ? 'b' + sel.b.def.id : sel.vault ? 'v' : 'p' + sel.plot.join(',');
   if (box._k !== key) {
     const ent = key.split('/')[0], opening = !box._k, other = box._e !== ent;
-    box._k = key; box._e = ent; box.textContent = ''; cardUps = []; $('sheet').scrollTop = 0;
+    box._k = key; box._e = ent; box.textContent = ''; cardUps = []; $('sheet').scrollTop = 0; box.classList.toggle('build', !!sel.plot);
     if (other && box.animate && !REDUCED) box.animate(opening ? [{ opacity: 0, transform: 'translateY(-10px) scale(.97)' }, { opacity: 1, transform: 'none' }] : [{ opacity: .3 }, { opacity: 1 }], { duration: opening ? 280 : 160, easing: 'cubic-bezier(.2,.9,.3,1.15)' });
     const close = h('button', { cls: 'small x', 'aria-label': 'Close', on: () => { sel = null; } }, '✕');
     if (sel.vault) {
@@ -111,15 +111,19 @@ function card() {
       });
     } else if (sel.plot) {
       const [c, r] = sel.plot;
-      box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower here'), h('small', null, 'Grey costs mean you are short of coins or goods.')), close));
+      box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower on the glowing plot'), h('small', null, 'Touch a tower to preview it there. Grey costs mean you are short of coins or goods.')), close));
+      if (!GHOST.type) GHOST.type = 'crossbow';
+      const list = h('div', { cls: 'buildlist' }); box.append(list);
       for (const id in TOWERS) {
         if (TOWERS[id].rebuilt) continue; // made by rebuilding another tower, not built
         const d = TOWERS[id], b = h('button', { cls: 'buildopt', on: () => {
+          GHOST.type = null;
           if (!buildTower(id, c, r)) return;
           const t = S.towers[S.towers.length - 1]; t.born = .35; sel = { t }; snd('build', 330, .12, 'triangle', .05, 330);
           for (let i = 0; i < 12; i++) parts.push({ x: c + .5 + (Math.random() - .5) * .8, y: r + .8, vx: (Math.random() - .5) * 2.5, vy: -1 - Math.random() * 2, g: 6, t: .5, c: '#e9d2a8', s: .08 });
         } }, ico(id), h('span', { cls: 'grow' }, h('span', { cls: 'name' }, d.n), h('small', null, d.d)), costEl(() => buildCost(id), towerGoods(id), cardUps));
-        box.append(b); cardUps.push(() => { const locked = d.from && S.best < d.from; b.disabled = locked || S.coins < buildCost(id) || !hasGoods(towerGoods(id)); b.title = locked ? 'Opens once you reach wave ' + d.from : ''; if (locked) b.querySelector('small').textContent = 'Opens once you reach wave ' + d.from + '. ' + d.d; });
+        for (const ev of ['pointerenter', 'focus', 'pointerdown']) b.addEventListener(ev, () => { GHOST.type = id; });
+        list.append(b); cardUps.push(() => b.classList.toggle('ghost', GHOST.type === id)); cardUps.push(() => { const locked = d.from && S.best < d.from; b.disabled = locked || S.coins < buildCost(id) || !hasGoods(towerGoods(id)); b.title = locked ? 'Opens once you reach wave ' + d.from : ''; if (locked) b.querySelector('small').textContent = 'Opens once you reach wave ' + d.from + '. ' + d.d; });
       }
     } else if (sel.t) {
       const t = sel.t, d = TOWERS[t.type], back = Math.ceil(d.coins * .5), stats = h('small');
@@ -147,14 +151,14 @@ function card() {
         }
         const back2 = Math.ceil(d.coins * .5 + (t.spent || 0) * .3);
         const mv = h('button', { cls: 'small', on: () => { rallyFor = t; say('Tap a road cell inside the barracks\' reach to move the rally point. Tip: a spot by a bend makes raiders pass twice.'); } }, 'Move rally point');
-        const sb = h('button', { cls: 'small', on: () => { S.coins += back2; S.towers.splice(S.towers.indexOf(t), 1); sel = null; snd('sell', 500, .1, 'triangle', .04, -200); } }, 'Sell +' + fmt(back2));
+        const sb = confirmBtn('Sell +' + fmt(back2), 'Tap again: sell, soldiers' + (d.drone ? ' and drone' : '') + ' too', () => { S.coins += back2; S.towers.splice(S.towers.indexOf(t), 1); sel = null; snd('sell', 500, .1, 'triangle', .04, -200); refresh(); });
         box.append(h('div', { cls: 'bar' }, mv, sb));
         for (const f of cardUps) f(); return;
       }
       const seg = h('div', { cls: 'seg' }, h('small', null, 'Aim at'));
       for (const [m, n] of [['first', 'First'], ['strong', 'Strongest'], ['weak', 'Weakest']]) { const b = h('button', { cls: 'small', on: () => { t.tg = m; } }, n); seg.append(b); cardUps.push(() => b.classList.toggle('on', (t.tg || 'first') === m)); }
       box.append(seg);
-      const sellB = h('button', { cls: 'small', on: () => { S.coins += back; S.towers.splice(S.towers.indexOf(t), 1); sel = null; snd('sell', 500, .1, 'triangle', .04, -200); } }, 'Sell +' + fmt(back));
+      const sellB = confirmBtn('Sell +' + fmt(back), 'Tap again to sell', () => { S.coins += back; S.towers.splice(S.towers.indexOf(t), 1); sel = null; snd('sell', 500, .1, 'triangle', .04, -200); refresh(); });
       if (needsBranch(t)) {
         const br = h('div', { cls: 'branches' });
         for (const k of Object.keys(BRANCH[t.type])) { const B = BRANCH[t.type][k], b = h('button', { on: () => branchTower(t, k) }, h('span', { cls: 'name' }, B.n), h('small', null, B.d), costEl(() => branchCost(t), null, cardUps)); br.append(b); cardUps.push(() => { b.disabled = S.coins < branchCost(t); }); }
@@ -232,7 +236,7 @@ cv.addEventListener('click', ev => {
   const c = Math.floor(gx), rw = Math.floor(gy), t = S.towers.find(t => t.c === c && t.r === rw);
   if (t) { sel = sel && sel.t === t ? null : { t }; return; }
   if (c === VAULT[0] && rw === VAULT[1]) { sel = sel && sel.vault ? null : { vault: 1 }; return; }
-  if (onRoad(c, rw)) { sel = null; return say('Towers go beside the road, not on it.'); }
+  if (onRoad(c, rw)) { sel = null; FXS.badCell = { x: c, y: rw, t: .9 }; return say('Towers go beside the road, not on it.'); }
   sel = sel && sel.plot && sel.plot[0] === c && sel.plot[1] === rw ? null : { plot: [c, rw] };
 });
 cv.addEventListener('click', () => refresh()); // show the card at once instead of on the next UI tick
@@ -262,6 +266,14 @@ function fbGoal() {
   const b = BY_ID[g]; if (!b) return ''; const n = S.fb.goalN || 1, l = blv(g);
   return ' (now: ' + b.def.n + (n > 1 ? ' levels ' + (l + 1) + ' to ' + (l + n) : ' level ' + (l + 1)) + ', ' + fmt(S.fb.goalC || bCost(b, l)) + ')';
 }
+/* The tower previewed on the selected plot (the 3D view draws it as a ghost with its reach). */
+const GHOST = { type: null };
+/* A button that needs two taps: the first arms it (red, "Tap again to ...") for 3 seconds, the second does it. */
+function confirmBtn(label, armed, act) {
+  let t = 0; const b = h('button', { cls: 'small' }, label);
+  b.addEventListener('click', () => { if (b.classList.contains('arm')) { clearTimeout(t); act(); return; } b.classList.add('arm', 'danger'); b.textContent = armed; snd('tab', 300, .05, 'square', .02, -60); t = setTimeout(() => { b.classList.remove('arm', 'danger'); b.textContent = label; }, 3000); });
+  return b;
+}
 /* A mission card: title, progress bar, reward, Claim (and Swap for generated ones). */
 function missionCard(p, now, onClaim, onSwap, icon) {
   const gt = h('span'), gn = h('small'), bar = h('i'), claim = h('button', { cls: 'small', on: onClaim }, 'Claim'), swap = h('button', { cls: 'small', on: onSwap || (() => {}) }, 'Swap');
@@ -275,6 +287,16 @@ function missionCard(p, now, onClaim, onSwap, icon) {
   });
 }
 const PANELS = {
+  foremen(p) {
+    const fbInfo = h('p');
+    p.append(fbInfo);
+    const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } p.append(s); };
+    fseg('Pay them', [[.25, '25%'], [.5, '50%'], [.75, '75%'], [1, 'All']], 'share');
+    fseg('Keep', [[0, 'No reserve'], [1, '1 min'], [5, '5 min']], 'keep');
+    fseg('Research', [[1, 'They may buy it'], [0, 'Leave it to me']], 'study');
+    p.append(h('p', null, 'Hire a foreman with the button next to any building in Works. Each foreman after the first two costs more. Every building doubles its output at levels 10, 25, 50 and each 100, and foremen save up for those.'), h('button', { on: () => goTab('works') }, '‹ Back to Works'));
+    ups.push(() => { const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length; fbInfo.textContent = n ? n + ' at work in ' + TOWN.n + '. They get ' + pct(S.fb.share) + ' of what this town earns and save up for the upgrade that pays back fastest' + fbGoal() + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.') : 'No foremen yet in ' + TOWN.n + '.'; });
+  },
   missions(p) {
     p.append(h('h2', null, TOWN.n));
     missionCard(p, goalNow, claimGoal, () => { S.gq = null; });
@@ -319,26 +341,19 @@ const PANELS = {
     ups.push(() => { chopN.textContent = TOWN.tapN.trees + ' +' + fmt(tapYield()); digN.textContent = TOWN.tapN.rocks + ' +' + fmt(tapYield()); });
     const modes = h('div', { cls: 'seg' }, h('small', null, 'Buy'));
     for (const m of [1, 10, 'ms', 'max']) { const b = h('button', { cls: 'small', on: () => { buyMode = m; } }, m === 'max' ? 'Max' : m === 'ms' ? 'To next ★' : '×' + m); modes.append(b); ups.push(() => b.classList.toggle('on', buyMode === m)); }
-    p.append(h('div', { cls: 'taps' }, h('button', { on: () => gather('trees') }, ico(TOWN.tap.trees), chopN), h('button', { on: () => gather('rocks') }, ico(TOWN.tap.rocks), digN)),
-      h('p', null, 'Hold the ' + (TOWN.trees ? 'trees or rocks' : 'boulders or iron rocks') + ' on the map to keep gathering. Every building doubles its output at levels 10, 25, 50 and each 100.'), modes);
-    // foreman budget: their share of income, and a reserve they never touch
-    const fbInfo = h('small'), fbBox = h('div', { cls: 'panelin' }, h('div', { cls: 'name' }, 'Foremen'), fbInfo);
-    const fseg = (label, opts, key) => { const s = h('div', { cls: 'seg' }, h('small', null, label)); for (const [v, n] of opts) { const b = h('button', { cls: 'small', on: () => { S.fb[key] = v; refresh(); } }, n); s.append(b); ups.push(() => b.classList.toggle('on', S.fb[key] === v)); } fbBox.append(s); };
-    fseg('Pay them', [[.25, '25%'], [.5, '50%'], [.75, '75%'], [1, 'All']], 'share');
-    fseg('Keep', [[0, 'No reserve'], [1, '1 min'], [5, '5 min']], 'keep');
-    fseg('Research', [[1, 'They may buy it'], [0, 'Leave it to me']], 'study');
-    p.append(fbBox);
+    // one compact strip: how many to buy, and the foremen (their settings open in their own panel)
+    const fbInfo = h('small'), fbBtn = h('button', { cls: 'small fmbtn', on: () => goTab('foremen') }, ico('foreman', ''), h('span', { cls: 'grow' }, h('b', null, 'Foremen'), fbInfo), h('span', { cls: 'chev' }, '›'));
+    p.append(h('div', { cls: 'workbar' }, modes, fbBtn));
     if (TOWN.power) { // the power grid: supply from Water Wheels against demand from workshop levels
       const pw = h('div', { cls: 'power' }), pbar = h('i'), ptxt = h('small');
       pw.append(h('div', { cls: 'name' }, 'Power grid'), h('div', { cls: 'prog vbar' }, pbar), ptxt); p.append(pw);
       ups.push(() => { const g = powerUse(); pbar.style.width = Math.min(100, g.use ? g.cap / g.use * 100 : 100) + '%'; pbar.style.background = g.f >= 1 ? 'var(--good)' : g.f > .6 ? 'var(--gold)' : 'var(--bad)';
         ptxt.textContent = 'Water Wheels supply ' + fmt(g.cap) + ', workshops use ' + fmt(g.use) + (g.f >= 1 ? '. Everything runs at full speed.' : '. Workshops run at ' + pct(g.f) + ' speed: build more Water Wheels.'); });
     }
-    p.append(h('h2', null, 'Gathering'));
+    p.append(h('div', { cls: 'gathhead' }, h('h2', null, 'Gathering'), h('button', { cls: 'small', on: () => gather('trees'), title: 'Or hold the ' + (TOWN.trees ? 'trees' : 'boulders') + ' on the map' }, ico(TOWN.tap.trees), chopN), h('button', { cls: 'small', on: () => gather('rocks'), title: 'Or hold the rocks on the map' }, ico(TOWN.tap.rocks), digN)));
     ups.push(() => {
       const n = Object.keys(S.mgr).filter(id => S.mgr[id] === 1).length;
-      fbInfo.textContent = n ? n + ' at work. They get ' + pct(S.fb.share) + ' of what you earn and save up for the upgrade that pays back fastest' + fbGoal() + '. Purse: ' + fmt(S.fb.purse || 0) + (S.fb.keep ? '. They never take you below ' + S.fb.keep + ' minute' + (S.fb.keep > 1 ? 's' : '') + ' of income.' : '.')
-        : 'Hire a foreman with the button next to any building. They get a share of what you earn and keep upgrading for you.';
+      fbInfo.textContent = n ? n + ' at work · purse ' + fmt(S.fb.purse || 0) + (S.fb.goal ? ' · next: ' + fbGoal().replace(/^ \(now: |\)$/g, '') : '') : 'Hire one with the button by any building';
     });
     for (const b of BUILD) { if (b.def === SHOPS[0]) p.append(h('h2', null, 'Workshops')); p.append(buyRow(b, ups)); }
   },
@@ -599,7 +614,7 @@ function buildDynamic() {
     ups.push(() => { v.textContent = fmt(S.res[k]); const x = RATE[k] || 0, show = Math.abs(x) >= .05; r.textContent = show ? (x > 0 ? '▲ ' : '▼ ') + rate(Math.abs(x)) + '/s' : ITEMS[k].n; r.className = 'r' + (show ? x > 0 ? ' up' : ' down' : ''); });
   }
   const p = $('panel'); p.textContent = ''; p.setAttribute('aria-labelledby', 'tab-' + tab); PANELS[tab](p);
-  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : tab === 'missions' ? 'Missions' : '';
+  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : tab === 'missions' ? 'Missions' : tab === 'foremen' ? 'Foremen' : '';
   if (shownTab && shownTab !== tab && p.animate && !REDUCED) {
     const order = TABS.map(t => t[0]), dir = order.indexOf(tab) > order.indexOf(shownTab) ? 1 : -1;
     p.animate([{ opacity: 0, transform: 'translateX(' + dir * 28 + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });

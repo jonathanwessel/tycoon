@@ -141,6 +141,17 @@ const shots = process.argv[2];
       foes = []; W.queue = []; W.active = false; return r;
     });
     for (const k in tox) if (!tox[k]) errs.push('poison/tar check failed: ' + k);
+    // selling a tower takes two taps; a boss shows its health bar in the interface
+    const sellx = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)); S.coins = 1e9; for (const k in S.res) add(k, 5000);
+      const pl = PLOTS.find(q => !S.towers.some(t => t.c === q.x && t.r === q.y)); buildTower('crossbow', pl.x, pl.y); const t = S.towers[S.towers.length - 1];
+      sel = { t }; refresh(); await wait(100); const btn = [...document.querySelectorAll('#card button')].find(b => /^Sell/.test(b.textContent));
+      btn.click(); await wait(50); const kept = S.towers.includes(t); btn.click(); await wait(50); const sold = !S.towers.includes(t);
+      foes = []; W.queue = []; spawn('boss'); await wait(300); const bar = !document.getElementById('bossbar').hidden && document.getElementById('bossbar').getBoundingClientRect().height > 10;
+      foes = []; await wait(200); const gone = document.getElementById('bossbar').hidden;
+      return { kept, sold, bar, gone };
+    });
+    for (const k in sellx) if (!sellx[k]) errs.push((k === 'kept' ? 'sell needs two taps' : k === 'sold' ? 'second tap did not sell' : 'boss bar: ' + k) + ' failed');
     // phone layout: tabs open a sheet over the town; the same tab, a map tap, Back and the close button shut it; a card replaces it
     const lay = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms)), open = () => document.body.classList.contains('sheet-open');

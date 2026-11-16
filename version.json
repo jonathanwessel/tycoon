@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-23",
-  "notes": "Drone Helipad: rebuild a Barracks with Drill, Recruits and Arms at 5 into a helipad. Its attack drone flies anywhere within reach, hits even war wagons and boats, and lands to recharge. Upgrade Battery, Range and Guns."
+  "version": "2026.11.15-24",
+  "notes": "Drag the map to pan (two fingers pinch and twist). Selling a tower now takes two taps. The boss health bar is back, for every boss. Choosing a plot shows it glowing with a preview of the tower. The Works tab starts with your buildings; foreman settings have their own panel."
 }

@@ -346,6 +346,38 @@ function light(time) {
   return L;
 }
 
+/* --- the selected plot: a pulsing copper frame, every buildable plot faintly lit, a ghost of the tower ------------- */
+function syncSelect(time, dt) {
+  if (!V.sel) {
+    const k = new THREE.MeshBasicMaterial({ color: '#ffb35a', transparent: true, opacity: .9, depthWrite: false }), g = new THREE.Group();
+    for (const [x, z, w, d] of [[0, -.47, 1, .06], [0, .47, 1, .06], [-.47, 0, .06, 1], [.47, 0, .06, 1]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, .05, d), k); m.position.set(x, 0, z); g.add(m); }
+    const fill = new THREE.Mesh(new THREE.PlaneGeometry(.94, .94).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffb35a', transparent: true, opacity: .18, depthWrite: false })); fill.position.y = .01; g.add(fill);
+    g.userData.mats = [k, fill.material]; V.sel = g; V.scene.add(g);
+    V.okMat = new THREE.MeshBasicMaterial({ color: '#fff3c0', transparent: true, opacity: .12, depthWrite: false });
+    V.ghostMat = new THREE.MeshBasicMaterial({ color: '#ffd38a', transparent: true, opacity: .45, depthWrite: false });
+    const bad = new THREE.MeshBasicMaterial({ color: '#f07067', transparent: true, depthWrite: false }); V.cross = new THREE.Group();
+    for (const a of [.785, -.785]) { const m = new THREE.Mesh(new THREE.BoxGeometry(.9, .05, .12), bad); m.rotation.y = a; V.cross.add(m); } V.cross.userData.mat = bad; V.scene.add(V.cross);
+  }
+  const plot = sel && sel.plot, show = !!plot;
+  V.sel.visible = show;
+  if (show) { const [c, r] = plot, y = Math.max(0, ground(c + .5, r + .5)) + .03, p = .5 + .5 * Math.sin(time * 6); V.sel.position.set(c + .5, y, r + .5); V.sel.scale.setScalar(1 + p * .06); V.sel.userData.mats[0].opacity = .65 + .35 * p; V.sel.userData.mats[1].opacity = .1 + .14 * p; }
+  // every plot a tower could go on, faintly lit while choosing
+  if (show && (!V.okTiles || V.okKey !== V.key)) {
+    if (V.okTiles) V.scene.remove(V.okTiles);
+    V.okTiles = new THREE.InstancedMesh(new THREE.PlaneGeometry(.86, .86).rotateX(-Math.PI / 2), V.okMat, PLOTS.length); V.okKey = V.key;
+    PLOTS.forEach((pl, i) => { V.okTiles.setMatrixAt(i, new THREE.Matrix4().makeTranslation(pl.x + .5, Math.max(0, ground(pl.x + .5, pl.y + .5)) + .02, pl.y + .5)); });
+    V.scene.add(V.okTiles);
+  }
+  if (V.okTiles) { V.okTiles.visible = show; if (show) { let n = 0; const m = new THREE.Matrix4(); for (const pl of PLOTS) if (!S.towers.some(t => t.c === pl.x && t.r === pl.y)) { m.makeTranslation(pl.x + .5, Math.max(0, ground(pl.x + .5, pl.y + .5)) + .02, pl.y + .5); V.okTiles.setMatrixAt(n++, m); } V.okTiles.count = n; V.okTiles.instanceMatrix.needsUpdate = true; } }
+  // the ghost tower
+  const gt = show ? GHOST.type : null;
+  if (V.ghost && V.ghost.userData.type !== gt) { V.scene.remove(V.ghost); V.ghost = null; }
+  if (gt && !V.ghost) { V.ghost = makeTower(gt, null, 0); V.ghost.userData.type = gt; V.ghost.traverse(o => { if (o.isMesh) { o.material = V.ghostMat; o.castShadow = false; } }); V.scene.add(V.ghost); }
+  if (V.ghost) { const [c, r] = plot; V.ghost.position.set(c + .5, Math.max(0, ground(c + .5, r + .5)), r + .5); V.ghostMat.opacity = .3 + .2 * Math.sin(time * 4); }
+  // a road cell tapped by mistake: a red cross that fades
+  const bc = FXS.badCell; V.cross.visible = !!(bc && bc.t > 0);
+  if (V.cross.visible) { bc.t -= dt; V.cross.position.set(bc.x + .5, Math.max(-.04, ground(bc.x + .5, bc.y + .5)) + .03, bc.y + .5); V.cross.userData.mat.opacity = Math.min(1, bc.t * 2); }
+}
 /* --- the frame ---------------------------------------------------------------------------------------------- */
 let lastT = 0;
 function render(time, cam) {
@@ -359,7 +391,7 @@ function render(time, cam) {
   V.cam.fov = cam.fov * 180 / Math.PI; V.cam.aspect = W / H; V.cam.near = .5; V.cam.far = 200; V.cam.updateProjectionMatrix();
   V.sky.position.copy(V.cam.position);
   light(time);
-  syncBuildings(time, dt); syncTowers(time, dt); syncFoes(time, dt); syncFx(time, dt);
+  syncBuildings(time, dt); syncTowers(time, dt); syncFoes(time, dt); syncFx(time, dt); syncSelect(time, dt);
   // taps shake when gathered; the vault shows its reinforcement and shudders when hit
   const ts = FXS.shake.trees > 0 ? Math.sin(time * 70) * .06 : 0, rs = FXS.shake.rocks > 0 ? Math.sin(time * 80) * .04 : 0;
   V.tapTrees.forEach((o, i) => { o.rotation.z = ts * (i % 2 ? 1 : -1); o.rotation.x = Math.sin(time * 1.3 + i) * .015; }); V.tapRocks.forEach(o => { o.position.x += rs * .1; o.rotation.y = rs; });
