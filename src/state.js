@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 7, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1 }, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 8, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {} }, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
@@ -86,7 +86,7 @@ const routeRate = r => { const cr = carrier(); if (r.per !== 'auto') return Math
 let LOCO_LV = 0;
 const locoLevel = () => LOCO_LV;
 const readLoco = () => { LOCO_LV = (S.town === 'ridge' ? S.shops.locow : S.towns.ridge && S.towns.ridge.shops && S.towns.ridge.shops.locow) || 0; };
-const carrier = () => { const tl = typeof capLv === 'function' ? capLv('transport') : 0, k = 1 + .25 * tl, f = Math.pow(.9, tl); return S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1)) * k), fee: .02 * f, spr: 'loco' } : { n: 'Wagon train', max: Math.round(120 * k), fee: .05 * f, spr: 'wagon' }; };
+const carrier = () => { const tl = typeof capLv === 'function' ? capLv('transport') : 0, k = (1 + .25 * tl) * tf('logistics', 1.2), f = Math.pow(.9, tl) * tf('logistics', .9); return S.railOpen ? { n: 'Train', max: Math.round(1200 * (1 + .1 * Math.max(0, locoLevel() - 1)) * k), fee: .02 * f, spr: 'loco' } : { n: 'Wagon train', max: Math.round(120 * k), fee: .05 * f, spr: 'wagon' }; };
 /* Collect deliveries for this town, and say how much of each good its routes will take this step (workshops leave it). */
 function routeHold(dt) {
   const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
@@ -154,6 +154,7 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
     o.eg = 0; o.v = 6;
   }
   if (o.v < 7) o.v = 7; // v7: the Capital (its defaults come from fresh()); saves before v7 normally start fresh (WIPE_V)
+  if (o.v < 8) { if (o.capital) { o.capital.inf = o.capital.inf || 0; o.capital.tech = o.capital.tech || {}; } o.v = 8; } // v8: Influence and the tech trees
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
@@ -178,14 +179,17 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
    Maths
    ========================================================= */
 const lv = id => S.research[id] || 0;
+/* Tech trees (bought in the Capital with Influence): a branch's rank, and its compounding factor. */
+const tk = b => (S.capital && S.capital.tech && S.capital.tech[b]) || 0;
+const tf = (b, f) => Math.pow(f, tk(b));
 const perk = id => S.perks[id] || 0;
 const deedMult = () => 1 + .2 * S.deeds;
-const prodMult = () => (1 + .25 * lv('steam')) * deedMult();
-const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * (wx() === 'heat' ? 1.25 : 1);
-const sellMult = () => (1 + .1 * lv('haggle')) * (1 + .05 * (typeof capLv === 'function' ? capLv('market') : 0));
-const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult();
+const prodMult = () => (1 + .25 * lv('steam')) * deedMult() * tf('industry', 1.15);
+const craftMult = () => (1 + .25 * lv('lines')) * (1 + .25 * perk('teams')) * deedMult() * (wx() === 'heat' ? 1.25 : 1) * tf('industry', 1.15);
+const sellMult = () => (1 + .1 * lv('haggle')) * (1 + .05 * (typeof capLv === 'function' ? capLv('market') : 0)) * tf('commerce', 1.1);
+const dmgMult = () => Math.pow(1.15, lv('guns')) * deedMult() * tf('arms', 1.12);
 const tapYield = () => Math.pow(2, lv('tools'));
-const vaultMax = () => 20 + 5 * lv('vault');
+const vaultMax = () => 20 + 5 * lv('vault') + 5 * tk('fort');
 /* Milestones: output doubles at levels 10, 25, 50, then every 100. */
 const MS = l => (l >= 10) + (l >= 25) + (l >= 50) + (l >= 100 ? Math.floor(l / 100) : 0);
 const nextMs = l => l < 10 ? 10 : l < 25 ? 25 : l < 50 ? 50 : (Math.floor(l / 100) + 1) * 100;

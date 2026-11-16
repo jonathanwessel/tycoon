@@ -105,7 +105,7 @@ const TRACKS = { time: { n: 'Drill', d: 'Soldiers come back sooner', max: 15 }, 
 const trackCost = (t, k) => Math.ceil(TOWERS[t.type].coins * .4 * Math.pow(1.6, (t.up && t.up[k]) || 0) * (k === 'count' ? 2.5 : 1));
 function troopStats(t) {
   const u = t.up || {}, p = Math.pow(1.3, u.power || 0), w = foeHp(Math.max(S.wave, TOWERS.barracks.from)) * MAP.hp;
-  return { time: 14 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0), hp: w * 2.2 * p, dps: w * .45 * p * dmgMult(), reach: 3 + .25 * (u.power || 0) };
+  return { time: 14 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0), hp: w * 2.2 * p * tf('garrison', 1.15), dps: w * .45 * p * dmgMult() * tf('garrison', 1.15), reach: 3 + .25 * (u.power || 0) };
 }
 function upgradeTrack(t, k) {
   const c = trackCost(t, k); t.up = t.up || {}; if ((t.up[k] || 0) >= TRACKS[k].max || S.coins < c) return false;
@@ -162,7 +162,7 @@ const DRONE = { battery: { n: 'Battery', d: 'Longer flights', max: 15 }, range: 
 const droneCost = (t, k) => Math.ceil(TOWERS.helipad.coins * .25 * Math.pow(1.5, (t.dr && t.dr[k]) || 0));
 function droneStats(t) {
   const u = t.dr || {};
-  return { battery: 8 * Math.pow(1.22, u.battery || 0), charge: 6, range: TOWERS.helipad.range + .25 * (u.range || 0), dmg: 45 * Math.pow(1.42, u.attack || 0) * dmgMult(), rate: 4 * (1 + .04 * (u.attack || 0)), spd: 3.6 };
+  return { battery: 8 * Math.pow(1.22, u.battery || 0), charge: 6, range: TOWERS.helipad.range + .25 * (u.range || 0), dmg: 45 * Math.pow(1.42, u.attack || 0) * dmgMult() * tf('garrison', 1.15), rate: 4 * (1 + .04 * (u.attack || 0)), spd: 3.6 };
 }
 const canRebuild = t => t.type === 'barracks' && ['time', 'count', 'power'].every(k => ((t.up && t.up[k]) || 0) >= 5);
 const rebuildCost = () => Math.ceil(TOWERS.helipad.coins);
@@ -195,7 +195,7 @@ function droneTick(t, dt) {
 }
 const towerCount = type => S.towers.filter(t => t.type === type).length;
 const buildCost = type => Math.ceil(TOWERS[type].coins * Math.pow(1.2, towerCount(type)));
-const upCost = t => Math.ceil(TOWERS[t.type].coins * .8 * Math.pow(1.75, t.lvl));
+const upCost = t => Math.ceil(TOWERS[t.type].coins * .8 * Math.pow(1.75, t.lvl) * tf('eng', .92));
 const needsBranch = t => t.lvl >= 4 && !t.br && !!BRANCH[t.type];
 const branchCost = t => upCost(t) * 2;
 function upgradeTower(t) { if (needsBranch(t) || TOWERS[t.type].troops) return false; const c = upCost(t); if (S.coins < c) return false; S.coins -= c; t.lvl++; snd('build', 440, .12, 'triangle', .05, 440); return true; }
@@ -216,7 +216,7 @@ function pickTarget(t, st) {
   return best;
 }
 /* Vault repairs: coins for strength, only while the road is clear. */
-const repairCost = () => Math.ceil(foeCoins(S.wave) * 4 * MAP.coin);
+const repairCost = () => Math.ceil(foeCoins(S.wave) * 4 * MAP.coin * tf('fort', .85));
 function repair(n) {
   if (W.active) { say('Repair the vault between waves.'); return false; }
   n = Math.min(n, vaultMax() - S.vaultHp); if (n <= 0) return false;
@@ -399,6 +399,7 @@ function wipeField() { troops = []; clouds = []; tars = []; foes = []; shots = [
 /* Sign a new charter: the town you are in starts over and pays deeds; every other town and the deeds' bonus carry on. */
 function prestige() {
   const g = deedsOnOffer(); if (!g) return;
+  if (capOpen()) S.capital.inf = (S.capital.inf || 0) + 5 * g; // a charter earns the government Influence
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
     sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },

@@ -19,8 +19,8 @@ const capOpen = () => !!(S.capital && S.capital.open);
 const capLv = id => (S.capital && S.capital.lv && S.capital.lv[id]) || 0;
 const capKeep = () => (capOpen() && S.capital.keep) || 1;
 const instCost = id => Math.ceil(INST[id].cost * Math.pow(2.6, capLv(id)));
-const warEvery = lv => 300 / (1 + .25 * lv);
-const resCost = r => Math.ceil(r.cost * Math.pow(r.g, lv(r.id)) * (1 - .05 * capLv('education')));
+const warEvery = lv => 300 / (1 + .25 * lv) / (1 + .8 * tk('eng')); // Engineering: from 5 minutes towards 1
+const resCost = r => Math.ceil(r.cost * Math.pow(r.g, lv(r.id)) * (1 - .05 * capLv('education')) * tf('academy', .9));
 const ACADEMY = ['ledger', 'steam', 'lines', 'haggle', 'guns', 'bounty', 'tools', 'vault', 'mason'];
 /* Can the Capital be founded now? */
 function capitalReady() { return townOpen(CAPITAL.from) && townBest(CAPITAL.from) >= CAPITAL.best; }
@@ -42,7 +42,7 @@ function capitalWork(dt, inc) {
   const sp = capSplit(), cp = S.cpurse || (S.cpurse = { war: 0, acad: 0, last: S.life || 0, t: 30 });
   if (cp.last === undefined || cp.last > (S.life || 0)) cp.last = S.life || 0;
   const earned = (S.life || 0) - cp.last, cap = Math.max(1e3, inc * 1800); cp.last = S.life || 0;
-  cp.war = Math.min(cap, cp.war + earned * S.capital.share * sp.war); cp.acad = Math.min(cap, cp.acad + earned * S.capital.share * sp.academy);
+  cp.war = Math.min(cap, cp.war + earned * S.capital.share * sp.war); cp.acad = Math.min(cap, cp.acad + earned * S.capital.share * sp.academy * tf('academy', 1.15));
   // the Academy: the cheapest research still to do, as soon as the allowance holds it
   let best = null; for (const id of ACADEMY) { const r = RESEARCH.find(q => q.id === id); if (!r || lv(id) >= r.max) continue; const c = resCost(r); if (!best || c < best.c) best = { r, c }; }
   if (best && best.c <= cp.acad && S.coins >= best.c) { cp.acad -= best.c; S.coins -= best.c; S.research[best.r.id] = lv(best.r.id) + 1; if (best.r.id === 'vault') S.vaultHp += 5; }
@@ -84,10 +84,37 @@ function autoBattle(dt) {
     if (S.vaultHp <= 0) { const lost = S.coins * .1; S.coins -= lost; S.wave = Math.max(1, w - 2); S.vaultHp = vaultMax(); }
   }
 }
+/* --- tech trees -------------------------------------------------------------------------------------------------
+   Influence, the government's own currency, builds up while the Capital stands: about the square root of the empire's
+   coins per second, each minute, plus 5 for every deed a charter earns. Each branch has five ranks bought in order;
+   their effects compound within the branch. Nodes survive charters; only the Constitutional Convention resets them. */
+const TECH = {
+  econ: { n: 'Economy', home: 'Department of Education', branches: {
+    industry:  { n: 'Industry',       icon: 'gear',    d: '+15% gathering and workshop speed per rank' },
+    commerce:  { n: 'Commerce',       icon: 'coin',    d: '+10% sale prices per rank' },
+    logistics: { n: 'Logistics',      icon: 'wagon',   d: '+20% route capacity and 10% lower fees per rank' },
+    admin:     { n: 'Administration', icon: 'foreman', d: 'Foremen cost 15% less to hire and are paid 10% more per rank' },
+    academy:   { n: 'Academy',        icon: 'flask',   d: 'Research costs 10% less and the Academy gets 15% more per rank' },
+  } },
+  war: { n: 'Defence', home: 'War Office', branches: {
+    arms:      { n: 'Arms',           icon: 'crossbow', d: '+12% tower damage per rank' },
+    eng:       { n: 'Engineering',    icon: 'cannon',   d: 'The War Office upgrades towers far more often (5 minutes towards 1) and upgrades cost 8% less per rank' },
+    garrison:  { n: 'Garrison',       icon: 'barracks', d: '+15% soldier and drone strength per rank' },
+    fort:      { n: 'Fortification',  icon: 'vault',    d: '+5 vault strength and 15% cheaper repairs per rank' },
+  } },
+};
+const TECH_MAX = 5;
+const techCost = b => Math.ceil(10 * Math.pow(3, tk(b))); // 10, 30, 90, 270, 810 a branch
+const infRate = () => capOpen() ? Math.sqrt(Math.max(0, CAPI.inc || 0)) / 60 : 0; // Influence per second
+function buyTech(b) {
+  if (!capOpen() || tk(b) >= TECH_MAX) return false; const c = techCost(b); if ((S.capital.inf || 0) < c) return false;
+  S.capital.inf -= c; S.capital.tech = S.capital.tech || {}; S.capital.tech[b] = tk(b) + 1; snd('ms', 660, .25, 'triangle', .06, 440); return true;
+}
 /* What research survives a charter: the Department of Education keeps up to 2 levels of each per level. */
 function eduKeep(r) { const n = 2 * capLv('education'), o = {}; if (n) for (const k in r) o[k] = Math.min(r[k], n); return o; }
 /* Interest from the Central Bank, once a tick for the whole empire. */
 function bankWork(dt, empireInc) {
+  if (capOpen()) S.capital.inf = (S.capital.inf || 0) + Math.sqrt(Math.max(0, empireInc)) / 60 * dt; // Influence builds up here too, once a tick
   const l = capLv('bank'); if (!capOpen() || !l) return;
   const base = Math.min(S.coins, empireInc * 600 * l); if (base > 0) earn(base * .002 * l / 60 * dt);
 }

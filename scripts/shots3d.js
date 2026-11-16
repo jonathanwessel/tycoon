@@ -52,6 +52,8 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('tutorial');
   await p.evaluate(async () => { tutEnd(true); S.coins = 1e12; S.best = 40; if (!townOpen('ridge')) unlockTown('ridge'); if (S.towns.ridge) S.towns.ridge.best = 30; if (!townOpen('falls')) unlockTown('falls'); if (S.towns.falls) S.towns.falls.best = 20; S.coins = 1e12; openCapital(); buyInst('market'); buyInst('war'); goTab('capital'); setSheetH(.9); await new Promise(r => setTimeout(r, 900)); });
   await shot('capital');
+  await p.evaluate(async () => { S.capital.inf = 500; buyTech('industry'); buyTech('industry'); buyTech('arms'); goTab('tech'); await new Promise(r => setTimeout(r, 900)); });
+  await shot('tech');
   console.log(town, JSON.stringify(t), errs.length ? 'ERRORS ' + errs.join(' | ') : 'no errors');
   await b.close(); srv.close(); process.exit(0);
 })();

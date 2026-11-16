@@ -12,7 +12,9 @@ PANELS.capital = p => {
     ups.push(() => { b.disabled = !ready || S.coins < CAPITAL.coins; });
     return;
   }
-  const c = S.capital;
+  const c = S.capital, inf = h('small');
+  p.append(h('div', { cls: 'bar' }, h('button', { cls: 'primary', on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), inf));
+  ups.push(() => { inf.textContent = fmt(c.inf || 0) + ' influence'; });
   // --- the Capitol: the budget --------------------------------------------------------------------------------------
   p.append(h('h2', null, 'The Capitol: budget'));
   const shareSeg = h('div', { cls: 'seg' }, h('small', null, 'Takes'));

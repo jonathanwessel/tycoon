@@ -392,6 +392,15 @@ button.afford { animation: afford .6s steps(3, end); }
 @media (prefers-reduced-motion: reduce) { nav.tabs button[aria-selected="true"] img.px, .panel.enter > *, button.afford, .row.msflash, .mcount.pop { animation: none; } }
 .sheethead { display: none; }
 .workbar { display: grid; gap: 6px; }
+/* tech trees: a chain of five pips per branch */
+.infbar { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 2px solid var(--gold); border-radius: 10px; background: rgba(242, 208, 74, .08); }
+.infbar b { color: var(--gold); font-size: 1.2rem; }
+.pips { display: flex; align-items: center; gap: 0; margin-top: 6px; }
+.pips i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); background: var(--panel-2); position: relative; }
+.pips i + i { margin-left: 18px; } .pips i + i::before { content: ''; position: absolute; right: 100%; top: 5px; width: 20px; height: 2px; background: var(--line); }
+.pips i.on { background: var(--gold); border-color: var(--gold); } .pips i.on + i::before { background: var(--gold); }
+.pips i.next { border-color: var(--gold); animation: tutpulse 1.4s ease-in-out infinite; }
+.calm .pips i.next { animation: none; }
 /* the tutorial: a dimmed screen with a spotlight, and a speech bubble; taps go through to the game */
 .tut { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
 .tutspot { position: fixed; box-shadow: 0 0 0 200vmax rgba(10, 12, 22, .55); border: 3px solid var(--gold); border-radius: 10px; transition: left .25s var(--spring), top .25s var(--spring), width .25s, height .25s; animation: tutpulse 1.4s ease-in-out infinite; }
@@ -524,6 +533,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/ui/panels.js"></script>
 <script src="src/ui/hud.js"></script>
 <script src="src/ui/capital.js"></script>
+<script src="src/ui/trees.js"></script>
 <script src="src/ui/tutorial.js"></script>
 <script src="src/ui/settings.js"></script>
 <script src="src/app.js"></script>

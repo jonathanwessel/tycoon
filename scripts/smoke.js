@@ -221,7 +221,7 @@ const shots = process.argv[2];
       const wait = ms => new Promise(r => setTimeout(r, ms)); S.coins = 1e12; S.best = Math.max(S.best, 40);
       if (!townOpen('ridge')) unlockTown('ridge'); if (S.towns.ridge) S.towns.ridge.best = Math.max(30, S.towns.ridge.best); if (!townOpen('falls')) unlockTown('falls'); if (S.towns.falls) S.towns.falls.best = Math.max(20, S.towns.falls.best); S.coins = 1e12;
       const r = { capital: openCapital() }; refresh(); goTab('capital'); await wait(200);
-      r.panel = document.getElementById('panel').textContent.includes('Capitol'); r.button = !document.getElementById('bCap').hidden; r.inst = buyInst('market');
+      r.panel = document.getElementById('panel').textContent.includes('Capitol'); r.button = !document.getElementById('bCap').hidden; r.inst = buyInst('market'); S.capital.inf = 1e4; goTab('tech'); await wait(200); r.tree = document.getElementById('panel').textContent.includes('Influence') && document.querySelectorAll('.row.tech').length >= 5; r.node = buyTech('arms');
       if (SHEET.open) closeSheet(); return r;
     });
     for (const k in cap) if (!cap[k]) errs.push('Capital check failed: ' + k);

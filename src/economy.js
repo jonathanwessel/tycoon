@@ -111,7 +111,7 @@ function foremenWork() {
   if (fb.study === undefined) fb.study = 1;
   if (!fb.own) { fb.own = 1; fb.last = S.life || 0; } // saves from before purses were per town counted the whole empire
   if (fb.last === undefined || fb.last > (S.life || 0)) fb.last = S.life || 0;
-  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800), cg = capOpen(), share = cg ? S.capital.share * capSplit().foremen : fb.share; // the Capitol's budget replaces each town's own settings
+  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800), cg = capOpen(), share = (cg ? S.capital.share * capSplit().foremen : fb.share) * tf('admin', 1.1); // the Capitol's budget replaces each town's own settings
   fb.purse = Math.min((fb.purse || 0) + ((S.life || 0) - fb.last) * share, cap); fb.last = S.life || 0;
   capitalWork(DT_NOW, inc);
   const mine = Object.keys(S.mgr).filter(id => S.mgr[id] === 1 && BY_ID[id]); if (!mine.length) { fb.goal = null; return; }
@@ -210,5 +210,5 @@ function gather(src) {
 }
 /* A foreman costs 100 times the building's base price, and every foreman after the first two costs 60% more again,
    so the Crystal Drill's (40K at the start) is well above the first two (1.5K each for the camp and mine). */
-const mgrCost = id => Math.ceil(BY_ID[id].def.cost * 100 * Math.pow(1.6, Math.max(0, Object.keys(S.mgr).length - 2)));
+const mgrCost = id => Math.ceil(BY_ID[id].def.cost * 100 * Math.pow(1.6, Math.max(0, Object.keys(S.mgr).length - 2)) * tf('admin', .85));
 function hire(id) { const c = mgrCost(id); if (S.coins < c || S.mgr[id]) return; S.coins -= c; S.mgr[id] = 1; say('A foreman now runs the ' + BY_ID[id].def.n + '. Foremen pick the upgrades that pay back fastest, within the budget set in the Works tab.'); snd('build', 440, .15, 'triangle', .05, 220); }

@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-27",
-  "notes": "A Barracks may now touch the road at a corner. New perk, the Foreman Agency (8 deeds): hires a foreman for every building in every town as soon as you can afford it."
+  "version": "2026.11.15-28",
+  "notes": "Tech trees: the Capital earns Influence from your empire and every charter. Spend it on Economy and Defence trees (Industry, Commerce, Logistics, Administration, Academy, Arms, Engineering, Garrison, Fortification). Engineering makes automatic tower upgrades far faster."
 }
