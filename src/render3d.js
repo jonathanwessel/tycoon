@@ -41,9 +41,14 @@ function r3Resize() {
 
 /* --- camera ------------------------------------------------------------------------------------------------- */
 function r3Camera() {
-  const W = R3.canvas.width, H = R3.canvas.height, tgt = [COLS / 2, 0, ROWS / 2 + .6];
-  const eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * R3.dist, Math.sin(R3.pitch) * R3.dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * R3.dist];
-  const fov = .62, V = M4.look(eye, tgt, [0, 1, 0]), Pm = M4.persp(fov, W / H, .5, 200);
+  const W = R3.canvas.width, H = R3.canvas.height, fov = .62, asp = W / H, th = Math.tan(fov / 2);
+  // R3.dist is a zoom (24 = the whole board); the real distance makes the board fit this screen's width and height
+  const fitD = Math.max(24, (COLS / 2 + .7) / (th * asp), 8.2 / th), dist = R3.dist * fitD / 24;
+  // with a menu sheet open on a phone, look further down the board so the town shows above the sheet
+  R3.shift = (R3.shift || 0) + (((typeof SHEET !== 'undefined' && SHEET.open) ? SHEET.h * dist * .38 : 0) - (R3.shift || 0)) * .15;
+  const tgt = [COLS / 2, 0, ROWS / 2 + .6 + R3.shift];
+  const eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * dist, Math.sin(R3.pitch) * dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * dist];
+  const V = M4.look(eye, tgt, [0, 1, 0]), Pm = M4.persp(fov, W / H, .5, 200);
   R3.cam = { eye, tgt, fov, asp: W / H, VP: M4.mul(Pm, V) };
   return R3.cam;
 }

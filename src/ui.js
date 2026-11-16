@@ -75,6 +75,7 @@ function useAbility(id) {
 }
 const TOWER_TIPS = 'Tap an empty plot beside the road to build. Tap a tower to upgrade it or change its aim.';
 function card() {
+  if (sel && SHEET.open && !docked()) closeSheet(); // a thing tapped on the map: its card replaces the menu
   const box = $('card'); box.hidden = !sel; if (!sel) { box._k = box._e = null; return; }
   const key = sel.t ? 't' + S.towers.indexOf(sel.t) + '/' + sel.t.lvl + sel.t.br : sel.b ? 'b' + sel.b.def.id : sel.vault ? 'v' : 'p' + sel.plot.join(',');
   if (box._k !== key) {
@@ -135,14 +136,36 @@ function gridAt(ev) { if (R3.on) return r3Pick(ev); const r = cv.getBoundingClie
 function slotAt(gx, gy) { if (gy >= YARD) return null; const sx = Math.floor(gx / 2) * 2, sy = Math.floor(gy / 2) * 2; return Object.keys(SLOT).find(k => SLOT[k][0] === sx && SLOT[k][1] === sy); }
 let holdT = null;
 const stopHold = () => { clearInterval(holdT); holdT = null; };
+cv.addEventListener('click', e => { if (SHEET.open && !docked()) { closeSheet(); e.stopImmediatePropagation(); } }, true);
 cv.addEventListener('pointerdown', ev => {
+  if (SHEET.open && !docked()) return;
   const [gx, gy] = gridAt(ev), id = slotAt(gx, gy);
   if (id !== 'trees' && id !== 'rocks') return;
   gather(id); stopHold(); holdT = setInterval(() => gather(id), 170);
 });
 for (const e of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListener(e, stopHold);
 cv.addEventListener('contextmenu', e => e.preventDefault());
-function goTab(id) { tab = id; rebuild = true; $('sheet').scrollTop = 0; refresh(); }
+/* The menus. Side by side with the map on wide screens (docked); on a phone they live in a sheet that slides up over
+   the town: a tab opens it (the same tab again, a tap on the map, Back or Escape closes it), its head drags it taller,
+   shorter or away. Tapping something on the map closes it and shows that thing's card instead. */
+const DOCK = window.matchMedia ? matchMedia('(min-width: 900px), (orientation: landscape) and (min-width: 600px)') : { matches: true };
+const docked = () => DOCK.matches;
+const SHEET = { open: false, h: .55 };
+function setSheetH(f) { SHEET.h = f; document.documentElement.style.setProperty('--sheet-h', Math.round(innerHeight * f) + 'px'); }
+function openSheet() {
+  if (docked()) return; sel = null;
+  if (!SHEET.open) { SHEET.open = true; setSheetH(SHEET.h); document.body.classList.add('sheet-open'); try { history.pushState({ sheet: 1 }, ''); } catch (e) {} }
+}
+function closeSheet(fromBack) {
+  if (!SHEET.open) return; SHEET.open = false; document.body.classList.remove('sheet-open');
+  if (!fromBack && history.state && history.state.sheet) try { history.back(); } catch (e) {}
+  refresh();
+}
+window.addEventListener('popstate', () => closeSheet(true));
+function goTab(id) {
+  if (!docked() && SHEET.open && tab === id) return closeSheet();
+  tab = id; rebuild = true; $('sheet').scrollTop = 0; openSheet(); refresh();
+}
 /* Travel to another town of the empire: its map, buildings and waves; the town you leave keeps producing. */
 function goTown(id) {
   if (!switchTown(id)) return; wipeField(); bakeGround(); FXS.convoys = []; save();
@@ -442,9 +465,19 @@ function buildFixed() {
   for (const [id, n, icon] of TABS) {
     dots[id] = h('i', { cls: 'dot', hidden: '' });
     const b = h('button', { role: 'tab', id: 'tab-' + id, 'aria-controls': 'panel', on: () => goTab(id) }, ico(icon), h('span', null, n), dots[id]); tabs.append(b);
-    fixedUps.push(() => b.setAttribute('aria-selected', String(tab === id)));
+    fixedUps.push(() => b.setAttribute('aria-selected', String(tab === id && (SHEET.open || docked()))));
   }
   $('bWave').addEventListener('click', startWave);
+  $('sheetX').addEventListener('click', () => closeSheet());
+  // drag the sheet's head: taller, shorter, or flick it down to close
+  (() => {
+    const hd = $('sheetHead'); let d = null;
+    hd.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; d = { y: e.clientY, h: SHEET.h, last: e.clientY, lt: performance.now() }; try { hd.setPointerCapture(e.pointerId); } catch (er) {} document.body.classList.add('sheet-drag'); });
+    hd.addEventListener('pointermove', e => { if (!d) return; d.v = (e.clientY - d.last) / Math.max(1, performance.now() - d.lt); d.last = e.clientY; d.lt = performance.now(); setSheetH(Math.max(.15, Math.min(.92, d.h - (e.clientY - d.y) / innerHeight))); });
+    const up = () => { if (!d) return; document.body.classList.remove('sheet-drag'); const f = SHEET.h, fling = (d.v || 0) > .8; d = null;
+      if (f < .3 || fling) { closeSheet(); setSheetH(.55); } else setSheetH(f > .72 ? .9 : .55); };
+    hd.addEventListener('pointerup', up); hd.addEventListener('pointercancel', up);
+  })();
   $('bPause').addEventListener('click', () => setPaused(true));
   $('bFull').addEventListener('click', () => setMapFull(!document.body.classList.contains('mapfull')));
   $('bSet').addEventListener('click', () => openSettings());
@@ -456,9 +489,10 @@ function buildFixed() {
     if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
     else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setMapFull(!document.body.classList.contains('mapfull')); }
     else if (e.key === 'Escape' && document.body.classList.contains('mapfull')) setMapFull(false);
+    else if (e.key === 'Escape' && SHEET.open) closeSheet();
   });
   const hold = $('bHold'); hold.addEventListener('click', toggleAuto);
-  const hv = $('hVaultWrap'), openVault = () => { sel = { vault: 1 }; $('sheet').scrollTop = 0; refresh(); };
+  const hv = $('hVaultWrap'), openVault = () => { sel = { vault: 1 }; refresh(); };
   hv.addEventListener('click', openVault); hv.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openVault(); } });
   fixedUps.push(() => hv.classList.toggle('low', S.vaultHp < vaultMax() / 2));
   fixedUps.push(() => { hold.classList.toggle('held', !S.autoWave); hold.setAttribute('aria-pressed', String(!S.autoWave)); hold.lastChild.textContent = S.autoWave ? 'Hold' : 'Held'; });
@@ -506,6 +540,7 @@ function buildDynamic() {
     ups.push(() => { v.textContent = fmt(S.res[k]); const x = RATE[k] || 0, show = Math.abs(x) >= .05; r.textContent = show ? (x > 0 ? '▲ ' : '▼ ') + rate(Math.abs(x)) + '/s' : ITEMS[k].n; r.className = 'r' + (show ? x > 0 ? ' up' : ' down' : ''); });
   }
   const p = $('panel'); p.textContent = ''; p.setAttribute('aria-labelledby', 'tab-' + tab); PANELS[tab](p);
+  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : '';
   if (shownTab && shownTab !== tab && p.animate && !REDUCED) {
     const order = TABS.map(t => t[0]), dir = order.indexOf(tab) > order.indexOf(shownTab) ? 1 : -1;
     p.animate([{ opacity: 0, transform: 'translateX(' + dir * 28 + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });

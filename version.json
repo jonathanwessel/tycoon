@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-18",
-  "notes": "Foremen now grow every town on their own: they count goods shipped in, save up for x2 milestones and can buy research. Workshops share inputs fairly, routes have an Auto rate, and each Locomotive Works level adds train capacity."
+  "version": "2026.11.15-19",
+  "notes": "The town now fills the whole screen. Tabs open a sheet that slides up over it: drag it taller, swipe it down, tap the map or press Back to close it. Tapping a building shows its card. The eye button hides the interface."
 }

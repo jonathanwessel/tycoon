@@ -5,7 +5,8 @@ const path = require('path'), fs = require('fs');
 const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
 (async () => {
   const srv = await require('./serve').start(0), b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 400, height: 860 }, deviceScaleFactor: 2 });
+  const [vw, vh] = (process.env.VIEW || '400x860').split('x').map(Number); // e.g. VIEW=860x400 for a phone on its side
+  const p = await b.newPage({ viewport: { width: vw, height: vh }, deviceScaleFactor: vw > 1000 ? 1 : 2 });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
   await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
   await p.goto(srv.url); await p.waitForTimeout(1500);
@@ -21,7 +22,7 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
     return { on: R3.on };
   }, town);
   if (!r.on) { console.log('3D did not start', errs); process.exit(1); }
-  const shot = async n => { await p.screenshot({ path: path.join(out, town + '-' + n + '.png') }); };
+  const shot = async n => { await p.screenshot({ path: path.join(out, town + (process.env.VIEW ? '-' + process.env.VIEW : '') + '-' + n + '.png') }); };
   await shot('day');
   const t = await p.evaluate(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -34,6 +35,12 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('wave');
   await p.evaluate(async () => { R3.distT = 13; R3.yawT = .5; await new Promise(r => setTimeout(r, 1200)); });
   await shot('close');
+  await p.evaluate(async () => { R3.distT = 24; R3.yawT = 0; goTab('works'); await new Promise(r => setTimeout(r, 1200)); });
+  await shot('sheet');
+  await p.evaluate(async () => { closeSheet(); for (const t of S.towers) if (t.c > 0) { sel = { t }; break; } refresh(); await new Promise(r => setTimeout(r, 800)); });
+  await shot('card');
+  await p.evaluate(async () => { sel = null; setGx('view', '2d'); refresh(); await new Promise(r => setTimeout(r, 800)); });
+  await shot('2d');
   console.log(town, JSON.stringify(t), errs.length ? 'ERRORS ' + errs.join(' | ') : 'no errors');
   await b.close(); srv.close(); process.exit(0);
 })();

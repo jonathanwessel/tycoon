@@ -11,7 +11,7 @@ const shots = process.argv[2];
   const srv = await require('./serve').start(0); URL = srv.url;
   const b = await chromium.launch();
   let failed = false;
-  for (const [name, vw, vh] of [['phone', 400, 900], ['desk', 1200, 800]]) {
+  for (const [name, vw, vh] of [['phone', 400, 900], ['land', 860, 400], ['desk', 1200, 800]]) {
     const p = await b.newPage({ viewport: { width: vw, height: vh } });
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
@@ -22,8 +22,8 @@ const shots = process.argv[2];
     // the map's render must match its size on screen
     if (!(await p.evaluate(() => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && cell > 0 && Math.abs(cell * COLS - cv.width) < 1))) errs.push('map render size does not match the map on screen');
     const r = await p.evaluate(() => {
-      const rect = document.getElementById('cv').getBoundingClientRect();
-      const at = (c, r) => ({ clientX: rect.left + (c + .5) * rect.width / COLS, clientY: rect.top + (r + .5) * rect.height / ROWS, bubbles: true });
+      // measured on every tap: the layout can still settle after load (landscape phones especially)
+      const at = (c, r, rect = document.getElementById('cv').getBoundingClientRect()) => ({ clientX: rect.left + (c + .5) * rect.width / COLS, clientY: rect.top + (r + .5) * rect.height / ROWS, bubbles: true });
       window.tap = (c, r) => document.getElementById('cv').dispatchEvent(new MouseEvent('click', at(c, r)));
       const cvEl = document.getElementById('cv');
       cvEl.dispatchEvent(new PointerEvent('pointerdown', at(0, 0))); cvEl.dispatchEvent(new PointerEvent('pointerup', at(0, 0)));
@@ -108,7 +108,9 @@ const shots = process.argv[2];
       // full-screen map grows the map and keeps the controls
       const mw0 = document.querySelector('.mapwrap').getBoundingClientRect().width; setMapFull(true); await wait(300);
       const fr = document.querySelector('.mapwrap').getBoundingClientRect(), ctl = document.querySelector('.controls').getBoundingClientRect();
-      const full = document.body.classList.contains('mapfull') && fr.width >= mw0 && ctl.bottom <= innerHeight + 1 && ctl.top >= fr.bottom - 1;
+      // on a phone the same button hides the interface (the town already fills the screen); beside docked menus it grows the map
+      const full = docked() ? document.body.classList.contains('mapfull') && fr.width >= mw0 && ctl.bottom <= innerHeight + 1 && ctl.top >= fr.bottom - 1
+        : document.body.classList.contains('mapfull') && ctl.height === 0 && $('bFull').getBoundingClientRect().height > 0;
       setMapFull(false); await wait(200);
       return { badges, got, calm, held, frozen, resumed, menu, foreman, full, gfx, coal };
     });
@@ -125,19 +127,34 @@ const shots = process.argv[2];
     });
     if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');
     else { if (!(lit.lights > 0)) errs.push('lighting engine gathered no lights'); if (lit.glErr) errs.push('WebGL error ' + lit.glErr); if (!lit.simpleOk) errs.push('simple graphics did not switch off lighting'); }
+    // phone layout: tabs open a sheet over the town; the same tab, a map tap, Back and the close button shut it; a card replaces it
+    const lay = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)), open = () => document.body.classList.contains('sheet-open');
+      if (docked()) { goTab('works'); await wait(100); return { panel: $('panel').childElementCount > 0 }; }
+      const r = {}; goTab('works'); await wait(350); r.opens = open() && $('sheet').getBoundingClientRect().top < innerHeight - 200;
+      goTab('works'); await wait(100); r.sameTab = !open();
+      goTab('market'); await wait(100); cv.dispatchEvent(new MouseEvent('click', { clientX: innerWidth / 2, clientY: innerHeight / 3, bubbles: true })); await wait(100); r.mapTap = !open() && !sel;
+      goTab('empire'); await wait(100); history.back(); await wait(300); r.back = !open();
+      goTab('research'); await wait(100); $('sheetX').click(); await wait(100); r.closeBtn = !open();
+      goTab('works'); await wait(100); sel = { vault: 1 }; refresh(); await wait(100); r.card = !open() && !$('card').hidden; sel = null; refresh();
+      r.noScroll = document.documentElement.scrollWidth <= innerWidth + 1;
+      return r;
+    });
+    for (const k in lay) if (!lay[k]) errs.push('layout check failed: ' + k);
     // the 3D view: renders frames without GL errors, and a tap on a projected cell picks that cell
     const v3 = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
       for (let i = 0; i < 40 && !window.R3D; i++) await wait(100); // the 3D engine module loads after the game
       setGx('view', '3d'); if (!R3.on) { setGx('view', '2d'); return { on: false }; }
+      await wait(300); const st = document.querySelector('.stage').getBoundingClientRect(), gr = R3.canvas.getBoundingClientRect(), fills = docked() || (Math.abs(gr.width - st.width) < 2 && Math.abs(gr.height - st.height) < 2);
       S.wave = 9; planWave(); startWave(); await wait(800);
       const err = R3D.info().err, built = R3D.prebuild(), r = cv.getBoundingClientRect(), [px, py] = r3Project(5.5, .1, 10.5), s = cv.clientWidth / R3.canvas.width;
       const g = r3Pick({ clientX: r.left + cv.clientLeft + px * s, clientY: r.top + cv.clientTop + py * s });
       foes = []; W.queue = []; W.active = false; setGx('view', '2d');
-      return { on: true, err, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad, back2d: !R3.on };
+      return { on: true, err, fills, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad, back2d: !R3.on };
     });
     if (!v3.on) console.log(name, 'warning: no WebGL2 in this browser, 3D view not tested');
-    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.back2d) errs.push('3D check failed: ' + JSON.stringify(v3));
+    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.fills || !v3.back2d) errs.push('3D check failed: ' + JSON.stringify(v3));
     // the empire: open Iron Ridge, play a wave there with its boss, ship goods, look at the Empire tab, come home
     const emp = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

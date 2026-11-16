@@ -85,6 +85,8 @@ function applyGfx() {
   // the 3D view replaces the 2D map (and its lighting engine) when chosen and WebGL2 is available
   R3.on = g.view === '3d' && r3Setup();
   if (R3.canvas) { R3.canvas.hidden = !R3.on; R3.ux.canvas.hidden = !R3.on; }
+  document.body.classList.toggle('v3', R3.on); // the 3D view fills the whole stage
+  if (cv.width && GLX.v3 !== R3.on) { GLX.v3 = R3.on; requestAnimationFrame(fit); }
   GLX.on = !R3.on && !!g.light && glSetup();
   if (GLX.canvas) GLX.canvas.hidden = !GLX.on;
   if (g.view === '3d' && !R3.on && R3.tried) say('This device cannot run the 3D view, so the map stays 2D.');

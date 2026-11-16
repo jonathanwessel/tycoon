@@ -6,8 +6,10 @@ const cv = document.getElementById('cv'), cx0 = cv.getContext('2d'); let cx = cx
 const renderScale = () => { const rs = GX().res || 1; return Math.max(.5, Math.min((window.devicePixelRatio || 1) * rs, rs > 1 ? 3 : 2)); };
 function fit() {
   // the Resolution setting scales the render: below 1 is faster and blockier, above 1 renders sharper than the screen
+  if (typeof layoutVars === 'function') layoutVars();
   const w = cv.clientWidth || 360, dpr = renderScale();
-  cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr * ROWS / COLS); cell = cv.width / COLS;
+  cv.width = Math.round(w * dpr); cv.height = R3.on ? Math.round((cv.clientHeight || w * ROWS / COLS) * dpr) : Math.round(w * dpr * ROWS / COLS);
+  cell = R3.on ? Math.min(cv.width / COLS, cv.height / ROWS) : cv.width / COLS; // the 3D view fills the stage; its overlay text sizes from this
   bakeGround(); glResize(); if (typeof r3Resize === "function") r3Resize();
 }
 function bakeGround() { if (!cv.width) return; ground = document.createElement('canvas'); ground.width = cv.width; ground.height = cv.height; bake(ground.getContext('2d'), cell); GLX.groundDirty = true; }

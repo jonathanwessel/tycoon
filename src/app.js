@@ -9,11 +9,20 @@ let prev = 0, uiT = 0, saveT = 0, shownCoins = null, coinTxt = '', waveP = '', p
 const FULL = { asked: false };
 function setMapFull(on) {
   document.body.classList.toggle('mapfull', on);
-  const b = $('bFull'); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Leave full-screen map' : 'Full-screen map'); b.title = on ? 'Leave full screen (F or Esc)' : 'Full-screen map (F)';
+  const b = $('bFull'), ph = !docked(); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', ph ? (on ? 'Show the interface' : 'Hide the interface') : on ? 'Leave full-screen map' : 'Full-screen map'); b.title = ph ? (on ? 'Show the interface (F)' : 'Hide the interface for a clear view (F)') : on ? 'Leave full screen (F or Esc)' : 'Full-screen map (F)';
+  if (on && SHEET.open) closeSheet();
   const de = document.documentElement;
   if (on && !document.fullscreenElement && de.requestFullscreen) { de.requestFullscreen({ navigationUI: 'hide' }).then(() => { FULL.asked = true; }).catch(() => {}); }
   if (!on && document.fullscreenElement && FULL.asked) { FULL.asked = false; document.exitFullscreen().catch(() => {}); }
   requestAnimationFrame(() => { fit(); refresh(); });
+}
+/* Sizes of the floating interface on a phone (header, stock strip, tab bar, wave controls), for the map to fit between. */
+function layoutVars() {
+  if (docked()) return;
+  const r = document.documentElement.style, hd = document.querySelector('header'), st = $('stock'), nv = $('tabs'), ct = document.querySelector('.controls');
+  const H = hd ? hd.offsetHeight : 38, S_ = st ? st.offsetHeight : 40, N = nv ? nv.offsetHeight : 66, C = ct ? ct.offsetHeight : 46;
+  r.setProperty('--hh', H + 'px'); r.setProperty('--top', (H + S_) + 'px'); r.setProperty('--navh', N + 'px'); r.setProperty('--bot', (N + C + 18) + 'px');
+  if (SHEET.open) setSheetH(SHEET.h);
 }
 /* A full stop: production, raiders, timers and animations all wait. Not saved, so a reload always resumes. */
 function setPaused(on) {
@@ -60,7 +69,7 @@ function start(data) {
   if (S.movedNote) { const n = S.movedNote; delete S.movedNote; setTimeout(() => say(n), 1500); }
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); applyGfx(); window.addEventListener('resize', fit);
-  if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * renderScale() - cv.width) > 2) fit(); }).observe(cv);
+  if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * renderScale() - cv.width) > 2 || (R3.on && Math.abs(cv.clientHeight * renderScale() - cv.height) > 2)) fit(); }).observe(cv);
   if (away > 60) {
     const before = S.life, r0 = Object.assign({}, S.res); econTowns(away);
     const gains = {}; for (const k in ITEMS) gains[k] = S.res[k] - r0[k];
@@ -74,8 +83,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-18'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Foremen now grow every town on their own: they count goods shipped in, save up for x2 milestones and can buy research. Workshops share inputs fairly, routes have an Auto rate, and each Locomotive Works level adds train capacity.';
+const GAME_VERSION = '2026.11.15-19'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'The town now fills the whole screen. Tabs open a sheet that slides up over it: drag it taller, swipe it down, tap the map or press Back to close it. Tapping a building shows its card. The eye button hides the interface.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

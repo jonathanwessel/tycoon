@@ -97,7 +97,7 @@ canvas#cv {
 /* the settings panel: a sheet over the bottom of a phone, a panel at the side of a wide screen; the map stays in view */
 .modal.sheetm { place-items: end center; padding: 0; background: rgba(10, 12, 22, .3); }
 .modal.sheetm .box.wide { width: min(100%, 560px); max-height: 58vh; max-height: 58dvh; overflow-y: auto; border-radius: 3px 3px 0 0; padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)); animation: sheetup .22s steps(4, end); }
-@media (min-width: 900px) { .modal.sheetm { place-items: center end; padding: 16px; } .modal.sheetm .box.wide { max-height: 92vh; max-height: 92dvh; border-radius: 3px; width: 460px; } }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) { .modal.sheetm { place-items: center end; padding: 16px; } .modal.sheetm .box.wide { max-height: 92vh; max-height: 92dvh; border-radius: 3px; width: 460px; } }
 @keyframes sheetup { from { transform: translateY(30px); opacity: 0; } }
 .settabs { position: sticky; top: -12px; z-index: 1; background: var(--panel); padding: 4px 0 8px; }
 .settabs button { flex: 1; }
@@ -107,6 +107,7 @@ canvas#cv {
 .setbody small { display: block; line-height: 1.25; }
 #bFull .back, body.mapfull #bFull .go { display: none; }
 body.mapfull #bFull .back { display: block; }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
 /* full-screen map: the stage covers the page, the map fills the height, controls stay underneath, cards float over the map */
 body.mapfull .stage { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px;
   padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
@@ -115,6 +116,7 @@ body.mapfull .stock { display: none; }
 @media (orientation: portrait) { body.mapfull .mapwrap { align-self: start; } }
 body.mapfull .controls { width: 100%; max-width: 760px; margin: 0 auto; }
 body.mapfull #card:not([hidden]) { position: fixed; z-index: 50; left: 0; right: 0; margin: 0 auto; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); width: min(94vw, 460px); max-height: 48vh; max-height: 48dvh; overflow-y: auto; }
+}
 .mapbtn .ic { width: 12px; height: 14px; display: block; background: linear-gradient(90deg, currentColor 0 34%, transparent 34% 66%, currentColor 66%); }
 .pausecover { position: absolute; inset: 0; border-radius: 2px; border: 0; box-shadow: none; background: rgba(14, 16, 30, .62); display: grid; place-content: center; gap: 6px; text-align: center; animation: fadein .2s ease-out; }
 .pausecover:hover:not(:disabled) { border-color: transparent; }
@@ -156,7 +158,7 @@ nav.tabs button { position: relative; display: grid; justify-items: center; alig
 nav.tabs img.px { width: 24px; height: 24px; }
 nav.tabs button[aria-selected="true"] { background: var(--panel); border-color: var(--copper); color: var(--copper); }
 nav .dot { position: absolute; top: 5px; right: calc(50% - 20px); width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px var(--bg); }
-@media (min-width: 900px) {
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
   body { padding-bottom: 12px; }
   .app { grid-template-columns: minmax(0, 1fr) 460px; grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "head head" "stage nav" "stage sheet"; column-gap: 14px; padding-top: 12px; }
   h1 { font-size: 1.6rem; }
@@ -284,7 +286,7 @@ p strong { color: var(--fg); }
 .sugs .row { background: #2b2a1e; border: 2px solid #6a5a24; border-radius: 3px; padding: 6px 8px; margin-bottom: 4px; }
 .routeform select { font: inherit; font-weight: 600; color: var(--fg); background: var(--panel-2); border: 2px solid #12152a; border-radius: 3px; min-height: 36px; padding: 2px 6px; }
 @media (max-width: 480px) { nav.tabs button { font-size: .7rem; } }
-@media (min-width: 900px) { nav.tabs button { gap: 4px; padding: 4px 3px; font-size: .84rem; } nav.tabs img.px { width: 18px; height: 18px; } }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) { nav.tabs button { gap: 4px; padding: 4px 3px; font-size: .84rem; } nav.tabs img.px { width: 18px; height: 18px; } }
 .chip.income .v { color: var(--gold); }
 .panelin { display: grid; gap: 6px; background: var(--bg); border: 2px solid var(--line); border-radius: 3px; padding: 8px 10px; }
 .strat { display: grid; gap: 4px; }
@@ -323,7 +325,7 @@ img.fly { position: fixed; width: 22px; height: 22px; z-index: 50; pointer-event
 .goal.done { animation: glow 1s steps(2, jump-none) infinite; }
 nav.tabs button[aria-selected="true"] { box-shadow: inset 0 -4px 0 var(--copper); }
 nav.tabs button[aria-selected="true"] img.px { transform: translateY(-2px); }
-@media (min-width: 900px) { .hud > span { background: var(--panel); border: 2px solid var(--line); border-radius: 3px; padding: 2px 10px 2px 6px; } }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) { .hud > span { background: var(--panel); border: 2px solid var(--line); border-radius: 3px; padding: 2px 10px 2px 6px; } }
 @keyframes glow { 50% { border-color: #fff0a0; } }
 .prog i { transition: width .25s ease-out; }
 nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
@@ -331,6 +333,53 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 @media (prefers-reduced-motion: reduce) { .toast, button, .prog i { transition: none; } .modal, .modal .box, .goal.done, #bWave.soon, nav .dot, #hVaultWrap.low b, .medal, .pausecover, .speedmenu { animation: none; } }
 .calm .toast, .calm button, .calm .prog i { transition: none; }
 .calm .modal, .calm .modal .box, .calm .goal.done, .calm #bWave.soon, .calm nav .dot, .calm #hVaultWrap.low b, .calm .medal, .calm .pausecover, .calm .speedmenu { animation: none; }
+:root { --top: 92px; --navh: 66px; --bot: 130px; --sheet-h: 55vh; }
+.sheethead { display: none; }
+#bFull .hideui { display: none; }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
+  body.v3 .mapwrap { width: 100%; height: max(180px, calc(100vh - 210px)); height: max(180px, calc(100dvh - 210px)); aspect-ratio: auto; } /* leaves room for the wave controls and stock below */
+}
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
+  /* beside docked menus a tapped thing's card floats over the bottom of the map */
+  #card:not([hidden]) { position: fixed; z-index: 50; left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: min(420px, 46vw); max-height: 70vh; max-height: 70dvh; overflow-y: auto; }
+}
+body.v3 canvas#cv { border: 0; box-shadow: none; background: transparent; }
+body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-radius: 0; }
+@media (max-width: 899px) and (orientation: portrait), (max-width: 599px) {
+  body { padding: 0; }
+  .app { display: block; height: 100%; padding: 0; max-width: none; }
+  header { position: fixed; z-index: 30; left: 0; right: 0; top: 0; padding: max(6px, env(safe-area-inset-top, 0px)) 10px 3px; background: rgba(16, 19, 32, .9); }
+  .stock { position: fixed; z-index: 30; left: 0; right: 0; top: var(--hh, 38px); padding: 3px 8px 5px; background: linear-gradient(rgba(16, 19, 32, .9), rgba(16, 19, 32, .55)); }
+  .chip { min-width: 0; padding: 2px 6px 2px 4px; background: rgba(31, 37, 57, .9); }
+  .chip img.px { width: 20px; height: 20px; }
+  .stage { position: fixed; inset: 0; z-index: 0; display: block; background: var(--bg); }
+  .mapwrap { position: absolute; left: 50%; top: calc(var(--top) + (100vh - var(--top) - var(--bot)) / 2); top: calc(var(--top) + (100dvh - var(--top) - var(--bot)) / 2); transform: translate(-50%, -50%); margin: 0; width: min(100%, calc((100vh - var(--top) - var(--bot)) * 12 / 14)); width: min(100%, calc((100dvh - var(--top) - var(--bot)) * 12 / 14)); }
+  body.v3 .mapwrap { inset: 0; transform: none; width: auto; height: auto; aspect-ratio: auto; }
+  .controls { position: fixed; z-index: 25; left: 8px; right: 8px; bottom: calc(var(--navh) + 8px); transition: opacity .18s, transform .18s; }
+  nav.tabs { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; padding: 5px 6px max(6px, env(safe-area-inset-bottom, 0px)); background: rgba(16, 19, 32, .97); border-top: 2px solid var(--line); }
+  nav.tabs button { min-height: 50px; }
+  main.sheet { position: fixed; z-index: 35; left: 0; right: 0; bottom: var(--navh); height: var(--sheet-h); padding: 0 8px 12px; background: var(--bg); border-top: 3px solid var(--copper); border-radius: 6px 6px 0 0; box-shadow: 0 -6px 0 rgba(0, 0, 0, .3); transform: translateY(calc(100% + var(--navh) + 12px)); transition: transform .24s cubic-bezier(.2, .8, .2, 1), visibility 0s .24s; visibility: hidden; }
+  body.sheet-open main.sheet { transform: none; visibility: visible; transition: transform .24s cubic-bezier(.2, .8, .2, 1); }
+  body.sheet-drag main.sheet { transition: none; }
+  body.sheet-open .controls { opacity: 0; transform: translateY(20px); pointer-events: none; }
+  .sheethead { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; margin: 0 -8px 6px; padding: 14px 10px 8px; background: var(--bg); touch-action: none; cursor: grab; }
+  .sheethead .grip { position: absolute; left: 50%; top: 5px; width: 48px; height: 5px; margin-left: -24px; background: var(--line); border-radius: 3px; }
+  .sheethead b { flex: 1; font-family: var(--display); font-weight: 400; font-size: 1.15rem; color: var(--copper); }
+  #card:not([hidden]) { position: fixed; z-index: 36; left: 8px; right: 8px; margin: 0 auto; max-width: 460px; bottom: calc(var(--navh) + 62px); max-height: 52vh; max-height: 52dvh; overflow-y: auto; }
+  .mapbtn { position: fixed; z-index: 26; left: auto; right: 8px; bottom: auto; }
+  #bPause { top: calc(var(--top) + 6px); }
+  #bFull { left: auto; top: calc(var(--top) + 50px); }
+  #bSet { left: auto; top: calc(var(--top) + 94px); }
+  #bFull .go, #bFull .back { display: none; } #bFull .hideui { display: block; }
+  .toast { position: fixed; z-index: 45; top: calc(var(--top) + 6px); left: 54px; right: 54px; }
+  /* in 2D the board is centred and its buttons sit in a row beneath it */
+  body:not(.v3) .mapbtn { top: auto; bottom: calc(var(--bot) - 46px); }
+  body:not(.v3) #bPause { right: 100px; } body:not(.v3) #bFull { right: 54px; }
+  .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 140px); }
+  /* hide the interface: only the town (and the button that brings the interface back) */
+  body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
+  body.mapfull #bFull { top: max(10px, env(safe-area-inset-top, 0px)); opacity: .6; }
+}
 </style>
 </head>
 <body>
@@ -349,7 +398,7 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
       <canvas id="cv" aria-label="Map of the gulch. Hold trees and rocks to gather, tap a building to upgrade it, tap an empty plot by the road to build a tower."></canvas>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>
-      <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="hideui" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 8c2-3.5 4.5-5 7-5s5 1.5 7 5c-2 3.5-4.5 5-7 5S3 11.5 1 8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="2.2" fill="currentColor"/></svg><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>
       <button class="mapbtn" id="bSet" aria-label="Settings" title="Settings: graphics, sound, game"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M7 0h2v2.3l1.5.6 1.6-1.6 1.4 1.4-1.6 1.6.6 1.5H16v2h-2.3l-.6 1.5 1.6 1.6-1.4 1.4-1.6-1.6-1.5.6V16H7v-2.3l-1.5-.6-1.6 1.6-1.4-1.4 1.6-1.6L2.3 9H0V7h2.3l.6-1.5-1.6-1.6 1.4-1.4 1.6 1.6L7 2.3zM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"/></svg></button>
       <div class="fpsmeter" id="fpsMeter" hidden></div>
       <button class="pausecover" id="pauseCover" hidden><b>Paused</b><span>Tap to carry on</span></button>
@@ -365,9 +414,10 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
   </section>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
   <main class="sheet" id="sheet">
-    <div class="card" id="card" hidden></div>
+    <div class="sheethead" id="sheetHead"><i class="grip" aria-hidden="true"></i><b id="sheetTitle"></b><button class="small x" id="sheetX" aria-label="Close">✕</button></div>
     <div class="panel" id="panel" role="tabpanel"></div>
   </main>
+  <div class="card" id="card" hidden></div>
 </div>
 <div class="modal" id="modal" hidden></div>
 <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }</script>
