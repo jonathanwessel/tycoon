@@ -122,6 +122,19 @@ test('Iron Ridge opens only after wave 20 in Copper Gulch and costs 100K', () =>
   assert.strictEqual(g.run('S.towns.ridge.res.stone'), 30, 'starting stone');
 });
 
+test('a shipping route gets its goods even when the home town\'s workshops use them all', () => {
+  const g = load();
+  // Copper Gulch makes planks but its Machine Shop could eat every one; the route to Iron Ridge must still be fed
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e6; S.best = 25; unlockTown('ridge');
+    S.res.plank = 0; S.ext.camp = 20; S.ext.mine = 20; S.shops.saw = 6; S.shops.smelt = 10; S.shops.mach = 60;
+    Object.assign(S.towns.ridge.ext, { ironmine: 10, coalseam: 10 }); Object.assign(S.towns.ridge.shops, { blast: 8, boilerw: 4 });
+    S.routes.push({ from: 'gulch', to: 'ridge', k: 'plank', per: 60 });`);
+  g.run('for (let i = 0; i < 240; i++) econTowns(.5);');
+  const sent = g.run('S.routes[0].sent');
+  assert.ok(sent > 100, 'planks shipped despite the hungry Machine Shop, got ' + sent);
+  assert.ok(g.run('S.towns.ridge.res.boiler') > 0, 'Iron Ridge made boilers');
+});
+
 test('Iron Ridge works in the background on its own chain, fed by a shipping route', () => {
   const g = load();
   g.run(`S = fresh(); setMap('gulch'); S.coins = 1e6; S.best = 25; unlockTown('ridge');

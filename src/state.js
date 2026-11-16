@@ -76,6 +76,13 @@ function unlockTown(id) {
    Wagons carry up to 120 a minute for 5% of the goods' value; once a Locomotive Works stands, trains carry up to
    1200 a minute for 2%. */
 const carrier = () => S.railOpen ? { n: 'Train', max: 1200, fee: .02, spr: 'loco' } : { n: 'Wagon train', max: 120, fee: .05, spr: 'wagon' };
+/* Collect deliveries for this town, and say how much of each good its routes will take this step (workshops leave it). */
+function routeHold(dt) {
+  const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
+  const cr = carrier(), hold = {};
+  for (const r of S.routes) if (r.from === TOWN_ID && !r.paused && townOpen(r.to)) hold[r.k] = (hold[r.k] || 0) + Math.min(r.per, cr.max) * dt / 60;
+  return hold;
+}
 function shipGoods(dt) {
   const box = S.inbox[TOWN_ID]; if (box) { for (const k in box) add(k, box[k]); delete S.inbox[TOWN_ID]; }
   const cr = carrier();

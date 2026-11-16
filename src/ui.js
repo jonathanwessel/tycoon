@@ -42,6 +42,10 @@ function buyRow(b, list) {
     name.textContent = def.n; name.append(h('i', null, have ? 'Lv ' + have : '')); if (ms) name.append(h('em', null, '★'.repeat(Math.min(ms, 5)) + (ms > 5 ? '+' + (ms - 5) : '')));
     info.textContent = def.power ? 'Powers ' + fmt(Math.max(1, have) * def.power * Math.pow(2, MS(have))) + ' workshop levels' + (have ? '' : ' at level 1') : rate(Math.max(1, have) * def.rate * mult) + '/s' + (have ? '' : ' at level 1');
     msl.textContent = have ? 'Output ×2 at level ' + nextMs(have) + (S.mgr[id] === 1 ? ' · foreman working' : S.mgr[id] === 2 ? ' · foreman resting' : '') : '';
+    // a workshop that is not running says which input it is waiting for, and where that input comes from
+    const miss = kind === 'shops' && have && !S.off[id] && (ACT[id] || 0) < .08 && STARVE[id];
+    if (miss) { const local = BUILD.some(o => o.def.out === miss); msl.textContent = 'Waiting for ' + ITEMS[miss].n.toLowerCase() + (local ? '' : ': none are made here, ship them in from the Empire tab'); }
+    msl.classList.toggle('warn', !!miss);
     lab.textContent = have ? '+' + p.n : 'Build'; btn.disabled = !p.ok;
     if (tog) { tog.hidden = !have; tog.textContent = S.off[id] ? 'Off' : 'On'; tog.classList.toggle('on', !S.off[id]); tog.title = S.off[id] ? 'Workshop paused. Tap to run it.' : 'Workshop running. Tap to pause it.'; tog.setAttribute('aria-label', tog.title); }
     mg.hidden = !(S.mgr[id] || have >= 1); mgL.textContent = S.mgr[id] ? (S.mgr[id] === 1 ? 'On' : 'Off') : ''; mgL.hidden = !S.mgr[id]; mgC.hidden = !!S.mgr[id];

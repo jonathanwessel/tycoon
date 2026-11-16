@@ -15,16 +15,18 @@ function econStep(dt) {
   const ot = S.ot > 0 ? 3 : 1, pm = prodMult() * ot, cm = craftMult() * ot * powerUse().f, ease = Math.min(1, dt * 3);
   S.ot = Math.max(0, S.ot - dt); for (const k in S.cd) S.cd[k] = Math.max(0, S.cd[k] - dt);
   for (const e of EXT) { const l = S.ext[e.id] || 0; if (l && e.out) add(e.out, l * e.rate * pm * bMult(e.id) * dt); }
+  // deliveries arrive first; what shipping routes will send this step is held back from this town's own workshops
+  const resv = routeHold(dt);
   for (const s of SHOPS) {
     const l = S.shops[s.id] || 0; if (!l) continue;
     const cap = l * s.rate * cm * bMult(s.id) * dt; let n = S.off[s.id] ? 0 : cap, miss = null;
-    for (const k in s.in) { const m = S.res[k] / s.in[k]; if (m < n) { n = m; miss = k; } }
+    for (const k in s.in) { const m = Math.max(0, S.res[k] - (resv[k] || 0)) / s.in[k]; if (m < n) { n = m; miss = k; } }
     if (n > 0) { for (const k in s.in) S.res[k] -= n * s.in[k]; add(s.out, n); S.stats.made += n; PHASE[s.id] = ((PHASE[s.id] || 0) + n / l / bMult(s.id)) % 1; }
     ACT[s.id] = (ACT[s.id] || 0) + (n / cap - (ACT[s.id] || 0)) * ease; STARVE[s.id] = miss;
   }
   const rec = 1 - Math.exp(-(perk('trade') ? .04 : .02) * dt);
   for (const k in S.demand) { S.demand[k] += (1 - S.demand[k]) * rec; if (S.demand[k] > .999) delete S.demand[k]; }
-  shipGoods(dt); // shipments leave before auto-sell, and deliveries for this town are collected
+  shipGoods(dt); // shipments leave before auto-sell
   if (lv('ledger')) for (const k in ITEMS) if (S.auto[k] && S.res[k] > KEEP && dem(k) >= S.sellAbove) sell(k, S.res[k] - KEEP);
   foremenWork();
 }
