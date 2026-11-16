@@ -89,9 +89,9 @@ test('with the music off from the start no audio context is made', () => {
 
 test('save v12 adds the music volume; older saves get the default, a chosen silence is kept', () => {
   const g = load();
-  assert.strictEqual(g.run('fresh().v'), 12); assert.strictEqual(g.run('fresh().opt.music'), .6);
+  assert.ok(g.run('fresh().v') >= 12); assert.strictEqual(g.run('fresh().opt.music'), .6);
   g.run(`WIPE_OFF = true; const o = JSON.parse(JSON.stringify(fresh())); o.v = 11; delete o.opt.music; adopt(o);`);
-  assert.strictEqual(g.run('S.v'), 12); assert.strictEqual(g.run('S.opt.music'), .6);
+  assert.strictEqual(g.run('S.v'), g.run('fresh().v')); assert.strictEqual(g.run('S.opt.music'), .6);
   g.run(`const o2 = JSON.parse(JSON.stringify(fresh())); o2.v = 11; o2.opt.music = 0; adopt(o2);`);
   assert.strictEqual(g.run('S.opt.music'), 0);
 });

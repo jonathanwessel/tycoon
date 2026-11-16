@@ -54,6 +54,13 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('card');
   await p.evaluate(async () => { sel = null; S.wave = 20; foes = []; W.queue = []; W.active = false; planWave(); startWave(); goTab('works'); await new Promise(r => setTimeout(r, 4000)); });
   await shot('works');
+  // the market: reputation, orders with their deadlines (one rush), a boom and a bust, the auto-sell modes
+  await p.evaluate(async () => { S.research.ledger = 1; S.rep = 72; const ks = Object.keys(ITEMS).filter(k => S.seen[k]); S.mkt.ev = { [ks[0]]: { m: 1.6, t: 200, T: 240 }, [ks[2]]: { m: .55, t: 90, T: 300 } };
+    S.auto[ks[0]] = 'boom'; S.auto[ks[1]] = true; S.auto[ks[2]] = 'bust'; S.contracts = []; ordersFill(); S.contracts[0].rush = 1; S.contracts[1].t = 40; rebuild = true; closeSheet(); goTab('market'); setSheetH(.9); await new Promise(r => setTimeout(r, 1200)); });
+  await shot('market');
+  await p.evaluate(async () => { document.getElementById('panel').parentElement.scrollTop = 99999; const sc = [...document.querySelectorAll('#panel h2')].find(x => x.textContent === 'Sell goods'); if (sc) sc.scrollIntoView(); await new Promise(r => setTimeout(r, 500)); });
+  await shot('market2');
+  await p.evaluate(async () => { setSheetH(.55); closeSheet(); await new Promise(r => setTimeout(r, 300)); });
   await p.evaluate(async () => { closeSheet(); const pl = PLOTS.find(q => !S.towers.some(t => t.c === q.x && t.r === q.y)); sel = { plot: [pl.x, pl.y] }; GHOST.type = 'cannon'; refresh(); await new Promise(r => setTimeout(r, 800)); });
   await shot('select');
   await p.evaluate(async () => { sel = null; refresh(); foes = []; W.queue = []; W.active = false; S.wave = 30; planWave(); startWave(); for (let i = 0; i < 60 && !foes.some(f => f.type === 'boss'); i++) await new Promise(r => setTimeout(r, 250)); await new Promise(r => setTimeout(r, 1500)); });

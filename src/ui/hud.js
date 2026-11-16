@@ -80,7 +80,7 @@ function buildFixed() {
 }
 function buildDynamic() {
   ups = []; rebuild = false;
-  while (S.contracts.length < 3) S.contracts.push(newContract());
+  ordersFill();
   const st = $('stock'); st.textContent = '';
   // income first: what the town earns per second now, and what it would with every surplus sold
   { const v = h('div', { cls: 'v' }), r = h('div', { cls: 'r' }); st.append(h('div', { cls: 'chip income', title: 'Coins per second: earned over the last minute, and what this town makes with every surplus good sold at full price' }, ico('coin', 'Income'), h('div', null, v, r)));

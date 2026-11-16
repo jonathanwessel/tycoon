@@ -200,6 +200,21 @@ const shots = process.argv[2];
       return r;
     });
     for (const k in lay) if (!lay[k]) errs.push('layout check failed: ' + k);
+    // the market: reputation, orders counting down, a boom in the news and on its good, the auto-sell mode button
+    const mk = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)), r = {}, led = S.research.ledger, ev = S.mkt.ev, auto = S.auto.wood, rep = S.rep;
+      S.research.ledger = 1; S.mkt.ev = { wood: { m: 1.6, t: 200, T: 200 } }; S.auto.wood = false; goTab('market'); await wait(400);
+      const pn = $('panel'), txt = pn.textContent; r.rep = !!pn.querySelector('.rep') && txt.includes('Reputation');
+      r.orders = pn.querySelectorAll('.row.order').length === S.contracts.length && S.contracts.length >= 3 && txt.includes('leaves in');
+      r.news = txt.includes('Timber boom') && !!pn.querySelector('.mrow .mtag.boom'); r.tag = [...pn.querySelectorAll('.row .name .mtag.boom')].some(t => !t.hidden);
+      const t0 = S.contracts[0].t; ordersTick(1); r.ticks = S.contracts[0].t < t0;
+      const b = [...pn.querySelectorAll('.amode')].find(x => x.closest('.row').textContent.includes('Timber'));
+      b.click(); refresh(); await wait(50); r.mode = S.auto.wood === true && b.textContent === 'Auto: always'; b.click(); refresh(); r.mode2 = S.auto.wood === 'bust' && b.textContent === 'Auto: skip busts';
+      const r0 = S.rep; swapOrder(0); r.swap = S.rep === r0 - 1;
+      S.research.ledger = led; S.mkt.ev = ev; S.auto.wood = auto; S.rep = rep; if (SHEET.open) closeSheet(); await wait(100);
+      return r;
+    });
+    for (const k in mk) if (!mk[k]) errs.push('market check failed: ' + k + ' ' + JSON.stringify(mk));
     // the 3D view: renders frames without GL errors, and a tap on a projected cell picks that cell
     const v3 = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

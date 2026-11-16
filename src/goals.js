@@ -99,6 +99,7 @@ const BADGES = [
   { id: 'clean',   n: 'Clean Sweep',        d: 'Clear a wave with nobody reaching the vault.',     icon: 'vault',    ok: () => S.stats.flawless >= 1 },
   { id: 'clean25', n: 'Iron Gate',          d: 'Clear 25 waves with nobody reaching the vault.',   icon: 'buckler',  ok: () => S.stats.flawless >= 25 },
   { id: 'trade',   n: 'Caravan Master',     d: 'Fill 25 caravan contracts.',                       icon: 'wagon',    ok: () => S.stats.contracts >= 25 },
+  { id: 'rep',     n: 'Good Name',          d: 'Reach Renowned reputation with the caravans (80).', icon: 'wagon',    ok: () => repOf() >= 80 },
   { id: 'make',    n: 'Industrialist',      d: 'Make 10,000 goods in workshops.',                  icon: 'gear',     ok: () => S.stats.made >= 1e4 },
   { id: 'auto',    n: 'Clockwork Dream',    d: 'Build an automaton.',                              icon: 'auto',     ok: () => !!S.seen.auto },
   { id: 'arsenal', n: 'Full Arsenal',       d: 'Have every kind of tower on the map at once.',     icon: 'gatling',  ok: () => Object.keys(TOWERS).every(k => S.towers.some(t => t.type === k)) },

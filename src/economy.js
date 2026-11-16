@@ -33,7 +33,7 @@ function econStep(dt) {
   const rec = 1 - Math.exp(-(perk('trade') ? .04 : .02) * dt);
   for (const k in S.demand) { S.demand[k] += (1 - S.demand[k]) * rec; if (S.demand[k] > .999) delete S.demand[k]; }
   shipGoods(dt); // shipments leave before auto-sell
-  if (lv('ledger')) for (const k in ITEMS) { const keep = keepOf(k); if (S.auto[k] && S.res[k] > keep && dem(k) >= S.sellAbove) sell(k, S.res[k] - keep); }
+  if (lv('ledger')) autoSell(); // per good: always, skip busts or booms only (src/market.js)
   foremenWork();
 }
 /* How much of a good auto-sell leaves in the warehouse: enough to build any tower twice with this town's materials and
@@ -194,13 +194,15 @@ function newContract() {
   const k = pool[Math.floor(Math.random() * pool.length)];
   const v = Math.max(40, S.life * .04) * (.6 + Math.random() * .8);
   const qty = Math.max(5, Math.ceil(v / ITEMS[k].p));
-  return { k, qty, pay: Math.ceil(qty * ITEMS[k].p * 2.5) };
+  // a rush order (from Trusted reputation) pays 60% more and must go in half the time (src/market.js)
+  const rush = repOf() >= 60 && Math.random() < .25, T = orderTime(rush);
+  return { k, qty, pay: Math.ceil(qty * ITEMS[k].p * 2.5 * (rush ? 1.6 : 1)), t: T, T, rush: rush ? 1 : 0 };
 }
-const contractPay = c => c.pay * sellMult() * (1 + .25 * perk('trade'));
+const contractPay = c => c.pay * sellMult() * (1 + .25 * perk('trade')) * repMult();
 function deliver(i) {
   const c = S.contracts[i]; if (!c || S.res[c.k] < c.qty) return false;
-  S.res[c.k] -= c.qty; const v = contractPay(c); earn(v); S.stats.contracts++; S.contracts[i] = newContract(); rebuild = true;
-  say('Order delivered: +' + fmt(v) + ' coins.'); FXS.car = 0;
+  S.res[c.k] -= c.qty; const v = contractPay(c); earn(v); S.stats.contracts++; repAdd(c.rush ? REP_RUSH : REP_DONE); orderNext(i);
+  say('Order delivered: +' + fmt(v) + ' coins, reputation +' + (c.rush ? REP_RUSH : REP_DONE) + '.'); FXS.car = 0;
   setTimeout(() => coinBurst(11, 3, 7, v), 900);
   snd('coin', 660, .15, 'square', .04, 660); return true;
 }

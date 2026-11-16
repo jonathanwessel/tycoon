@@ -415,7 +415,7 @@ function prestige() {
   if (S.capital && S.capital.ex && S.capital.ex.s) for (const id in S.capital.ex.s) { S.capital.ex.s[id].own = 0; S.capital.ex.s[id].cost = 0; } // shares go with the coins, or they would carry coins through
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
-    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, legacy: S.legacy, paidDeeds: S.paidDeeds, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
+    sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, legacy: S.legacy, paidDeeds: S.paidDeeds, rep: S.rep, mkt: S.mkt, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
     town: S.town, towns: S.towns, routes: S.routes, inbox: S.inbox, railOpen: S.railOpen, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
   const map = TOWNS[S.town].maps[0];
   S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map); headStart();

@@ -293,6 +293,15 @@ p strong { color: var(--fg); }
 .strat { display: grid; gap: 4px; }
 .strat div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 2px dotted var(--line); color: var(--muted); }
 .strat b { color: var(--gold); }
+.rep { display: grid; gap: 4px; background: var(--bg); border: 2px solid var(--line); border-radius: 3px; padding: 8px 10px; }
+.rep b { color: var(--gold); }
+.row.order .prog { margin-top: 5px; height: 4px; }
+.mtag { display: inline-block; font-style: normal; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 3px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; color: #1c1a17; background: var(--gold); }
+.mtag.boom { background: var(--good); } .mtag.bust { background: var(--bad); }
+.mnews { display: grid; gap: 4px; }
+.mrow { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 2px dotted var(--line); }
+.mrow .grow { flex: 1; }
+.amode { min-width: 7.5em; }
 .records div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--muted); }
 .records b { color: var(--fg); }
 .updatebar { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 65; display: grid; gap: 2px; text-align: left;
@@ -582,6 +591,7 @@ body.pad :focus { outline: 3px solid var(--gold) !important; outline-offset: 2px
 <script src="src/art.js"></script>
 <script src="src/state.js"></script>
 <script src="src/economy.js"></script>
+<script src="src/market.js"></script>
 <script src="src/goals.js"></script>
 <script src="src/combat.js"></script>
 <script src="src/fx.js"></script>

@@ -61,7 +61,7 @@ function frame(now) {
   if (!paused) {
     econTowns(dt); // every town produces; only this one has waves (and they wait while the title is up)
     if (TITLE.on) TITLE.t += Math.min(dt, .1);
-    else { let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; } S.stats.played += Math.min(dt, 1); }
+    else { let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; } S.stats.played += Math.min(dt, 1); ordersTick(Math.min(dt, 1)); }
     playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); sampleIncome(Math.min(dt, 1));
     if (S.bestRate === undefined || INC.samples.length > 30) S.bestRate = Math.max(S.bestRate || 0, liveIncome());
   }
@@ -115,8 +115,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-8'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'American spelling throughout: Defense, Aluminum, Armored train, Color grading';
+const GAME_VERSION = '2026.11.16-9'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Market depth: booms and busts, caravan orders with deadlines and reputation, auto-sell modes per good';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

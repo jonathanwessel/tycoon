@@ -36,7 +36,7 @@ const out = g.run(`(() => {
       }
       if ((t + dt) % 600 === 0) {
         const row = { min: (t + dt) / 60, all: 0 };
-        for (const id of ids) { const inc = (lifeOf(id) - prevLife[id]) / 600; prevLife[id] = lifeOf(id); row.all += inc; row[id] = { inc: Math.round(inc), starved: Math.round(100 * starve[id] / 600) + '%', lv: lvls(id), goal: withTown(id, () => S.fb && S.fb.goal) }; starve[id] = 0; }
+        for (const id of ids) { const inc = (lifeOf(id) - prevLife[id]) / 600; prevLife[id] = lifeOf(id); row.all += inc; row[id] = { inc: Math.round(inc), pot: Math.round(townIncome(id)), starved: Math.round(100 * starve[id] / 600) + '%', lv: lvls(id), goal: withTown(id, () => S.fb && S.fb.goal) }; starve[id] = 0; }
         log.push(row); if (stopAt && row.all >= stopAt) break;
       }
     }
@@ -54,8 +54,8 @@ const out = g.run(`(() => {
   return JSON.stringify({ log: one.log, maxWait: one.maxWait, ships, lv, dbg, second: { L, paid, mult: legacyMult(), peak, reach: hit ? hit.min : null, log: two.log.map(r => [r.min, Math.round(r.all)]) } });
 })()`);
 const r = JSON.parse(out), ids = Object.keys(r.maxWait); if (r.dbg) console.log(JSON.stringify(r.dbg, null, 1));
-console.log('min  ' + ids.map(id => (id + ' income/s  idle  levels').padEnd(40)).join(''));
-for (const row of r.log) console.log(String(row.min).padStart(4) + ' ' + ids.map(id => (String(row[id].inc).padStart(9) + String(row[id].starved).padStart(7) + String(row[id].lv).padStart(7) + '  ' + (row[id].goal || '-')).padEnd(40)).join(''));
+console.log('min  ' + ids.map(id => (id + ' income/s  steady  idle  levels').padEnd(48)).join(''));
+for (const row of r.log) console.log(String(row.min).padStart(4) + ' ' + ids.map(id => (String(row[id].inc).padStart(9) + String(row[id].pot).padStart(8) + String(row[id].starved).padStart(7) + String(row[id].lv).padStart(7) + '  ' + (row[id].goal || '-')).padEnd(48)).join(''));
 console.log('routes:', r.ships.join(' | '));
 for (const id of ids) console.log(id + ':', r.lv[id], '· longest wait for a purchase', Math.round(r.maxWait[id] / 60), 'min');
 const s = r.second, lifeMin = HOURS * 60, peakAt = (r.log.find(x => x.all >= s.peak) || {}).min;
@@ -65,7 +65,13 @@ console.log('first life peak ' + Math.round(s.peak) + '/s at ' + peakAt + ' min;
 // pass/fail
 const fails = [];
 for (const id of ids) {
-  for (let i = 6; i < r.log.length; i += 6) if (!(r.log[i][id].inc > r.log[i - 6][id].inc)) { fails.push(id + ': income did not rise in the hour to ' + r.log[i].min + ' min'); break; }
+  // the economy grows every hour: the steady income the foremen build (booms and busts swing the coins actually earned
+  // by up to a third for a few minutes, more than a late hour's growth, so they are left out of this one)
+  const hr = (id, j, f) => { let v = 0; for (let k = j - 5; k <= j; k++) v += r.log[k][id][f]; return v / 6; };
+  for (let i = 11; i < r.log.length; i += 6) if (!(hr(id, i, 'pot') > hr(id, i - 6, 'pot'))) { fails.push(id + ': income did not rise in the hour to ' + r.log[i].min + ' min'); break; }
+  // and the coins really come in: over the last two hours the town earned at least 80% of that steady income
+  const tail = r.log.slice(-12), got = tail.reduce((a, x) => a + x[id].inc, 0), pot = tail.reduce((a, x) => a + x[id].pot, 0);
+  if (!(got >= .8 * pot)) fails.push(id + ': earned only ' + Math.round(100 * got / pot) + '% of its steady income over the last two hours');
   const late = r.log.slice(3).map(x => parseInt(x[id].starved)); const avg = late.reduce((a, b) => a + b, 0) / Math.max(1, late.length);
   if (avg > 10) fails.push(id + ': a workshop stood idle ' + Math.round(avg) + '% of the time');
   if (r.maxWait[id] > 2700) fails.push(id + ': foremen went ' + Math.round(r.maxWait[id] / 60) + ' min without buying');

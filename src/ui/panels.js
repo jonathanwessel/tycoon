@@ -121,12 +121,20 @@ const PANELS = {
   },
   market(p) {
     const thr = h('button', { cls: 'small', on: () => { const o = [0, .6, .8, 1]; S.sellAbove = o[(o.indexOf(S.sellAbove) + 1) % o.length]; } });
-    p.append(h('h2', null, 'Caravan contracts'), h('p', null, 'Caravans pay two and a half times the full price, whatever the market is doing.'));
+    // reputation with the caravan companies (src/market.js): it sets what orders pay and which ones come
+    const rTier = h('b'), rNum = h('span'), rBar = h('i'), rTxt = h('small');
+    p.append(h('h2', null, 'Caravan orders'), h('div', { cls: 'rep' }, h('div', { cls: 'name' }, 'Reputation ', rTier, rNum), h('div', { cls: 'prog vbar' }, rBar), rTxt));
+    ups.push(() => { const r = repOf(); rTier.textContent = repTier(r); rNum.textContent = ' ' + Math.round(r) + ' / 100 · orders pay ×' + repMult().toFixed(2); rBar.style.width = r + '%';
+      rBar.style.background = r >= 60 ? 'var(--good)' : r >= 30 ? 'var(--gold)' : 'var(--bad)';
+      rTxt.textContent = 'Deliver before the caravan leaves: +' + REP_DONE + ' (rush +' + REP_RUSH + '). A caravan leaving empty -' + REP_LATE + ', a swap -' + REP_SWAP + '. ' + (r < 60 ? 'At 60 rush orders come, paying 60% more.' : r < 80 ? 'At 80 a fourth caravan comes.' : 'Caravans line up four at a time.'); });
+    p.append(h('p', null, 'Caravans pay two and a half times the full price, whatever the market is doing. They wait only while you play this town.'));
     S.contracts.forEach((c, i) => {
       const info = h('small'), pay = h('span'), go = h('button', { cls: 'primary', on: () => deliver(i) }, 'Deliver ', h('span', { cls: 'cost' }, h('span', null, ico('coin', 'coins'), pay)));
-      const skip = h('button', { cls: 'small', on: () => { S.contracts[i] = newContract(); rebuild = true; } }, 'Swap');
-      p.append(h('div', { cls: 'row' }, ico(c.k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, fmt(c.qty) + ' ' + ITEMS[c.k].n.toLowerCase()), info), h('div', { cls: 'acts' }, skip, go)));
-      ups.push(() => { info.textContent = 'You have ' + fmt(S.res[c.k]); pay.textContent = fmt(contractPay(c)); go.disabled = S.res[c.k] < c.qty; });
+      const skip = h('button', { cls: 'small', title: 'A new order in its place (reputation -' + REP_SWAP + ')', on: () => swapOrder(i) }, 'Swap'), left = h('i'), due = h('div', { cls: 'prog' }, left);
+      const name = h('div', { cls: 'name' }, fmt(c.qty) + ' ' + ITEMS[c.k].n.toLowerCase()); if (c.rush) name.append(h('span', { cls: 'mtag rush' }, 'Rush'));
+      p.append(h('div', { cls: 'row order' }, ico(c.k), h('div', { cls: 'grow' }, name, info, due), h('div', { cls: 'acts' }, skip, go)));
+      ups.push(() => { const f = c.T ? Math.max(0, c.t / c.T) : 1; info.textContent = 'You have ' + fmt(S.res[c.k]) + ' · leaves in ' + clock(c.t); pay.textContent = fmt(contractPay(c)); go.disabled = S.res[c.k] < c.qty;
+        left.style.width = f * 100 + '%'; left.style.background = c.t < 60 ? 'var(--bad)' : f < .5 ? 'var(--gold)' : 'var(--good)'; });
     });
     // selling strategy: the two sensible auto-sell setups, with what each earns here
     const sAll = h('b'), sTop = h('b'), sNow = h('small');
@@ -138,23 +146,31 @@ const PANELS = {
       bAll.disabled = bTop.disabled = !lv('ledger');
       sNow.textContent = !lv('ledger') ? 'Research the Trading Ledger to sell automatically.' : a > t * 1.02 ? 'Selling every surplus earns more: workshops take what they need first and 20 of each good are kept back, so nothing starves. Set "only above 80% price" below so dumping does not crash prices.' : 'Both earn the same here.';
     });
+    // market news: the booms and busts on now, empire-wide
+    const news = h('div', { cls: 'mnews' }); p.append(h('h2', null, 'Market news'), news);
+    let newsKey = null; const timers = [];
+    ups.push(() => { const ev = (S.mkt && S.mkt.ev) || {}, ks = Object.keys(ev).filter(k => ITEMS[k]), key = ks.join();
+      if (key !== newsKey) { newsKey = key; news.textContent = ''; timers.length = 0; if (!ks.length) news.append(h('small', null, 'Prices are steady. Every few minutes a good booms or busts across the territory for a few minutes.'));
+        for (const k of ks) { const e = ev[k], up = e.m > 1, t = h('small'); news.append(h('div', { cls: 'mrow' }, ico(k), h('span', { cls: 'grow' }, h('b', null, ITEMS[k].n + (up ? ' boom' : ' bust')), ' ', t), h('span', { cls: 'mtag ' + (up ? 'boom' : 'bust') }, '×' + e.m.toFixed(2))));
+          timers.push(() => { t.textContent = ev[k] ? (up ? 'buyers pay more' : 'prices are down') + ' for ' + clock(ev[k].t) : 'over'; }); } } for (const f of timers) f(); });
     p.append(h('h2', null, 'Sell goods'), h('p', null, 'Selling a lot at once pushes the price down. Prices recover over a minute or two.'));
     for (const k in ITEMS) {
       if (!S.seen[k]) continue;
-      const info = h('small'), val = h('span'), sc = h('canvas', { cls: 'spark', width: 128, height: 48, 'aria-hidden': 'true' });
+      const info = h('small'), val = h('span'), sc = h('canvas', { cls: 'spark', width: 128, height: 48, 'aria-hidden': 'true' }), tag = h('span', { cls: 'mtag' });
       const sellB = h('button', { on: () => { const n = Math.floor(S.res[k]); if (!n) return; const v = sell(k, n); coinBurst(11, 1.5, 5, v); snd('coin', 880, .08, 'square', .04, 440); } }, 'Sell ', h('span', { cls: 'cost' }, h('span', null, ico('coin', 'coins'), val)));
-      const auto = h('button', { cls: 'small', on: () => { S.auto[k] = !S.auto[k]; } }, 'Auto');
-      p.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, ITEMS[k].n), info), sc, h('div', { cls: 'acts' }, auto, sellB)));
+      const auto = h('button', { cls: 'small amode', title: 'Tap to change: off, always, skip busts (hold it while prices are down), booms only (keep it for a boom)', on: () => { const m = autoNext(k); say(ITEMS[k].n + ': ' + AUTO_N[m].toLowerCase() + '.'); } });
+      p.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, ITEMS[k].n, tag), info), sc, h('div', { cls: 'acts' }, auto, sellB)));
       ups.push(() => {
-        const n = Math.floor(S.res[k]), d = dem(k); info.textContent = fmt(n) + ' in stock · ' + rate(price(k)) + ' each · price ' + pct(d);
-        info.style.color = d < .6 ? 'var(--bad)' : d > .95 ? '' : 'var(--gold)';
-        val.textContent = fmt(sellValue(k, n)); sellB.disabled = n < 1; auto.hidden = !lv('ledger'); auto.classList.toggle('on', !!S.auto[k]); spark(sc, k);
+        const n = Math.floor(S.res[k]), d = dem(k), m = mktMult(k), e = mktEv(k); info.textContent = fmt(n) + ' in stock · ' + rate(price(k)) + ' each · price ' + pct(d * m);
+        info.style.color = d * m < .6 ? 'var(--bad)' : d * m > .95 ? '' : 'var(--gold)';
+        tag.hidden = !e; if (e) { tag.textContent = (m > 1 ? 'Boom ' : 'Bust ') + clock(e.t); tag.className = 'mtag ' + (m > 1 ? 'boom' : 'bust'); }
+        const am = autoMode(k); val.textContent = fmt(sellValue(k, n)); sellB.disabled = n < 1; auto.hidden = !lv('ledger'); auto.textContent = AUTO_N[am]; auto.classList.toggle('on', am !== 'off'); spark(sc, k);
       });
     }
     const note = h('p'); p.append(note, h('div', { cls: 'bar' }, thr));
     ups.push(() => {
       thr.hidden = !lv('ledger'); thr.textContent = S.sellAbove ? 'Auto-sell only above ' + pct(S.sellAbove) + ' price' : 'Auto-sell at any price';
-      note.textContent = lv('ledger') ? 'Auto-sell keeps enough of each good to build any tower twice and fill the caravan contracts (at least ' + KEEP + ').' : 'Research the Trading Ledger to sell goods automatically.';
+      note.textContent = lv('ledger') ? 'Auto-sell keeps enough of each good to build any tower twice and fill the caravan orders (at least ' + KEEP + '). Tap a good\'s Auto button to choose: always, skip busts (hold it while prices are down, sell once they recover) or booms only (keep it all for a boom).' : 'Research the Trading Ledger to sell goods automatically.';
     });
   },
   research(p) {

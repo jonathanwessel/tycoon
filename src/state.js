@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 12, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
+    v: 13, rep: 50, mkt: { ev: {}, next: 240 }, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
     legacy: { pts: 0, perks: {}, n: 0, from: 0, best: 0 }, paidDeeds: 0, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
@@ -110,7 +110,7 @@ function shipGoods(dt) {
 }
 /* Every town but the one on screen works in the background (economy only: waves wait until you are there). */
 function econTowns(dt) {
-  readLoco();
+  readLoco(); mktTick(dt); // booms and busts are empire-wide
   // what each town makes, so shipping routes (and foremen valuing goods that arrive by route) know what can be sent
   for (const id of townIds()) if (townOpen(id)) { const c = id === S.town ? chainFlow() : withTown(id, () => chainFlow()); ROUTE_OUT[id] = c.made; ROUTE_NEED[id] = c.need; }
   econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => { econ(dt); autoBattle(dt); });
@@ -259,6 +259,11 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (o.v < 10) { if (o.capital && !o.capital.pol) o.capital.pol = {}; o.paidDeeds = o.paidDeeds || 0; o.v = 10; } // v10: policies, the Convention and Legacy (the first life counts every coin earned so far)
   if (o.v < 11) { if (o.stats) o.stats.airships = o.stats.airships || 0; o.v = 11; } // v11: Thunder Mesa (its goods start at zero in every town; airships brought down are counted)
   if (o.v < 12) { if (o.opt && o.opt.music === undefined) o.opt.music = .6; o.v = 12; } // v12: music (its volume; 0 is off)
+  if (o.v < 13) { // v13: market depth (reputation, booms and busts; orders get deadlines, a fresh ten minutes or less each)
+    if (o.rep === undefined) o.rep = 50; if (!o.mkt) o.mkt = { ev: {}, next: 240 };
+    const due = t => { for (const c of (t && t.contracts) || []) if (c && c.t === undefined) { c.T = c.t = 300 + Math.round(Math.random() * 300); c.rush = 0; } };
+    due(o); for (const id in o.towns || {}) due(o.towns[id]); o.v = 13;
+  }
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
@@ -317,8 +322,9 @@ function outRate(k) {
   return r;
 }
 const depth = k => (60 + 120 * outRate(k)) * (polIs('econ', 'free') ? .5 : polIs('econ', 'planned') ? 2 : 1); // Free Market: prices swing wider; Planned: steadier
-const price = k => ITEMS[k].p * sellMult() * dem(k);
-const sellValue = (k, n) => { const dp = depth(k); return ITEMS[k].p * sellMult() * dem(k) * dp * (1 - Math.exp(-n / dp)); };
+const mkm = k => typeof mktMult === 'function' ? mktMult(k) : 1; // a boom or bust on this good (src/market.js)
+const price = k => ITEMS[k].p * sellMult() * dem(k) * mkm(k);
+const sellValue = (k, n) => { const dp = depth(k); return ITEMS[k].p * sellMult() * dem(k) * mkm(k) * dp * (1 - Math.exp(-n / dp)); };
 function sell(k, n) {
   n = Math.min(n, S.res[k]); if (!(n > 0)) return 0;
   const v = sellValue(k, n); S.demand[k] = Math.max(.3, dem(k) * Math.exp(-n / depth(k)));
