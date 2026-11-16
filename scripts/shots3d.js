@@ -54,6 +54,8 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('capital');
   await p.evaluate(async () => { S.capital.inf = 500; buyTech('industry'); buyTech('industry'); buyTech('arms'); goTab('tech'); await new Promise(r => setTimeout(r, 900)); });
   await shot('tech');
+  await p.evaluate(async () => { buyInst('exchange'); for (let i = 0; i < 40; i++) econTowns(10); exNews('boss'); exBuy('gulch', 600); exBuy('ridge', 120); for (let i = 0; i < 20; i++) econTowns(10); goTab('exchange'); await new Promise(r => setTimeout(r, 900)); });
+  await shot('exchange');
   console.log(town, JSON.stringify(t), errs.length ? 'ERRORS ' + errs.join(' | ') : 'no errors');
   await b.close(); srv.close(); process.exit(0);
 })();

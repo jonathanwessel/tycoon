@@ -13,6 +13,7 @@ const INST = {
   transport: { n: 'Department of Transport', icon: 'loco',   cost: 3e6, max: 20, d: lv => 'Routes carry ' + (25 * lv) + '% more and pay ' + Math.round(100 - 100 * Math.pow(.9, lv)) + '% less in fees.' },
   bank:      { n: 'Central Bank',            icon: 'vault',  cost: 5e6, max: 10, d: lv => 'Pays ' + (.2 * lv).toFixed(1) + '% interest a minute on coins you hold, on up to ' + (10 * lv) + ' minutes of the empire\'s income.' },
   education: { n: 'Department of Education', icon: 'flask',  cost: 4e6, max: 15, d: lv => 'Charters keep up to ' + (2 * lv) + ' levels of every research, and research costs ' + (5 * lv) + '% less.' },
+  exchange:  { n: 'Stock Exchange',          icon: 'chart',  cost: 6e6, max: 10, d: lv => 'Buy and sell shares in your towns. Shareholders get ' + Math.round(100 * exYieldAt(lv)) + '% of a town\'s income as dividends; owning a majority pays that town\'s foremen 50% more.' },
   war:       { n: 'War Office',              icon: 'cannon', cost: 4e6, max: 20, d: lv => 'The budget upgrades a tower in each town every ' + Math.round(warEvery(lv)) + ' seconds (faster each level).' },
 };
 const capOpen = () => !!(S.capital && S.capital.open);
@@ -77,11 +78,11 @@ function autoBattle(dt) {
   S.abT = (S.abT === undefined ? 45 : S.abT) - dt; if (S.abT > 0) return; S.abT = 45;
   const w = S.wave, fight = (PATHS[0] ? PATHS[0].len : 25) / 1.1 * .6, n = Math.min(8 + Math.floor(w * 1.1), 36);
   if (townDps() * fight >= waveHp(w)) {
-    earn(n * foeCoins(w) * 1.5 * MAP.coin + (w % 10 === 0 ? foeCoins(w) * 15 * MAP.coin : 0)); S.stats.kills += n;
+    earn(n * foeCoins(w) * 1.5 * MAP.coin + (w % 10 === 0 ? foeCoins(w) * 15 * MAP.coin : 0)); S.stats.kills += n; if (w % 10 === 0) exNews('boss');
     S.wave++; S.best = Math.max(S.best, S.wave); S.vaultHp = Math.min(vaultMax(), S.vaultHp + 1 + lv('mason'));
   } else {
     S.vaultHp -= w % 10 === 0 ? S.vaultHp : Math.ceil(n * .4);
-    if (S.vaultHp <= 0) { const lost = S.coins * .1; S.coins -= lost; S.wave = Math.max(1, w - 2); S.vaultHp = vaultMax(); }
+    if (S.vaultHp <= 0) { exNews('vault'); const lost = S.coins * .1; S.coins -= lost; S.wave = Math.max(1, w - 2); S.vaultHp = vaultMax(); }
   }
 }
 /* --- tech trees -------------------------------------------------------------------------------------------------
@@ -109,6 +110,60 @@ const infRate = () => capOpen() ? Math.sqrt(Math.max(0, CAPI.inc || 0)) / 60 : 0
 function buyTech(b) {
   if (!capOpen() || tk(b) >= TECH_MAX) return false; const c = techCost(b); if ((S.capital.inf || 0) < c) return false;
   S.capital.inf -= c; S.capital.tech = S.capital.tech || {}; S.capital.tech[b] = tk(b) + 1; snd('ms', 660, .25, 'triangle', .06, 440); return true;
+}
+/* --- the Stock Exchange -------------------------------------------------------------------------------------------
+   Each town is a company with 1000 shares. A share's fair price is 3 seconds of that town's income; the market price
+   drifts towards it (about two minutes to catch up), with noise every 10 seconds and a mood that news moves: a boss
+   beaten or a works doubling its output lifts it, a fallen vault sinks it, and the mood fades back over a few minutes.
+   Shareholders get a slice of the town's income as dividends. Over half the shares pays the town's foremen 50% more.
+   Buying costs 1% over the price and selling pays 1% under, so a quick buy and sell always loses. Coins only. */
+const EX_SHARES = 1000, EX_SPREAD = .01, EX_HIST = 90;
+const COMPANY = { gulch: 'Copper Gulch Mining Co.', ridge: 'Iron Ridge Rail', falls: 'Silver Falls Electric', mesa: 'Thunder Mesa Oil' };
+const EX_NEWS = {
+  boss:  { m: 1.12, s: ' jumps: its town beat a boss' },
+  ms:    { m: 1.04, s: ' rises: a works doubled its output' },
+  vault: { m: .85,  s: ' slumps: raiders broke the vault' },
+};
+const exYieldAt = lv => .04 + .01 * lv;
+const exYield = () => exYieldAt(capLv('exchange'));
+const exOpen = () => capOpen() && capLv('exchange') > 0;
+const exFair = id => Math.max(10, ((CAPI.by && CAPI.by[id]) || 0) * 3);
+function exBook() { const c = S.capital; if (!c.ex || !c.ex.s) c.ex = { s: {}, news: [], t: 0 }; return c.ex; }
+function exStock(id) { const x = exBook(); return x.s[id] || (x.s[id] = { p: exFair(id), own: 0, cost: 0, mood: 1, hist: [], paid: 0 }); }
+const exOwn = id => (S.capital && S.capital.ex && S.capital.ex.s && S.capital.ex.s[id] && S.capital.ex.s[id].own) || 0;
+const exMajority = id => exOwn(id) > EX_SHARES / 2;
+const exBoost = () => exMajority(TOWN_ID) ? 1.5 : 1; // the foremen of the town being worked
+const exBuyPrice = id => exStock(id).p * (1 + EX_SPREAD), exSellPrice = id => exStock(id).p * (1 - EX_SPREAD);
+/* News from whichever town is being worked (TOWN_ID): moves its share's mood and goes on the ticker. */
+function exNews(kind) {
+  if (!exOpen() || !townOpen(TOWN_ID)) return; const N = EX_NEWS[kind], st = exStock(TOWN_ID), x = exBook();
+  st.mood = Math.max(.5, Math.min(2, st.mood * N.m));
+  x.news.unshift({ id: TOWN_ID, k: kind, s: COMPANY[TOWN_ID] + N.s, at: Date.now() }); if (x.news.length > 8) x.news.length = 8;
+}
+const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2; // about a standard normal
+/* Once a tick for the empire (econTowns): dividends every tick, prices every 10 seconds. */
+function exchangeWork(dt) {
+  if (!exOpen()) return; const x = exBook();
+  x.t = (x.t || 0) - dt; const step = x.t <= 0; if (step) x.t = 10;
+  for (const id of townIds().filter(townOpen)) {
+    const st = exStock(id), inc = (CAPI.by && CAPI.by[id]) || 0;
+    if (st.own > 0 && inc > 0) { const d = inc * exYield() * st.own / EX_SHARES * dt; earn(d); st.paid = (st.paid || 0) + d; }
+    if (!step) continue;
+    const span = Math.max(10, dt), f = exFair(id) * st.mood;
+    if (!st.hist.length || !(st.p > 0)) st.p = f;
+    else st.p = Math.exp(Math.log(st.p) + (Math.log(f) - Math.log(st.p)) * (1 - Math.exp(-span / 120)) + gauss() * .025);
+    st.mood = 1 + (st.mood - 1) * Math.exp(-span / 240);
+    st.hist.push(st.p); if (st.hist.length > EX_HIST) st.hist.splice(0, st.hist.length - EX_HIST);
+  }
+}
+function exBuy(id, n) {
+  if (!exOpen() || !townOpen(id)) return 0; const st = exStock(id), pr = exBuyPrice(id);
+  n = Math.min(Math.floor(n), EX_SHARES - st.own, Math.floor(S.coins / pr)); if (!(n > 0)) return 0;
+  S.coins -= n * pr; st.own += n; st.cost = (st.cost || 0) + n * pr; snd('coin', 880, .08, 'square', .03, 220); return n;
+}
+function exSell(id, n) {
+  if (!exOpen()) return 0; const st = exStock(id); n = Math.min(Math.floor(n), st.own); if (!(n > 0)) return 0;
+  const pr = exSellPrice(id); S.coins += n * pr; st.cost = (st.cost || 0) * (st.own - n) / st.own; st.own -= n; snd('coin', 660, .08, 'square', .03, -220); return n;
 }
 /* What research survives a charter: the Department of Education keeps up to 2 levels of each per level. */
 function eduKeep(r) { const n = 2 * capLv('education'), o = {}; if (n) for (const k in r) o[k] = Math.min(r[k], n); return o; }

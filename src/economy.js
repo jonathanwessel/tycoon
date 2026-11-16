@@ -111,7 +111,7 @@ function foremenWork() {
   if (fb.study === undefined) fb.study = 1;
   if (!fb.own) { fb.own = 1; fb.last = S.life || 0; } // saves from before purses were per town counted the whole empire
   if (fb.last === undefined || fb.last > (S.life || 0)) fb.last = S.life || 0;
-  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800), cg = capOpen(), share = (cg ? S.capital.share * capSplit().foremen : fb.share) * tf('admin', 1.1); // the Capitol's budget replaces each town's own settings
+  const inc = steadyIncome(), cap = Math.max(1e3, inc * 1800), cg = capOpen(), share = (cg ? S.capital.share * capSplit().foremen : fb.share) * tf('admin', 1.1) * exBoost(); // the Capitol's budget replaces each town's own settings
   fb.purse = Math.min((fb.purse || 0) + ((S.life || 0) - fb.last) * share, cap); fb.last = S.life || 0;
   capitalWork(DT_NOW, inc);
   const mine = Object.keys(S.mgr).filter(id => S.mgr[id] === 1 && BY_ID[id]); if (!mine.length) { fb.goal = null; return; }
@@ -175,6 +175,7 @@ function buyBuilding(b) {
   levelled(b, have, have + p.n); return true;
 }
 function levelled(b, from, to, quiet) {
+  if (MS(to) > MS(from) && typeof exNews === 'function') exNews('ms'); // the Stock Exchange hears of it
   if (b.def.id === 'locow' && to >= 1) S.railOpen = 1; // the first Locomotive Works brings trains to every route
   if (TOWN_ID !== S.town) { if (MS(to) > MS(from)) say(TOWN.n + ': ' + b.def.n + ' reached level ' + to + ', output doubled.'); return; } // a town working in the background: no effects on this map
   const [sx, sy] = SLOT[b.def.id];

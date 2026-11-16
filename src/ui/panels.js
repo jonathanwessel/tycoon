@@ -234,7 +234,7 @@ const PANELS = {
     const held = h('b'), freeL = h('small'), offer = h('p'), signs = h('div', { cls: 'bar' });
     p.append(h('h2', null, 'Deeds'), h('div', { cls: 'deeds' }, held, freeL),
       h('p', null, 'Every deed you hold adds 20% to gathering, workshop speed and tower damage in every town, for good. Spend deeds on perks below; spending does not lose the bonus.'),
-      h('h2', null, 'New charter for ' + TOWN.n), h('p', null, 'Sell ' + TOWN.n + ' and start it over for deeds. This town loses its coins, stock, buildings, research and towers; your other towns, deeds, perks, badges and goals stay.'), offer, signs);
+      h('h2', null, 'New charter for ' + TOWN.n), h('p', null, 'Sell ' + TOWN.n + ' and start it over for deeds. This town loses its coins, stock, buildings, research and towers, and you give up all your shares on the Stock Exchange; your other towns, deeds, perks, badges and goals stay.'), offer, signs);
     const sign = h('button', { cls: 'primary', on: () => prestige() }, 'Sign a new charter for ' + TOWN.n); signs.append(sign); ups.push(() => { sign.disabled = !deedsOnOffer(); });
     ups.push(() => {
       held.textContent = S.deeds; freeL.textContent = freeDeeds() + ' to spend';

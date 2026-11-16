@@ -68,7 +68,7 @@ function hurt(f, dmg, o) {
     const D = FOES[f.type], c = foeCoins(S.wave) * D.rw * MAP.coin; earn(c); S.stats.kills++;
     if (f.psn && f.psn.spread && f.psn.t > 0) for (const o of foes) if (o !== f && o.hp > 0 && Math.hypot(o.x - f.x, o.y - f.y) < 1.3) poison(o, f.psn.dps, 4, { spread: 1 });
     if (f.type === 'boss') {
-      const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1;
+      const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1; exNews('boss');
       fx.push({ k: 'boom', x: f.x, y: f.y, r: 2.2, t: .6, d: .6 }); FXS.quake = 1; FXS.flash = .15; snd('kaboom', 60, .7, 'sawtooth', .1, -30);
       FXS.banner = { t: 2.8, a: bossName() + ' destroyed', b: '+' + fmt(bonus) + ' bonus coins', gold: 1, boss: 1 };
       for (let i = 0; i < 40; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 9, vy: -2 - Math.random() * 6, g: 9, t: 1 + Math.random() * .6, c: [P.yel, P.yelL, '#8a6a48', P.steelL, P.org][i % 5], s: .1 + Math.random() * .06 });
@@ -361,7 +361,7 @@ function combat(dt) {
   shots = shots.filter(s => !s.done); foes = foes.filter(f => f.hp > 0);
   for (const e of fx) e.t -= dt; fx = fx.filter(e => e.t > 0);
   if (S.vaultHp <= 0) {
-    const lost = S.coins * .1; S.coins -= lost; foes = []; shots = []; W.queue = []; W.active = false; W.countdown = 15;
+    exNews('vault'); const lost = S.coins * .1; S.coins -= lost; foes = []; shots = []; W.queue = []; W.active = false; W.countdown = 15;
     S.wave = Math.max(1, S.wave - 2); S.vaultHp = vaultMax(); FXS.quake = .8; W.weather = null;
     if (W.smashed) {
       W.smashed = 0; S.stats.smashed = (S.stats.smashed || 0) + 1;
@@ -400,6 +400,7 @@ function wipeField() { troops = []; clouds = []; tars = []; foes = []; shots = [
 function prestige() {
   const g = deedsOnOffer(); if (!g) return;
   if (capOpen()) S.capital.inf = (S.capital.inf || 0) + 5 * g; // a charter earns the government Influence
+  if (S.capital && S.capital.ex && S.capital.ex.s) for (const id in S.capital.ex.s) { S.capital.ex.s[id].own = 0; S.capital.ex.s[id].cost = 0; } // shares go with the coins, or they would carry coins through
   const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
     sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : eduKeep(S.research), eg: S.eg, capital: S.capital, tut: S.tut, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },

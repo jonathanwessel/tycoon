@@ -13,7 +13,9 @@ PANELS.capital = p => {
     return;
   }
   const c = S.capital, inf = h('small');
-  p.append(h('div', { cls: 'bar' }, h('button', { cls: 'primary', on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), inf));
+  const exB = h('button', { on: () => goTab('exchange') }, ico('chart', ''), ' Stock Exchange');
+  p.append(h('div', { cls: 'bar' }, h('button', { cls: 'primary', on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), exB, inf));
+  ups.push(() => { exB.hidden = !exOpen(); });
   ups.push(() => { inf.textContent = fmt(c.inf || 0) + ' influence'; });
   // --- the Capitol: the budget --------------------------------------------------------------------------------------
   p.append(h('h2', null, 'The Capitol: budget'));

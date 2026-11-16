@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 8, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {} }, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 9, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 } }, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
@@ -112,9 +112,9 @@ function econTowns(dt) {
   for (const id of townIds()) if (townOpen(id)) { const c = id === S.town ? chainFlow() : withTown(id, () => chainFlow()); ROUTE_OUT[id] = c.made; ROUTE_NEED[id] = c.need; }
   econ(dt); for (const id of Object.keys(S.towns)) withTown(id, () => { econ(dt); autoBattle(dt); });
   // the Central Bank pays interest on the empire's coins (its income is sampled every 10 seconds)
-  CAPI.t -= dt; if (CAPI.t <= 0) { CAPI.t = 10; CAPI.inc = townIds().filter(townOpen).reduce((a, id) => a + (id === S.town ? steadyIncome() : withTown(id, () => steadyIncome())), 0); }
-  bankWork(dt, CAPI.inc || 0); }
-const CAPI = { t: 0, inc: 0 };
+  CAPI.t -= dt; if (CAPI.t <= 0) { CAPI.t = 10; CAPI.by = {}; CAPI.inc = 0; for (const id of townIds().filter(townOpen)) { const v = id === S.town ? steadyIncome() : withTown(id, () => steadyIncome()); CAPI.by[id] = v; CAPI.inc += v; } }
+  bankWork(dt, CAPI.inc || 0); exchangeWork(dt); }
+const CAPI = { t: 0, inc: 0, by: {} };
 const KEY = 'copper-gulch-save-v1';
 function save() { S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
@@ -155,6 +155,7 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   }
   if (o.v < 7) o.v = 7; // v7: the Capital (its defaults come from fresh()); saves before v7 normally start fresh (WIPE_V)
   if (o.v < 8) { if (o.capital) { o.capital.inf = o.capital.inf || 0; o.capital.tech = o.capital.tech || {}; } o.v = 8; } // v8: Influence and the tech trees
+  if (o.v < 9) { if (o.capital && !o.capital.ex) o.capital.ex = { s: {}, news: [], t: 0 }; o.v = 9; } // v9: the Stock Exchange
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);

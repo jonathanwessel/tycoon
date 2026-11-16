@@ -102,8 +102,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-28'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Tech trees: the Capital earns Influence from your empire and every charter. Spend it on Economy and Defence trees (Industry, Commerce, Logistics, Administration, Academy, Arms, Engineering, Garrison, Fortification). Engineering makes automatic tower upgrades far faster.';
+const GAME_VERSION = '2026.11.16-1'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Stock Exchange: trade shares in your towns, dividends, news and price charts';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

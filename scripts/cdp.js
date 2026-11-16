@@ -44,6 +44,7 @@ async function launch() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulch-cdp-'));
   const proc = spawn(exe, ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + dir, '--no-first-run', '--no-default-browser-check',
     '--enable-unsafe-swiftshader', '--mute-audio', '--disable-extensions', 'about:blank'], { stdio: 'ignore' }); // swiftshader: WebGL even without a GPU
+  process.on("exit", () => { try { proc.kill(); } catch (e) {} }); // never leave a headless browser behind
   let port, wsPath;
   for (let i = 0; i < 150 && !port; i++) {
     try { const [p, w] = fs.readFileSync(path.join(dir, 'DevToolsActivePort'), 'utf8').trim().split(/\r?\n/); if (p && w) { port = p; wsPath = w; } } catch (e) {}
