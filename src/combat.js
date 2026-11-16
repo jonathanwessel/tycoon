@@ -2,7 +2,7 @@
 /* =========================================================
    Combat
    ========================================================= */
-let clouds = [], tars = [], foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
+let troops = [], rallyFor = null, clouds = [], tars = [], foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
 const FXS = { shake: {}, gold: {}, pop: {}, scorch: [], quake: 0, night: 0, banner: null, flash: 0, car: 9, lastCoin: 0, flow: {} };
 const W = { active: false, queue: [], next: null, ntype: 'mixed', type: 'mixed', shown: null, spawnT: 0, gap: .7, countdown: 30, spawned: 0, hpm: 1 };
 const foeHp = w => 10 * Math.pow(1.25, w - 1) * (1 + w * .05) * (1 + Math.min(.15, Math.max(0, w - 12) * .01));
@@ -52,7 +52,8 @@ const inTar = (x, y) => tars.find(p => Math.hypot(p.x - x, p.y - y) <= p.r);
 const inCloud = (x, y) => clouds.find(c => Math.hypot(c.x - x, c.y - y) <= c.r);
 function hurt(f, dmg, o) {
   if (f.hp <= 0) return;
-  if (f.sh > 0 && !(o && (o.pierce || o.dot))) {
+  if (o && o.melee && f.sh > 0) dmg *= .5;
+  if (f.sh > 0 && !(o && (o.pierce || o.dot || o.melee))) {
     if (o && o.splash) { f.sh = 0; } else { f.sh--; f.flash = .05; }
     for (let i = 0; i < 4; i++) parts.push({ x: f.x + .5 + f.dir * .2, y: f.y + .4, vx: (Math.random() - .5) * 3, vy: -1 - Math.random() * 2, g: 8, t: .3, c: P.steelL, s: .06 });
     if (f.sh <= 0) { floats.push({ x: f.x + .5, y: f.y, t: .8, s: 'Shield broken', c: P.steelL, z: .26 }); snd('clang', 1500, .06, 'square', .03, -900); }
@@ -60,8 +61,8 @@ function hurt(f, dmg, o) {
   }
   if (f.brit > 0) dmg *= 1.3;
   f.hp -= dmg; if (!(o && o.dot)) f.flash = .09;
-  if (o && o.dot) { f.dotN = (f.dotN || 0) + dmg; dmg = 0; } // damage over time adds up and shows now and then, not every tick
-  if (f.dotN > 0 && f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .5; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, f.dotN)), c: '#a8ff7a', z: .24 }); f.dotN = 0; }
+  if (o && (o.dot || o.melee)) { f.dotN = (f.dotN || 0) + dmg; f.dotC = o.dot ? '#a8ff7a' : '#fff'; dmg = 0; } // damage over time adds up and shows now and then, not every tick
+  if (f.dotN > 0 && f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .5; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, f.dotN)), c: f.dotC || '#a8ff7a', z: .24 }); f.dotN = 0; }
   if (dmg > 0 && f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .35; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, dmg)), c: '#fff', z: .26 }); }
   if (f.hp <= 0) {
     const D = FOES[f.type], c = foeCoins(S.wave) * D.rw * MAP.coin; earn(c); S.stats.kills++;
@@ -85,7 +86,7 @@ function hurt(f, dmg, o) {
   }
 }
 function towerStats(t) {
-  const d = TOWERS[t.type], b = t.br ? BRANCH[t.type][t.br] : {}, w = wx();
+  const d = TOWERS[t.type], b = t.br && BRANCH[t.type] ? BRANCH[t.type][t.br] : {}, w = wx();
   const wr = w === 'dust' && t.type !== 'frost' && t.type !== 'tesla' ? .75 : 1, wd = (w === 'rain' && t.type === 'crossbow' ? .85 : 1) * (w === 'moon' ? 1.1 : 1);
   return {
     dmg: d.dmg * (b.dmg || 1) * Math.pow(1.45, t.lvl) * dmgMult() * wd, range: (d.range + (b.range || 0) + Math.min(1, t.lvl * .06)) * wr, rate: d.rate * (b.rate || 1),
@@ -94,16 +95,61 @@ function towerStats(t) {
     poison: d.poison, cloud: b.cloud || 1, spread: b.spread, frostbite: b.frostbite,
   };
 }
+/* --- the Barracks -------------------------------------------------------------------------------------------------
+   Three tracks, each bought on its own at any time: spawn time, number of troops (1 to 6) and strength. Soldiers walk
+   to the rally point (a road cell within reach) and hold it; a raider that reaches one stops and they trade blows.
+   War wagons and boats go straight past; thieves slip by half the time. */
+const TRACKS = { time: { n: 'Drill', d: 'Soldiers come back sooner', max: 15 }, count: { n: 'Recruits', d: 'One more soldier', max: 5 }, power: { n: 'Arms', d: 'Tougher, harder-hitting soldiers', max: 25 } };
+const trackCost = (t, k) => Math.ceil(TOWERS[t.type].coins * .5 * Math.pow(1.55, (t.up && t.up[k]) || 0) * (k === 'count' ? 2 : 1));
+function troopStats(t) {
+  const u = t.up || {}, p = Math.pow(1.38, u.power || 0) * dmgMult();
+  return { time: 12 * Math.pow(.86, u.time || 0), count: 1 + Math.min(5, u.count || 0), hp: 60 * p, dps: 12 * p, range: towerStats(t).range };
+}
+function upgradeTrack(t, k) {
+  const c = trackCost(t, k); t.up = t.up || {}; if ((t.up[k] || 0) >= TRACKS[k].max || S.coins < c) return false;
+  S.coins -= c; t.spent = (t.spent || 0) + c; t.up[k] = (t.up[k] || 0) + 1; snd('build', 440, .12, 'triangle', .05, 440); return true;
+}
+/* The road cell nearest the barracks (its first rally point). */
+function rallyNear(t) { let best = null, bd = 1e9; for (const key of PATH) { const [x, y] = key.split(',').map(Number); if (x < 0 || x >= COLS || (MAP.river !== undefined && onRiverCell(x, y))) continue; const d = Math.hypot(x - t.c, y - t.r); if (d < bd) { bd = d; best = [x, y]; } } return best || [t.c, t.r]; }
+const onRiverCell = (x, y) => MAP.river !== undefined && PATHS[MAP.river].segs.some(s => x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01);
+function setRally(t, x, y) { if (!onRoad(x, y) || onRiverCell(x, y) || Math.hypot(x - t.c, y - t.r) > troopStats(t).range + .01) return false; t.rally = [x, y]; for (const q of troops) if (q.t === t) q.f = null; return true; }
+const foeHit = f => foeHp(S.wave) * FOES[f.type].hp * MAP.hp * .12; // what a raider deals to a soldier, per second
+function barracksTick(t, dt) {
+  const st = troopStats(t); if (!t.rally) t.rally = rallyNear(t);
+  const mine = troops.filter(q => q.t === t); t.spawnT = (t.spawnT || 0) - dt;
+  if (mine.length < st.count && t.spawnT <= 0) {
+    const used = new Set(mine.map(q => q.slot)); let slot = 0; while (used.has(slot)) slot++;
+    troops.push({ t, slot, x: t.c, y: t.r, hp: st.hp, max: st.hp, f: null }); t.spawnT = mine.length + 1 < st.count && !t.fought ? .8 : st.time;
+  }
+}
+function troopsTick(dt) {
+  for (const q of troops) {
+    const st = troopStats(q.t), [rx, ry] = q.t.rally || [q.t.c, q.t.r], a = q.slot / 6 * Math.PI * 2, hx = rx + (q.slot ? Math.cos(a) * .3 : 0), hy = ry + (q.slot ? Math.sin(a) * .22 : 0);
+    if (q.max < st.hp) { q.hp += st.hp - q.max; q.max = st.hp; } // stronger arms reach soldiers already out
+    if (q.f && (q.f.hp <= 0 || !foes.includes(q.f) || Math.hypot(q.f.x - hx, q.f.y - hy) > .9)) q.f = null;
+    if (!q.f) for (const f of foes) {
+      if (f.hp <= 0 || f.type === 'boss' || f.type === 'boat' || (MAP.river !== undefined && f.p === MAP.river)) continue;
+      if (f.type === 'thief' && f.slip === undefined) f.slip = Math.random() < .5; if (f.slip) continue;
+      if (Math.hypot(f.x - hx, f.y - hy) < .6) { q.f = f; break; }
+    }
+    const gx = q.f ? q.f.x : hx, gy = q.f ? q.f.y : hy, d = Math.hypot(gx - q.x, gy - q.y);
+    q.walk = d > .12; if (q.walk) { const s = Math.min(d, 1.9 * dt); q.x += (gx - q.x) / d * s; q.y += (gy - q.y) / d * s; q.dir = gx >= q.x ? 1 : -1; }
+    q.fight = q.f && d < .4;
+    if (q.fight) { q.f.held = .12; hurt(q.f, st.dps * dt, { melee: 1 }); q.hp -= foeHit(q.f) * dt; q.t.fought = 1; }
+  }
+  for (const q of troops) if (q.hp <= 0) { q.t.spawnT = Math.max(q.t.spawnT || 0, troopStats(q.t).time); for (let i = 0; i < 5; i++) parts.push({ x: q.x + .5, y: q.y + .5, vx: (Math.random() - .5) * 2, vy: -1 - Math.random(), g: 6, t: .4, c: '#5b8bc0', s: .07 }); }
+  troops = troops.filter(q => q.hp > 0 && S.towers.includes(q.t));
+}
 const towerCount = type => S.towers.filter(t => t.type === type).length;
 const buildCost = type => Math.ceil(TOWERS[type].coins * Math.pow(1.2, towerCount(type)));
 const upCost = t => Math.ceil(TOWERS[t.type].coins * .8 * Math.pow(1.75, t.lvl));
-const needsBranch = t => t.lvl >= 4 && !t.br;
+const needsBranch = t => t.lvl >= 4 && !t.br && !!BRANCH[t.type];
 const branchCost = t => upCost(t) * 2;
-function upgradeTower(t) { if (needsBranch(t)) return false; const c = upCost(t); if (S.coins < c) return false; S.coins -= c; t.lvl++; snd('build', 440, .12, 'triangle', .05, 440); return true; }
+function upgradeTower(t) { if (needsBranch(t) || TOWERS[t.type].troops) return false; const c = upCost(t); if (S.coins < c) return false; S.coins -= c; t.lvl++; snd('build', 440, .12, 'triangle', .05, 440); return true; }
 function branchTower(t, b) { if (!needsBranch(t)) return false; const c = branchCost(t); if (S.coins < c) return false; S.coins -= c; t.br = b; t.lvl++; snd('ms', 660, .25, 'triangle', .06, 440); for (let i = 0; i < 14; i++) parts.push({ x: t.c + .5, y: t.r + .5, vx: Math.cos(i) * 2, vy: Math.sin(i) * 2 - 1, g: 2, t: .7, c: P.yel, s: .08 }); return true; }
 function buildTower(type, c, r) {
   const d = TOWERS[type], cost = buildCost(type);
-  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods)) return false;
+  const goods = towerGoods(type); if (S.coins < cost || !hasGoods(goods) || (d.from && S.best < d.from)) return false;
   S.coins -= cost; for (const k in goods) S.res[k] -= goods[k];
   S.towers.push({ c, r, type, lvl: 0, tg: 'first' }); return true;
 }
@@ -156,7 +202,8 @@ function combat(dt) {
     const D = FOES[f.type];
     f.slow = Math.max(0, f.slow - dt); f.stun = Math.max(0, f.stun - dt); f.brit = Math.max(0, f.brit - dt); f.flash -= dt; f.num -= dt;
     const tar = inTar(f.x, f.y), slowK = Math.max(.25, (f.slow > 0 ? .55 : 1) * (tar && !D.boat && f.type !== 'boat' ? .4 : 1));
-    if (f.stun <= 0) f.d += D.spd * slowK * (f.rage ? 1.6 : 1) * wxSpd() * dt;
+    f.held = (f.held || 0) - dt;
+    if (f.stun <= 0 && !(f.held > 0)) f.d += D.spd * slowK * (f.rage ? 1.6 : 1) * wxSpd() * dt;
     if (tar && tar.burn > 0) hurt(f, tar.dps * dt, { dot: 1 }); // burning tar
     if (f.psn && f.psn.t > 0) { f.psn.t -= dt; hurt(f, f.psn.dps * dt, { dot: 1 }); }
     if (f.type === 'boss' && f.hp > 0) {
@@ -184,6 +231,7 @@ function combat(dt) {
   for (const t of S.towers) {
     t.cd = (t.cd || 0) - dt; t.kick = Math.max(0, (t.kick || 0) - dt);
     if (t.jam > 0) { t.jam -= dt; continue; }
+    if (TOWERS[t.type].troops) { barracksTick(t, dt); continue; }
     if (t.cd > 0) continue;
     const st = towerStats(t), best = pickTarget(t, st); if (!best) continue;
     t.cd = 1 / st.rate; t.aim = Math.atan2(best.y - t.r, best.x - t.c); t.kick = .12;
@@ -227,6 +275,7 @@ function combat(dt) {
       kind === 'ball' ? snd('boom', 140, .12, 'square', .05, -80) : kind === 'bullet' ? snd('rat', 300, .03, 'square', .025, -120) : snd('twang', 700, .04, 'triangle', .04, -300);
     }
   }
+  troopsTick(dt);
   for (const s of shots) {
     const dx = s.f.x - s.x, dy = s.f.y - s.y, q = Math.hypot(dx, dy), step = s.spd * dt; s.q = q;
     if (q <= step) {
@@ -293,7 +342,7 @@ function buyPerk(id) {
   if (l >= p.max || (p.req && !perk(p.req)) || freeDeeds() < p.cost(l)) return;
   S.perks[id] = l + 1; snd('ms', 660, .25, 'triangle', .06, 440); say(p.n + ' is now rank ' + (l + 1) + '.');
 }
-function wipeField() { clouds = []; tars = []; foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
+function wipeField() { troops = []; rallyFor = null; clouds = []; tars = []; foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
 /* Sign a new charter: the town you are in starts over and pays deeds; every other town and the deeds' bonus carry on. */
 function prestige() {
   const g = deedsOnOffer(); if (!g) return;

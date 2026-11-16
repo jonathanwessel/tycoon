@@ -104,6 +104,9 @@ function paintSprites2() {
   add('frost_c', 'frost', p => { p('#e8f8ff', 2, 9, 2, 4); p('#e8f8ff', 12, 10, 2, 3); p(P.red, 7, 8, 2, 1); p(P.red, 6, 10, 1, 1); p(P.red, 9, 11, 1, 1); });
   add('tesla_a', 'tesla', p => { p(P.cop, 1, 9, 2, 5); p(P.yel, 1, 8, 2, 1); p(P.cop, 13, 9, 2, 5); p(P.yel, 13, 8, 2, 1); });
   add('tesla_b', 'tesla', p => { p.disc(P.red, 8, 3.5, 2.6); p(P.pink, 7, 2, 1, 1); p(P.redD, 4, 9, 8, 1); });
+  // the Barracks: a log fort with a gate and a blue flag; soldiers in blue coats with rifles (two walking frames)
+  mk('barracks', 16, 18, p => { for (let x = 2; x < 14; x += 2) { p(P.woodD, x, 6, 2, 10); p(P.wood, x, 6, 1, 9); p(P.woodL, x, 5, 1, 1); } p(P.dark, 6, 10, 4, 6); p(P.woodD, 5, 9, 6, 1); p(P.woodD, 7, 0, 1, 7); p('#5b8bc0', 8, 0, 5, 3); p(P.white, 9, 1, 2, 1); });
+  for (const [s, f] of [['', 0], ['_b', 1]]) mk('soldier' + s, 12, 14, p => { p('#2b3a5a', 3, 0, 6, 2); p(P.skin, 4, 2, 4, 3); p(P.dark, 5, 3, 1, 1); p('#5b8bc0', 3, 5, 6, 5); p(P.yel, 5, 6, 1, 1); p(P.yel, 5, 8, 1, 1); p(P.woodD, 9, 3, 1, 7); p(P.greyD, 9, 1, 1, 2); p('#2b3a5a', f ? 3 : 4, 10, 2, 4); p('#2b3a5a', f ? 7 : 6, 10, 2, 4); });
   // the Snake Oil Still: a copper pot over a fire, a coiled pipe and a glass jar of green poison
   mk('still', 16, 18, p => { p(P.woodD, 3, 15, 10, 2); p(P.org, 5, 14, 6, 1); p.disc(P.cop, 7, 9.5, 4.4); p(P.copD, 3, 12, 9, 2); p('#f5b07a', 5, 7, 2, 2); p(P.copD, 6, 3, 2, 3); p(P.cop, 6, 2, 5, 1); p(P.greyD, 11, 3, 1, 5); p(P.greyD, 11, 8, 2, 1); p('#5fae5a', 12, 9, 3, 5); p('#9dff7a', 12, 9, 1, 3); p(P.greyD, 12, 14, 3, 1); });
   add('still_a', 'still', p => { p('#8fd14f', 1, 1, 3, 2); p('#8fd14f', 3, 0, 2, 2); p('#5fae5a', 0, 3, 2, 1); });

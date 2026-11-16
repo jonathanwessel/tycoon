@@ -203,9 +203,18 @@ function draw(time) {
   cx.globalAlpha = 1;
   for (const w of weeds) { const bounce = Math.abs(Math.sin(w.a * 1.3 + w.ph)) * c * .22; cx.fillStyle = 'rgba(40,24,14,.2)'; cx.beginPath(); cx.ellipse(w.x * c, (w.y + .3) * c, c * .22, c * .06, 0, 0, 7); cx.fill(); cx.save(); cx.translate(w.x * c, w.y * c - bounce); cx.rotate(w.a); sp(cx, 'tumble', 0, 0, c * .5); cx.restore(); }
   for (const b of bombs) { const pr = 1 - b.t / .7, sx0 = X(VAULT[0]), sy0 = Y(VAULT[1]), bx = sx0 + (X(b.x) - sx0) * pr, by_ = sy0 + (Y(b.y) - sy0) * pr - Math.sin(pr * Math.PI) * c * 2; cx.save(); cx.translate(bx, by_); cx.rotate(pr * 9); sp(cx, 'dynamite', 0, 0, c * .55); cx.restore(); cx.fillStyle = Math.floor(time * 24) % 2 ? '#fff0a0' : '#f5a04a'; cx.beginPath(); cx.arc(bx, by_ - c * .3, c * .07, 0, 7); cx.fill(); }
+  // the rally flag of the barracks being looked at (or moved)
+  { const bt = rallyFor || (sel && sel.t && TOWERS[sel.t.type].troops ? sel.t : null); if (bt && bt.rally) { const fx_ = X(bt.rally[0] + .5), fy = Y(bt.rally[1] + .5); cx.fillStyle = '#2a1c22'; cx.fillRect(fx_ - c * .03, fy - c * .55, c * .06, c * .55); cx.fillStyle = '#5b8bc0'; cx.fillRect(fx_ + c * .03, fy - c * .55, c * .28, c * .18); if (rallyFor) { cx.strokeStyle = 'rgba(91,139,192,.8)'; cx.lineWidth = Math.max(1, c * .04); cx.setLineDash([c * .12, c * .08]); cx.beginPath(); cx.arc(X(bt.c + .5), Y(bt.r + .5), troopStats(bt).range * c, 0, 7); cx.stroke(); cx.setLineDash([]); } } }
   // towers and raiders, back to front
-  const things = [...S.towers.map(t => ({ y: t.r, t })), ...foes.map(f => ({ y: f.y, f }))].sort((a, b) => a.y - b.y);
+  const things = [...S.towers.map(t => ({ y: t.r, t })), ...foes.map(f => ({ y: f.y, f })), ...troops.map(q => ({ y: q.y, q }))].sort((a, b) => a.y - b.y);
   for (const o of things) {
+    if (o.q) { // a soldier: walking, holding or fighting; a health bar once hurt
+      const q = o.q, x = X(q.x), hgt = c * .62, y = Y(q.y) - hgt * .25 - (q.fight ? Math.abs(Math.sin(time * 16 + q.slot)) * c * .05 : 0), fr = q.walk ? Math.floor(time * 8 + q.slot) % 2 ? '_b' : '' : '';
+      cx.fillStyle = 'rgba(40,24,14,.28)'; cx.beginPath(); cx.ellipse(x, Y(q.y) + hgt * .26, hgt * .3, hgt * .09, 0, 0, 7); cx.fill();
+      sp(cx, 'soldier' + fr, x, y, hgt, q.dir < 0);
+      if (q.hp < q.max) { const bw = c * .4; cx.fillStyle = '#2a1c22'; cx.fillRect(x - bw / 2 - 1, y - hgt * .62 - 1, bw + 2, c * .07 + 2); cx.fillStyle = '#5b8bc0'; cx.fillRect(x - bw / 2, y - hgt * .62, bw * Math.max(0, q.hp / q.max), c * .07); }
+      continue;
+    }
     if (o.t) {
       const t = o.t, x = X(t.c), y = Y(t.r), pop = t.born > 0 ? 1 - t.born / .35 : 1, born = pop < 1 ? .5 + .5 * pop + Math.sin(pop * Math.PI) * .25 : 1, big = (1 + Math.min(t.lvl, 8) * .035) * born, k = t.kick > 0 ? t.kick / .12 : 0;
       cx.fillStyle = 'rgba(40,24,14,.25)'; cx.beginPath(); cx.ellipse(x, y + c * .36, c * .42, c * .14, 0, 0, 7); cx.fill();

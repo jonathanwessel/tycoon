@@ -106,6 +106,7 @@ export function makeFoe(type) { const f = (FOE[type] || FOE.raider)(); f.travers
 
 /* Porters carry goods between buildings; foremen stand by their building's door. */
 export function makeWorker(good) { return person({ shirt: 'cream', pants: 'cloth', hat: 'cap', hatC: 'woodL', extra: k => k.box(0, .46, .12, .14, .12, .12, good || 'woodL') }); }
+export function makeSoldier() { return person({ shirt: 'paintB', vest: 'paintB', pants: 'denim', hat: 'cowboy', hatC: 'iron', belt: 'gold', extra: k => { k.box(.17, .12, .05, .03, .5, .03, 'woodD', { rx: -.3, ao: false }); k.box(.17, .5, .14, .02, .12, .02, 'steel', { rx: -.3, ao: false }); } }); }
 export function makeForeman() { return person({ shirt: 'white', vest: 'paintR', pants: 'black', hat: 'bowler', hatC: 'black', extra: k => k.box(.16, .3, .08, .08, .1, .02, 'cream') }); }
 export function makeWagon(kind) {
   const root = G(); root.userData = {};
@@ -128,6 +129,12 @@ export function makeTower(type, br, lvl) {
     if (type === 'crossbow') { for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(sx * .26, 0, sz * .26, .07, .5, .07, 'wood', { rz: -sx * .06, rx: sz * .06 }); k.box(0, .2, 0, .58, .04, .04, 'woodD', { rz: .4 }); k.box(0, .5, 0, .66, .07, .66, 'woodL'); for (let i = 0; i < 6; i++) k.box(-.28 + i * .112, .57, .3, .05, .12, .05, 'woodD'); }
     else if (type === 'cannon') { k.cyl(0, 0, 0, .36, .3, 'stone', { r2: .32, seg: 10, jit: .1 }); for (let i = 0; i < 8; i++) k.box(Math.cos(i * .785) * .3, .3, Math.sin(i * .785) * .3, .12, .1, .12, 'stoneL', { ry: -i * .785 }); }
     else if (type === 'frost') { k.cyl(0, 0, 0, .3, .12, 'stoneL', { seg: 6 }); k.cyl(0, .12, 0, .14, .42, 'stone', { r2: .1, seg: 6 }); k.cyl(0, .54, 0, .2, .05, 'glowI', { seg: 6, mat: 'glow' }); }
+    else if (type === 'barracks') {
+      // a square log palisade with a gate, a tent inside and a blue flag
+      for (let i = 0; i < 7; i++) for (const [x, z, ry] of [[-.33 + i * .11, -.33, 0], [-.33 + i * .11, .33, 0], [-.33, -.33 + i * .11, 0], [.33, -.33 + i * .11, 0]]) { if (z === .33 && Math.abs(x) < .1) continue; k.cyl(x, 0, z, .05, .42 + (i % 2) * .05, i % 2 ? 'log' : 'woodL', { seg: 6 }); k.cone(x, .42 + (i % 2) * .05, z, .05, .07, 'woodD', { seg: 6 }); }
+      k.box(0, .3, .33, .26, .05, .06, 'woodD'); k.cone(0, 0, -.05, .2, .3, 'cream', { seg: 4, ry: Math.PI / 4 });
+      k.box(.25, 0, -.25, .025, .85, .025, 'woodD'); k.box(.36, .7, -.25, .2, .12, .012, 'paintB');
+    }
     else if (type === 'still') { k.cyl(0, 0, 0, .32, .1, 'stoneD', { seg: 8 }); for (let i = 0; i < 5; i++) k.log(Math.cos(i * 1.26) * .12, .1, Math.sin(i * 1.26) * .12, .22, .03, 'log', { ry: i * 1.26 }); k.ball(0, .14, 0, .07, 'glowO', { mat: 'fire' });
       k.ball(0, .36, 0, .24, 'copper', { det: 1, sy: .9, mat: 'metal' }); k.cyl(0, .55, 0, .06, .22, 'copper', { r2: .03, mat: 'metal' }); k.cyl(.12, .75, 0, .025, .3, 'copper', { rz: -1.2, mat: 'metal' });
       for (let i = 0; i < 4; i++) k.torus(.32, .3 + i * .07, 0, .07, .015, 'copper', { rx: Math.PI / 2, mat: 'metal', ts: 8 }); k.cyl(.32, 0, .18, .09, .26, 'glowT', { seg: 8, mat: 'glow' }); k.cyl(.32, .26, .18, .05, .05, 'woodD', { seg: 6 });
@@ -157,6 +164,7 @@ export function makeTower(type, br, lvl) {
     const cr = part(k => { k.cone(0, 0, 0, .14, .28, br === 'b' ? 'paintP' : 'glowI', { seg: 5, mat: 'glow' }); k.cone(0, 0, 0, .14, .16, br === 'b' ? 'paintP' : 'glowI', { seg: 5, mat: 'glow', rx: Math.PI }); if (br === 'a') for (let i = 0; i < 3; i++) k.cone(Math.cos(i * 2.1) * .2, -.05, Math.sin(i * 2.1) * .2, .05, .14, 'glowI', { seg: 4, mat: 'glow' }); }, { cast: false });
     bar.add(cr); root.userData.float = 1;
   }
+  else if (type === 'barracks') bar.add(part(k => k.ball(0, 0, 0, .001, 'woodD')));
   else if (type === 'still') bar.add(part(k => k.ball(0, 0, 0, .001, 'copper')));
   else if (type === 'tesla') bar.add(part(k => { k.ball(0, 0, 0, .14, br === 'b' ? '#ff8fb0' : 'glowW', { mat: 'fire', det: 1 }); k.torus(0, 0, 0, .19, .02, 'copper', { mat: 'metal', ts: 10, rx: Math.PI / 2 }); }, { cast: false }));
   else {

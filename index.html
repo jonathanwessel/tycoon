@@ -402,8 +402,8 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   #bFull .go, #bFull .back { display: none; } #bFull .hideui { display: block; }
   .toast { position: fixed; z-index: 45; top: calc(var(--top) + 6px); left: 54px; right: 54px; }
   /* in 2D the board is centred and its buttons sit in a row beneath it */
-  body:not(.v3) .mapbtn, body:not(.v3) #bMis, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { top: auto; bottom: calc(var(--bot) - 46px); }
-  body:not(.v3) #bMis { right: 146px; } body:not(.v3) #bPause { right: 100px; } body:not(.v3) #bFull { right: 54px; }
+  body:not(.v3) .mapbtn, body:not(.v3) #bMis, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { position: absolute; top: calc(100% + 8px); bottom: auto; } /* the centred 2D board is transformed, so these sit in its own coordinates */
+  body:not(.v3) #bMis { right: 138px; } body:not(.v3) #bPause { right: 92px; } body:not(.v3) #bFull { right: 46px; } body:not(.v3) #bSet { right: 0; }
   .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 184px); }
   /* hide the interface: only the town (and the button that brings the interface back) */
   body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bMis, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }

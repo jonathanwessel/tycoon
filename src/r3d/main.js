@@ -10,7 +10,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { MAT, col } from './kit.js';
 import { makeBuilding, BUILDING_IDS } from './buildings.js';
-import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, PROPS } from './units.js';
+import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, makeSoldier, PROPS } from './units.js';
 import { buildWorld, makeSky } from './world.js';
 
 const V = {}; // everything this renderer keeps
@@ -204,6 +204,17 @@ function syncFoes(time, dt) {
     if (!corpses.includes(k)) { V.corpses.delete(k); give(v.kind, v.obj); continue; }
     const p = 1 - k.t / .8, o = v.obj; o.rotation.x = Math.min(1.45, p * 4) * (o.userData.boat ? .3 : 1); o.position.y -= dt * (p > .6 ? .5 : 0); animatePerson(o, 0, 0, true);
   }
+  // soldiers from the barracks
+  V.troops = V.troops || new Map(); const ts = new Set();
+  for (const q of troops) {
+    ts.add(q); let v = V.troops.get(q);
+    if (!v) { const o = makeSoldier(); o.traverse(m => { if (m.isMesh) m.castShadow = true; }); o.scale.setScalar(.7); V.dyn.add(o); v = { obj: o, ph: Math.random() * 6, x: q.x, z: q.y }; V.troops.set(q, v); }
+    const o = v.obj, tx = q.f ? q.f.x - q.x : (q.dir || 1); o.position.set(q.x + .5, ground(q.x + .5, q.y + .5), q.y + .5);
+    if (q.f) o.rotation.y = Math.atan2(q.f.x - q.x, q.f.y - q.y); else if (q.walk) o.rotation.y = Math.atan2(tx, 0.0001);
+    v.ph += Math.hypot(q.x - v.x, q.y - v.z) * 22 + (q.fight ? dt * 14 : 0); v.x = q.x; v.z = q.y; animatePerson(o, v.ph, 0, !q.walk && !q.fight);
+    if (q.fight) o.userData.body.rotation.x = Math.sin(time * 14 + q.slot) * .25; else o.userData.body.rotation.x = 0;
+  }
+  for (const [q, v] of V.troops) if (!ts.has(q)) { V.dyn.remove(v.obj); V.troops.delete(q); }
   // porters
   const ws = new Set();
   for (const w of workers) {

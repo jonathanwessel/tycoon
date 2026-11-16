@@ -83,8 +83,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-21'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Missions are now per town, with an empire chain too: open them from the new Missions button at the top right. Livelier tabs and buttons, and a new 3D app icon (reinstall the app to see it straight away).';
+const GAME_VERSION = '2026.11.15-22'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'New Barracks tower from wave 15: soldiers hold a rally point on the road and fight raiders. Upgrade Drill, Recruits and Arms separately, and tap Move rally point to choose where they stand.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

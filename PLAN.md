@@ -167,3 +167,14 @@ Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29
 - [x] Tesla research: Conductive Fog (lightning arcs through a poison cloud) and Superconducting Ice (twice the reach, no power loss and two extra jumps across chilled raiders).
 - [x] Tar Pit power (from wave 8, 50 s cooldown): tar ahead of the thickest group slows raiders to 40% for 12 s; an explosion sets it alight.
 - [x] Raiders +1% health per wave from wave 13, capped at +15%. The balance bot still reaches wave 50, with the first deed at about 32 minutes.
+
+## Next roadmap (Barracks to Thunder Mesa)
+
+1. [x] Missions per town and an empire chain, with a Missions side button; a livelier interface; a 3D app icon.
+2. [x] Barracks (from wave 15): soldiers hold a rally point on the road and fight raiders. Three tracks: Drill (spawn time), Recruits (up to 6 soldiers), Arms (strength).
+3. [ ] Drone Helipad: a Barracks transformation; its attack drone flies within the tower's range. Tracks: battery, range, attack.
+4. [ ] The Capital (after Silver Falls): Foremen Guild, Market Board, Department of Transport, Central Bank, Department of Education, War Office.
+5. [ ] Economy and Defence tech trees, bought with Influence; slow tower auto-upgrade in the Defence tree.
+6. [ ] Stock Exchange: shares in your towns.
+7. [ ] Policies and the Constitutional Convention (global prestige, paying Legacy).
+8. [ ] Thunder Mesa, the fourth town: oil and airships.
