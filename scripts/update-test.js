@@ -5,8 +5,7 @@ const http = require('http'), fs = require('fs'), path = require('path'), os = r
 const repo = process.argv[2] || path.resolve(__dirname, '..');
 const site = fs.mkdtempSync(path.join(os.tmpdir(), 'gulch-site-'));
 for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'version.json']) fs.copyFileSync(path.join(repo, f), path.join(site, f));
-fs.mkdirSync(path.join(site, 'src')); for (const f of fs.readdirSync(path.join(repo, 'src'))) fs.copyFileSync(path.join(repo, 'src', f), path.join(site, 'src', f));
-fs.mkdirSync(path.join(site, 'icons')); for (const f of fs.readdirSync(path.join(repo, 'icons'))) fs.copyFileSync(path.join(repo, 'icons', f), path.join(site, 'icons', f));
+for (const d of ['src', 'icons', 'vendor']) fs.cpSync(path.join(repo, d), path.join(site, d), { recursive: true }); // the game, its 3D engine and icons
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
 const srv = http.createServer((q, r) => {
   let f = decodeURIComponent(q.url.split('?')[0]); if (f.endsWith('/')) f += 'index.html';

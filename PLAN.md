@@ -121,3 +121,17 @@ Implementation: a `WEATHER` table, the chosen weather on `W` (not saved mid-wave
 - Respect `prefers-reduced-motion` (the `REDUCED` flag) for any new animation.
 - Add a `v` bump and an `adopt()` migration before any save-schema change.
 - After each change: run the smoke test, look at one phone screenshot mid-wave, commit, push to `main`. No pull request unless asked.
+
+## Graphics 2.0: stylized low-poly 3D (in progress)
+
+The 3D view is rebuilt on three.js (vendored in vendor/three, MIT licence) with every model built in code (src/r3d/): buildings for all three towns with moving parts and milestone growth, jointed raiders, towers that aim and recoil, wagons, boats and trains, a carved terrain with mesas, roads with ruts, flowing water, soft sun and moon shadows, lamps and fires, bloom and the colour looks.
+
+- [x] G1 three.js foundation (renderer, camera bridge, picking, overlay, quality presets)
+- [x] G2 Copper Gulch modelled, terrain and backdrop (first pass)
+- [x] G3 people and vehicles (first pass)
+- [x] G4 towers and combat effects (first pass)
+- [x] G5 Iron Ridge and Silver Falls buildings (first pass)
+- [ ] Polish pass from phone feedback: lighting, scale, camera framing
+- [ ] G6 build animations, icons from the models, 3D as the default after a phone check
+
+Preview locally with `node scripts/serve.js` (modules do not load from file://). `node scripts/shots3d.js <dir> [town]` takes phone-size screenshots and prints frame timing.

@@ -4,10 +4,11 @@
 // sideways scrolling. Uses Playwright if it is installed, otherwise an installed Edge or Chrome (scripts/cdp.js).
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('./cdp'); } })();
 const path = require('path');
-const URL = require('url').pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href;
+let URL; // served over http: the 3D view is an ES module, which browsers do not load from file:// pages
 const shots = process.argv[2];
 
 (async () => {
+  const srv = await require('./serve').start(0); URL = srv.url;
   const b = await chromium.launch();
   let failed = false;
   for (const [name, vw, vh] of [['phone', 400, 900], ['desk', 1200, 800]]) {
@@ -127,15 +128,16 @@ const shots = process.argv[2];
     // the 3D view: renders frames without GL errors, and a tap on a projected cell picks that cell
     const v3 = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
+      for (let i = 0; i < 40 && !window.R3D; i++) await wait(100); // the 3D engine module loads after the game
       setGx('view', '3d'); if (!R3.on) { setGx('view', '2d'); return { on: false }; }
       S.wave = 9; planWave(); startWave(); await wait(800);
-      const err = R3.gl.getError(), r = cv.getBoundingClientRect(), [px, py] = r3Project(5.5, .1, 10.5), s = cv.clientWidth / R3.canvas.width;
+      const err = R3D.info().err, built = R3D.prebuild(), r = cv.getBoundingClientRect(), [px, py] = r3Project(5.5, .1, 10.5), s = cv.clientWidth / R3.canvas.width;
       const g = r3Pick({ clientX: r.left + cv.clientLeft + px * s, clientY: r.top + cv.clientTop + py * s });
       foes = []; W.queue = []; W.active = false; setGx('view', '2d');
-      return { on: true, err, pick: [Math.floor(g[0]), Math.floor(g[1])], models: Object.keys(R3.models).length, back2d: !R3.on };
+      return { on: true, err, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad, back2d: !R3.on };
     });
     if (!v3.on) console.log(name, 'warning: no WebGL2 in this browser, 3D view not tested');
-    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 80 || !v3.back2d) errs.push('3D check failed: ' + JSON.stringify(v3));
+    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.back2d) errs.push('3D check failed: ' + JSON.stringify(v3));
     // the empire: open Iron Ridge, play a wave there with its boss, ship goods, look at the Empire tab, come home
     const emp = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

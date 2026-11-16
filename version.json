@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-16",
-  "notes": "Shipping routes now get their goods before the home town workshops use them, so the Boiler Shop gets planks. Stuck workshops say what they are waiting for."
+  "version": "2026.11.15-17",
+  "notes": "New 3D engine preview: every building, raider, tower and wagon modelled in low-poly 3D with soft shadows, glowing windows at night, smoke and flowing water. Turn it on with the gear button, View, 3D."
 }

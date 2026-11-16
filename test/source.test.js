@@ -7,7 +7,7 @@ const path = require('path');
 
 test('no code hidden at the end of a // comment', () => {
   const dir = path.join(__dirname, '..', 'src'), bad = [];
-  for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+  for (const f of fs.readdirSync(dir, { recursive: true }).filter(f => f.endsWith('.js'))) {
     fs.readFileSync(path.join(dir, f), 'utf8').split(/\r?\n/).forEach((line, i) => {
       const at = line.indexOf('// '); if (at < 0 || /['"`]/.test(line.slice(0, at).replace(/\\./g, '').replace(/'[^']*'|"[^"]*"|`[^`]*`/g, '').replace(/[^'"`]/g, ''))) return;
       const c = line.slice(at + 3);
