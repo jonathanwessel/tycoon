@@ -92,10 +92,10 @@ function rebuildWorld() {
   V.scene.add(V.world);
   // tap areas: trees (or the quarry face / sand dunes) and rocks
   V.taps = new THREE.Group(); V.world.add(V.taps);
-  const [tx, ty] = SLOT.trees, [rx, ry] = SLOT.rocks, treeKind = TOWN.trees ? 'tree' : TOWN_ID === 'falls' ? 'dune' : 'boulder';
+  const [tx, ty] = SLOT.trees, [rx, ry] = SLOT.rocks, treeKind = TOWN.trees ? 'tree' : TOWN_ID === 'falls' ? 'dune' : TOWN_ID === 'mesa' ? 'shrub' : 'boulder';
   V.tapTrees = []; V.tapRocks = [];
   for (const [x, y, s] of TREES) { const o = PROPS[treeKind](s, x * 10 + y); o.position.set(tx + x, .22, ty + y + .3); o.scale.setScalar(s * (treeKind === 'tree' ? 1 : .85)); V.taps.add(o); V.tapTrees.push(o); }
-  const rk = TOWN_ID === 'ridge' ? 'rockR' : TOWN_ID === 'falls' ? 'rockV' : 'rock';
+  const rk = TOWN_ID === 'ridge' ? 'rockR' : TOWN_ID === 'falls' ? 'rockV' : TOWN_ID === 'mesa' ? 'rockM' : 'rock';
   for (const [x, y, s] of [[.55, .75, .8], [1.45, .6, .95], [1, 1.4, .85]]) { const o = PROPS[rk](s, x * 7 + y); o.position.set(rx + x, .22, ry + y + .2); o.scale.setScalar(s * 1.3); V.taps.add(o); V.tapRocks.push(o); }
   // cacti and props on plots (hidden under towers)
   V.decor = [];
@@ -126,6 +126,7 @@ function syncBuildings(time, dt) {
       if (m.kind === 'spin') { if (act || m.axis === 'z' && id === 'clockw') n.rotation[m.axis] += m.speed * dt * (act ? 1 : .15); }
       else if (m.kind === 'hot') { n.visible = act; if (act) n.scale.setScalar(.9 + Math.sin(time * 13 + n.id) * .08); }
       else if (m.kind === 'cart') n.position.z = m.node.userData.z0 === undefined ? (m.node.userData.z0 = n.position.z) : m.node.userData.z0 + (act ? Math.sin(time * 1.3) * .22 : 0);
+      else if (m.kind === 'nod') n.rotation.z = act ? Math.sin(time * 2.4) * .32 : n.rotation.z * .95;
       else if (m.kind === 'swing') n.rotation.y = act ? Math.sin(time * .7) * .9 : n.rotation.y;
       else if (m.kind === 'flag') n.rotation.y = Math.sin(time * 3 + id.length) * .35 + .2;
       else if (m.kind === 'bob') { n.position.y = m.y0 + Math.abs(Math.sin(time * 2.2)) * .03; n.rotation.y = Math.sin(time * .6) * .5; }
@@ -182,11 +183,12 @@ function syncFoes(time, dt) {
     if (!v) { v = { obj: take(kind), kind, ph: Math.random() * 6, mat: null, x: f.x, z: f.y }; V.foes.set(f, v); }
     const o = v.obj, [nx, ny] = posAt(f.d + .08, f.p), dx = nx - f.x, dz = ny - f.y, moved = Math.hypot(f.x - v.x, f.y - v.z);
     v.x = f.x; v.z = f.y;
-    const boat = o.userData.boat, x = f.x + .5, z = f.y + .5, y = boat ? -.16 + Math.sin(time * 2.4 + v.ph) * .025 : ground(x, z);
+    const boat = o.userData.boat, air = o.userData.air, x = f.x + .5, z = f.y + .5, y = air ? AIR_H + Math.sin(time * 1.3 + v.ph) * .07 : boat ? -.16 + Math.sin(time * 2.4 + v.ph) * .025 : ground(x, z);
     o.position.set(x, y, z);
     if (Math.abs(dx) + Math.abs(dz) > .001) { const want = Math.atan2(dx, dz); let d = want - o.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.rotation.y += d * Math.min(1, dt * 10); }
     if (boat) o.rotation.z = Math.sin(time * 1.8 + v.ph) * .05;
-    const sc = D.size / (kind === 'boss' || kind === 'train' || kind === 'steamer' ? 1.05 : kind === 'boat' ? .9 : .82); o.scale.setScalar(sc);
+    if (air) { o.rotation.z = Math.sin(time * .9 + v.ph) * .05; for (const pr of o.userData.props) pr.rotation.z += dt * (f.rage ? 40 : 22); }
+    const sc = D.size / (kind === 'boss' || kind === 'train' || kind === 'steamer' || kind === 'zeppelin' ? 1.05 : kind === 'boat' ? .9 : .82); o.scale.setScalar(sc);
     const still = f.stun > 0; v.ph += still ? 0 : moved * (kind === 'runner' ? 9 : 14) / Math.max(.4, sc);
     animatePerson(o, v.ph, still ? 0 : moved / .16, still);
     if (f.type === 'runner' || f.type === 'thief') o.position.y += Math.abs(Math.sin(v.ph)) * .03;
@@ -203,16 +205,18 @@ function syncFoes(time, dt) {
   }
   for (const [k, v] of V.corpses) {
     if (!corpses.includes(k)) { V.corpses.delete(k); give(v.kind, v.obj); continue; }
-    const p = 1 - k.t / .8, o = v.obj; o.rotation.x = Math.min(1.45, p * 4) * (o.userData.boat ? .3 : 1); o.position.y -= dt * (p > .6 ? .5 : 0); animatePerson(o, 0, 0, true);
+    const p = 1 - k.t / .8, o = v.obj;
+    if (o.userData.air) { o.rotation.x = p * .7; o.position.y = Math.max(ground(o.position.x, o.position.z), o.position.y - dt * 2.8); continue; } // the airship goes down nose first
+    o.rotation.x = Math.min(1.45, p * 4) * (o.userData.boat ? .3 : 1); o.position.y -= dt * (p > .6 ? .5 : 0); animatePerson(o, 0, 0, true);
   }
   // drones over their helipads
   V.drones = V.drones || new Map(); const dn = new Set();
   for (const t of S.towers) if (t.drone && TOWERS[t.type].drone) {
     dn.add(t); let o = V.drones.get(t); if (!o) { o = makeDrone(); V.dyn.add(o); V.drones.set(t, o); }
-    const d = t.drone, fly = d.mode === 'fly' || d.mode === 'home'; o.position.set(d.x + .5, (fly ? 1.15 : .22) + (fly ? Math.sin(time * 5 + t.c) * .05 : 0), d.y + .5);
-    const f = DRONE_T.get(t); if (f && fly) o.rotation.y = Math.atan2(f.x - d.x, f.y - d.y); o.rotation.x = fly ? .15 : 0;
+    const d = t.drone, fly = d.mode === 'fly' || d.mode === 'home', f = DRONE_T.get(t), up = fly && f && f.air ? AIR_H - .6 : 0; o.position.set(d.x + .5, (fly ? 1.15 + up : .22) + (fly ? Math.sin(time * 5 + t.c) * .05 : 0), d.y + .5);
+    if (f && fly) o.rotation.y = Math.atan2(f.x - d.x, f.y - d.y); o.rotation.x = fly ? .15 : 0;
     for (const pr of o.userData.props) pr.rotation.y += dt * (fly ? 60 : d.mode === 'charge' ? 6 : 20);
-    if (d.fire > 0 && f) { const ax = d.x + .5, az = d.y + .5, bx = f.x + .5, bz = f.y + .5, L = Math.hypot(bx - ax, bz - az, .8); G_DRONE.push([(ax + bx) / 2, (o.position.y + .35) / 2, (az + bz) / 2, L, -Math.atan2(bz - az, bx - ax), Math.atan2(o.position.y - .35, Math.hypot(bx - ax, bz - az))]); }
+    if (d.fire > 0 && f) { const ty = f.air ? AIR_H + .3 : .35, ax = d.x + .5, az = d.y + .5, bx = f.x + .5, bz = f.y + .5, L = Math.hypot(bx - ax, bz - az, o.position.y - ty); G_DRONE.push([(ax + bx) / 2, (o.position.y + ty) / 2, (az + bz) / 2, L, -Math.atan2(bz - az, bx - ax), Math.atan2(o.position.y - ty, Math.hypot(bx - ax, bz - az))]); }
   }
   for (const [t, o] of V.drones) if (!dn.has(t)) { V.dyn.remove(o); V.drones.delete(t); }
   // soldiers from the barracks
@@ -292,9 +296,10 @@ function syncFx(time, dt) {
   for (const b of bombs) { const pr = 1 - b.t / .7, x = VAULT[0] + (b.x - VAULT[0]) * pr + .5, z = VAULT[1] + (b.y - VAULT[1]) * pr + .5, y = .3 + Math.sin(pr * Math.PI) * 2; S_(x, y, z, .14, col('paintR'), pr * 9); G_(x, y + .1, z, .05, .05, .05, _c.setRGB(3, 1.5, .4)); }
   // lightning: bright jagged segments
   for (const e of fx) if (e.k === 'bolt') for (let i = 0; i < e.pts.length - 1; i++) {
-    const [x1, y1] = e.pts[i], [x2, y2] = e.pts[i + 1], L = Math.hypot(x2 - x1, y2 - y1), n = Math.max(2, Math.ceil(L * 4)); let px = x1 + .5, py = .9, pz = y1 + .5;
+    const [x1, y1] = e.pts[i], [x2, y2] = e.pts[i + 1], L = Math.hypot(x2 - x1, y2 - y1), n = Math.max(2, Math.ceil(L * 4)), hs = e.h1 !== undefined && (e.h0 > 1 || e.h1 > 1), hy = q => e.h0 + (e.h1 - e.h0) * (i + q) / (e.pts.length - 1);
+    let px = x1 + .5, py = hs ? hy(0) : .9, pz = y1 + .5; // a bolt up to (or down from) the airship climbs as it goes
     const cc = e.c === '#ff8fb0' ? _c.setRGB(3, 1.2, 1.8) : _c.setRGB(3, 2.6, 1.2);
-    for (let j = 1; j <= n; j++) { const f = j / n, qx = x1 + (x2 - x1) * f + .5 + (j < n ? (Math.random() - .5) * .15 : 0), qy = (j < n ? .55 + Math.random() * .25 : .45), qz = y1 + (y2 - y1) * f + .5 + (j < n ? (Math.random() - .5) * .15 : 0), dl = Math.hypot(qx - px, qz - pz, qy - py);
+    for (let j = 1; j <= n; j++) { const f = j / n, qx = x1 + (x2 - x1) * f + .5 + (j < n ? (Math.random() - .5) * .15 : 0), qy = hs ? hy(f) + (j < n ? (Math.random() - .5) * .2 : 0) : (j < n ? .55 + Math.random() * .25 : .45), qz = y1 + (y2 - y1) * f + .5 + (j < n ? (Math.random() - .5) * .15 : 0), dl = Math.hypot(qx - px, qz - pz, qy - py);
       G_((px + qx) / 2, (py + qy) / 2, (pz + qz) / 2, dl, .045, .045, cc, -Math.atan2(qz - pz, qx - px), 0); px = qx; py = qy; pz = qz; }
   }
   // fireflies at night, rain and dust in storms
@@ -406,7 +411,7 @@ function render(time, cam) {
 function prebuild() {
   const bad = []; let n = 0;
   for (const id of BUILDING_IDS) for (const t of [0, 4]) { try { makeBuilding(id, t); n++; } catch (e) { bad.push(id + ': ' + e.message); } }
-  for (const k of ['raider', 'runner', 'brute', 'shield', 'sapper', 'healer', 'thief', 'boss', 'train', 'boat', 'steamer']) { try { makeFoe(k); n++; } catch (e) { bad.push(k + ': ' + e.message); } }
+  for (const k of ['raider', 'runner', 'brute', 'shield', 'sapper', 'healer', 'thief', 'boss', 'train', 'boat', 'steamer', 'zeppelin']) { try { makeFoe(k); n++; } catch (e) { bad.push(k + ': ' + e.message); } }
   for (const t of Object.keys(TOWERS)) for (const b of [null, 'a', 'b']) { try { makeTower(t, b, b ? 6 : 1); n++; } catch (e) { bad.push(t + b + ': ' + e.message); } }
   for (const k of Object.keys(PROPS)) { try { PROPS[k](1, 1); n++; } catch (e) { bad.push(k + ': ' + e.message); } }
   return { n, bad };

@@ -50,6 +50,19 @@ const GOALS_BY_TOWN = {
     { t: 'Defeat the wave 10 ironclad steamer', p: () => [S.best - 1, 10], r: 50000 },
     { t: 'Build the Telegraph Works', p: () => [has('telw'), 1], r: 100000 },
   ],
+  mesa: [
+    { t: 'Build an Oil Well', p: () => [has('well'), 1], r: 5e5 },
+    { t: 'Build the Oil Refinery', p: () => [has('oilref'), 1], r: 8e5 },
+    { t: 'Build a Tesla coil: the only tower that reaches the sky', p: () => [S.towers.some(t => t.type === 'tesla') ? 1 : 0, 1], r: 1e6 },
+    { t: 'Build a Bauxite Mine and an Aluminium Smelter', p: () => [has('bauxmine') + has('alusm'), 2], r: 1.5e6 },
+    { t: 'Build a Rubber Farm and a Tire Works', p: () => [has('rubberf') + has('tirew'), 2], r: 2e6 },
+    { t: 'Survive five waves in Thunder Mesa', p: () => [S.best - 1, 5], r: 4e6 },
+    { t: 'Ship wire to Thunder Mesa (Empire tab)', p: () => [route('mesa', 'wire'), 1], r: 5e6 },
+    { t: 'Build the Engine Plant', p: () => [has('motorw'), 1], r: 8e6 },
+    { t: 'Bring down the wave 10 sky pirate airship', p: () => [S.best - 1, 10], r: 2e7 },
+    { t: 'Build the Airship Hangar', p: () => [has('hangar'), 1], r: 4e7 },
+    { t: 'Raise the Oil Refinery to level 25', p: () => [blv('oilref'), 25], r: 6e7 },
+  ],
 };
 const goalList = () => GOALS_BY_TOWN[TOWN_ID] || GOALS;
 /* Empire missions: one chain for the whole empire, counted across every town. */
@@ -63,6 +76,8 @@ const EMPIRE_GOALS = [
   { t: 'Earn 10 million coins in all', p: () => [S.stats.coins, 1e7], r: 250000 },
   { t: 'Have 25 foremen at work across the empire', p: () => [allMgr(), 25], r: 500000 },
   { t: 'Earn a billion coins in all', p: () => [S.stats.coins, 1e9], r: 5e6 },
+  { t: 'Open Thunder Mesa (Department of Transport level 5)', p: () => [townOpen('mesa') ? 1 : 0, 1], r: 5e7 },
+  { t: 'Bring down a sky pirate airship', p: () => [S.stats.airships || 0, 1], r: 1e8 },
 ];
 function empireNow() { const G = EMPIRE_GOALS[S.eg || 0]; if (!G) return null; const p = G.p(); return { t: G.t, cur: Math.min(p[0], p[1]), need: p[1], r: G.r }; }
 function claimEmpire() {
@@ -94,6 +109,10 @@ const BADGES = [
   { id: 'fallso',  n: 'Bright Lights',      d: 'Open Silver Falls.',                               icon: 'bulb',     ok: () => townOpen('falls') },
   { id: 'wired',   n: 'Wired',              d: 'Make a telegraph.',                                icon: 'tele',     ok: () => townIds().some(id => (id === S.town ? S.seen : S.towns[id].seen || {}).tele) },
   { id: 'chfalls', n: 'Charter of Light',   d: 'Sign a charter in Silver Falls.',                  icon: 'bulb',     ok: () => !!S.chMap.falls },
+  { id: 'mesao',   n: 'Black Gold',         d: 'Open Thunder Mesa.',                               icon: 'oil',      ok: () => townOpen('mesa') },
+  { id: 'skies',   n: 'Clear Skies',        d: 'Bring down a sky pirate airship.',                 icon: 'zeppelin', ok: () => (S.stats.airships || 0) >= 1 },
+  { id: 'flight',  n: 'Lighter Than Air',   d: 'Build an airship.',                                icon: 'airship',  ok: () => townIds().some(id => (id === S.town ? S.seen : S.towns[id].seen || {}).airship) },
+  { id: 'chmesa',  n: 'Charter of the Sky', d: 'Sign a charter in Thunder Mesa.',                  icon: 'airship',  ok: () => !!S.chMap.mesa },
   { id: 'delegate', n: 'Founding Delegate', d: 'Hold a Constitutional Convention.',                icon: 'office',   ok: () => (S.stats.conventions || 0) >= 1 },
 ];
 function checkBadges(quiet) {

@@ -191,3 +191,35 @@ function paintSprites4() {
     mk('steamer' + s, 26, 18, p => { p(P.dark, 8, 0, 3, 6); p(P.dark, 14, 1, 3, 5); p(P.red, 8, 1, 3, 1); p(P.red, 14, 2, 3, 1); p(P.greyD, 3, 6, 18, 5); p(P.grey, 3, 6, 18, 2); p(P.greyL, 3, 6, 18, 1); for (const x of [6, 10, 14, 18]) p(P.yel, x, 9, 1, 1); p(P.steelD, 1, 11, 23, 3); p(P.dark, 2, 14, 21, 1); p.disc(P.woodD, 21, 10, 3.5); p(P.woodL, f ? 20 : 22, f ? 7 : 8, 1, 5); p(WATERL, 0, 15, 26, 1); p(P.white, f ? 1 : 3, 15, 4, 1); });
   }
 }
+/* Thunder Mesa: oil, rubber and aluminium goods, the oil field buildings and the sky pirate airship. */
+function paintSprites5() {
+  const hut = (p, wall, wallD, roof, roofD) => { p(roof, 5, 2, 6, 1); p(roof, 4, 3, 8, 1); p(roof, 3, 4, 10, 1); p(roof, 2, 5, 12, 1); p(roofD, 1, 6, 14, 2); p(wall, 2, 8, 12, 6); p(wallD, 2, 13, 12, 1); p(P.dark, 7, 10, 3, 4); };
+  const OIL = '#2b2430', OILL = '#5a4e66', BX = '#b5533a', BXL = '#d9805e', BXD = '#7e3524', AL = '#c8d0dc', ALL = '#eef2f6', ALD = '#8a94a6', RUB = '#3a3a3e', RUBL = '#5e5e66', GU = '#8fa36a', GUD = '#5f7446', MESA = '#a8483a';
+  // goods
+  mk('oil', 12, 13, p => { p(OIL, 4, 1, 4, 1); p(OIL, 3, 2, 6, 2); p(OIL, 2, 4, 8, 6); p(OIL, 3, 10, 6, 2); p(OILL, 4, 3, 1, 4); p(OILL, 3, 5, 1, 2); p('#8a7a9a', 4, 4, 1, 1); });
+  mk('rubber', 13, 12, p => { p(RUB, 2, 3, 9, 7); p(RUB, 3, 2, 7, 1); p(RUB, 3, 10, 7, 1); p(RUBL, 3, 3, 7, 1); p(RUBL, 2, 5, 1, 3); p(GU, 8, 0, 2, 3); p(GUD, 10, 1, 2, 1); });
+  mk('baux', 12, 12, p => { p.disc(BX, 6, 6.5, 4.8); p(BXD, 2, 8, 8, 2); p(BXL, 4, 2, 3, 1); p(BXL, 3, 5, 2, 1); p(P.white, 7, 5, 2, 2); p(BXD, 8, 7, 1, 1); });
+  mk('fuel', 12, 14, p => { p(P.red, 2, 3, 8, 10); p(P.redD, 2, 12, 8, 1); p(P.redD, 8, 3, 2, 9); p(P.greyD, 3, 1, 3, 2); p(P.grey, 7, 1, 2, 2); p(P.yel, 4, 6, 3, 3); p(P.dark, 5, 7, 1, 1); });
+  mk('tire', 13, 13, p => { p.disc(RUB, 6.5, 6.5, 6); p.disc(RUBL, 6.5, 6.5, 4.5); p.disc(P.greyL, 6.5, 6.5, 3); p.disc(P.grey, 6.5, 6.5, 1.6); for (const [x, y] of [[6, 0], [0, 6], [12, 6], [6, 12], [2, 2], [10, 2], [2, 10], [10, 10]]) p(P.dark, x, y, 1, 1); });
+  mk('alu', 14, 11, p => { p(ALL, 4, 2, 7, 1); p(ALL, 3, 3, 9, 1); p(AL, 2, 4, 11, 3); p(ALD, 1, 7, 12, 2); p(P.white, 5, 2, 4, 1); p(ALL, 3, 4, 8, 1); });
+  mk('motor', 15, 13, p => { p(ALD, 2, 4, 10, 7); p(AL, 2, 4, 10, 2); for (const x of [3, 6, 9]) p(P.greyD, x, 1, 2, 3); p(P.dark, 12, 6, 2, 3); p(P.red, 4, 7, 6, 2); p(P.dark, 1, 10, 12, 1); p.disc(P.greyD, 13, 7.5, 1.4); });
+  mk('airship', 16, 12, p => { p(ALD, 2, 2, 12, 5); p(AL, 1, 3, 14, 3); p(ALL, 3, 2, 9, 1); p(ALD, 0, 4, 1, 1); p(P.red, 13, 1, 2, 2); p(P.red, 13, 6, 2, 2); p(P.woodD, 5, 7, 1, 2); p(P.woodD, 10, 7, 1, 2); p(P.wood, 5, 9, 6, 2); p(P.yelL, 6, 9, 1, 1); p(P.yelL, 8, 9, 1, 1); });
+  // buildings (16x16)
+  mk('well', 16, 16, p => { p(P.woodD, 7, 1, 2, 11); p(P.wood, 5, 4, 6, 1); p(P.wood, 4, 8, 8, 1); p(P.woodD, 3, 12, 1, 2); p(P.woodD, 12, 12, 1, 2); for (let i = 0; i < 9; i++) { p(P.wood, 4 + Math.floor(i / 3), 12 - i, 1, 1); p(P.wood, 11 - Math.floor(i / 3), 12 - i, 1, 1); } p(OIL, 1, 13, 14, 2); p(OILL, 3, 13, 3, 1); p(P.red, 7, 0, 2, 1); });
+  mk('rubberf', 16, 16, p => { p(MESA, 0, 12, 16, 4); for (const x of [3, 8, 13]) { p.disc(GU, x, 9, 2.8); p(GUD, x - 2, 10, 4, 1); p(P.woodD, x, 11, 1, 2); } p.disc(GU, 5.5, 5, 2.2); p.disc(GUD, 11, 5.5, 2); p(P.white, 4, 4, 1, 1); });
+  mk('bauxmine', 16, 16, p => { p(BX, 4, 2, 8, 3); p(BX, 2, 5, 12, 9); p(BXL, 4, 2, 5, 1); p(P.white, 5, 4, 2, 1); p(BXD, 2, 13, 12, 1); p(P.woodL, 4, 7, 8, 1); p(P.wood, 4, 8, 1, 6); p(P.wood, 11, 8, 1, 6); p(P.night, 5, 8, 6, 6); p(BXL, 6, 11, 4, 2); });
+  mk('oilref', 16, 16, p => { for (const x of [2, 6]) { p(P.greyL, x, 5, 3, 9); p(P.grey, x + 2, 5, 1, 9); p(P.greyD, x, 4, 3, 1); } p(P.greyD, 11, 1, 2, 13); p(P.org, 11, 0, 2, 1); p(P.yel, 11, 0, 1, 1); p(ALD, 9, 8, 6, 6); p(P.red, 9, 10, 6, 1); p(P.dark, 1, 14, 14, 1); });
+  mk('tirew', 16, 16, p => { hut(p, '#8a6a58', '#6a4e40', RUB, P.dark); p.disc(RUB, 4, 11, 2.5); p.disc(RUBL, 4, 11, 1.2); p.disc(RUB, 12, 11, 2.5); p.disc(RUBL, 12, 11, 1.2); p(P.greyD, 12, 0, 2, 5); });
+  mk('alusm', 16, 16, p => { p(P.greyD, 12, 0, 3, 7); p(ALD, 12, 1, 3, 1); hut(p, P.greyL, P.grey, ALD, P.greyD); p(P.org, 4, 9, 3, 4); p(P.yelL, 5, 10, 1, 2); p(ALL, 10, 10, 3, 3); });
+  mk('motorw', 16, 16, p => { hut(p, '#c9b28a', '#9a8460', P.redD, '#6e2a2a'); p(ALD, 10, 9, 4, 3); p(P.greyD, 11, 8, 1, 1); p(P.greyD, 13, 8, 1, 1); p(P.yelL, 3, 9, 2, 2); p.disc(P.greyD, 4, 4.5, 1.2); });
+  mk('hangar', 16, 16, p => { p(ALD, 1, 6, 14, 8); p(AL, 2, 4, 12, 2); p(AL, 4, 3, 8, 1); p(ALL, 5, 3, 6, 1); p(P.night, 4, 8, 8, 6); p(AL, 5, 9, 6, 3); p(P.red, 10, 9, 1, 3); p(P.dark, 1, 14, 14, 1); for (const x of [2, 13]) p(P.greyD, x, 7, 1, 7); });
+  // the tap spots: guayule shrubs (rubber) and red bauxite boulders
+  mk('shrub', 14, 12, p => { p.disc(GU, 7, 6, 4.5); p.disc(GUD, 9, 8, 2.5); p(P.white, 5, 3, 1, 1); p(P.white, 9, 4, 1, 1); p(P.woodD, 6, 10, 2, 2); });
+  // the sky pirate airship (Thunder Mesa boss), two frames: the propeller turns
+  for (const f of [0, 1]) mk('zeppelin' + (f ? '_b' : ''), 28, 18, p => {
+    p(ALD, 4, 1, 18, 9); p(AL, 2, 2, 22, 7); p(ALL, 5, 2, 14, 2); p(ALD, 1, 4, 1, 3); p(P.redD, 22, 0, 4, 3); p(P.redD, 22, 8, 4, 3); p(P.red, 23, 4, 4, 2);
+    for (const x of [8, 13, 18]) p(ALD, x, 2, 1, 7); p(P.dark, 7, 9, 1, 3); p(P.dark, 17, 9, 1, 3);
+    p(P.woodD, 6, 12, 14, 4); p(P.wood, 6, 12, 14, 1); for (const x of [8, 11, 14, 17]) p(P.yelL, x, 13, 1, 1); p(P.dark, 20, 13, 2, 2);
+    p(P.greyD, 22, f ? 11 : 13, 1, f ? 5 : 2); p(P.greyD, f ? 22 : 21, 13, f ? 1 : 3, 1);
+  });
+}

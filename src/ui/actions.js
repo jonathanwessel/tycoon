@@ -14,7 +14,7 @@ function useAbility(id) {
   if (ABIL[id].from && S.best < ABIL[id].from) return say(ABIL[id].n + ' opens once you have reached wave ' + ABIL[id].from + '.');
   if (id === 'tar') {
     // ahead of the thickest group of raiders on the road (boats sail past tar)
-    const on = foes.filter(f => f.hp > 0 && f.type !== 'boat' && !(MAP.river !== undefined && f.p === MAP.river)); if (!on.length) return say('No raiders on the road to slow down.');
+    const on = foes.filter(f => f.hp > 0 && f.type !== 'boat' && !f.air && !(MAP.river !== undefined && f.p === MAP.river)); if (!on.length) return say('No raiders on the road to slow down.');
     let best = on[0], bn = -1; for (const f of on) { const n = on.filter(o => Math.abs(o.d - f.d) < 1.5 && o.p === f.p).length; if (n > bn || (n === bn && f.d > best.d)) { bn = n; best = f; } }
     const [x, y] = posAt(Math.min(PATHS[best.p].len - .5, best.d + 1.2), best.p);
     tars.push({ x, y, r: .95, t: 12, dps: foeHp(S.wave) * .4 * MAP.hp }); S.cd.tar = ABIL.tar.cd; snd('glug', 140, .3, 'sine', .06, -40);
@@ -23,7 +23,7 @@ function useAbility(id) {
   }
   if (id === 'dyn') {
     let best = null, bv = 0;
-    for (const f of foes) { let v = 0; for (const o of foes) if (Math.hypot(o.x - f.x, o.y - f.y) < 1.6) v += o.hp; if (v > bv) { bv = v; best = f; } }
+    for (const f of foes) { if (f.air) continue; let v = 0; for (const o of foes) if (!o.air && Math.hypot(o.x - f.x, o.y - f.y) < 1.6) v += o.hp; if (v > bv) { bv = v; best = f; } }
     if (!best) return say('No raiders on the road to blow up.');
     bombs.push({ x: best.x, y: best.y, t: .7, f: best }); S.cd.dyn = ABIL.dyn.cd; snd('fuse', 900, .5, 'sawtooth', .02, -600);
   } else {

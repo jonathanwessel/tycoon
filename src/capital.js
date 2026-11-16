@@ -64,21 +64,34 @@ function capitalWork(dt, inc) {
    Cleared: the wave's bounty, the next wave. Lost: the vault weakens; when it falls the town loses 10% of its coins'
    share and drops back two waves, so a town too weak for its boss loops at the boss gate. */
 const towerEff = st => st.splash || st.cone ? 2.2 : st.chain ? 1 + st.chain * .5 : st.slow ? 3 : st.poison ? 2 : 1;
-function townDps() {
+/* Strength against a wave; with air set, only what reaches the sky (Tesla coils on one target, and drones). */
+function townDps(air) {
   let d = 0;
   for (const t of S.towers) {
-    if (TOWERS[t.type].troops) { const ts = troopStats(t); d += ts.dps * ts.count * .7; if (TOWERS[t.type].drone) { const ds = droneStats(t); d += ds.dmg * ds.rate * .6; } continue; }
-    const st = towerStats(t); d += st.dmg * st.rate * towerEff(st);
+    if (TOWERS[t.type].troops) { const ts = troopStats(t); if (!air) d += ts.dps * ts.count * .7; if (TOWERS[t.type].drone) { const ds = droneStats(t); d += ds.dmg * ds.rate * .6; } continue; }
+    if (air && !reachesAir(t)) continue;
+    const st = towerStats(t); d += st.dmg * st.rate * (air ? 1 : towerEff(st));
   }
   return d;
 }
-const waveHp = w => Math.min(8 + Math.floor(w * 1.1), 36) * foeHp(w) * 1.25 * MAP.hp + (w % 10 === 0 ? foeHp(w) * 25 * MAP.hp : 0);
+/* The map of the town being worked (withTown swaps the town's fields but not the drawn map), and a path's length on it. */
+const townMap = () => MAPS[S.map] || MAP;
+const wayLen = way => way.reduce((a, p, i) => i ? a + Math.abs(p[0] - way[i - 1][0]) + Math.abs(p[1] - way[i - 1][1]) : 0, 0);
+const bossHp = w => foeHp(w) * 25 * townMap().hp * (TOWN.boss.hp || 1);
+const waveHp = w => Math.min(8 + Math.floor(w * 1.1), 36) * foeHp(w) * 1.25 * townMap().hp + (w % 10 === 0 ? bossHp(w) : 0);
+/* Does this town's defence win wave w? An airship (Thunder Mesa) must also be beaten by what reaches the sky alone. */
+function winsWave(w) {
+  const M = townMap(), fight = wayLen(M.paths[0]) / 1.1 * .6;
+  if (w % 10 !== 0 || M.air === undefined) return townDps() * fight >= waveHp(w);
+  const flight = wayLen(M.paths[M.air]) / FOES.boss.spd * .5;
+  return townDps() * fight >= waveHp(w) - bossHp(w) && townDps(true) * flight >= bossHp(w);
+}
 function autoBattle(dt) {
   if (!S.autoWave || !S.towers.length) return; // a town with no towers waits for you
   S.abT = (S.abT === undefined ? 45 : S.abT) - dt; if (S.abT > 0) return; S.abT = 45;
-  const w = S.wave, fight = (PATHS[0] ? PATHS[0].len : 25) / 1.1 * .6, n = Math.min(8 + Math.floor(w * 1.1), 36);
-  if (townDps() * fight >= waveHp(w)) {
-    earn(n * foeCoins(w) * 1.5 * MAP.coin + (w % 10 === 0 ? foeCoins(w) * 15 * MAP.coin : 0)); S.stats.kills += n; if (w % 10 === 0) exNews('boss');
+  const w = S.wave, n = Math.min(8 + Math.floor(w * 1.1), 36), M = townMap();
+  if (winsWave(w)) {
+    earn(n * foeCoins(w) * 1.5 * M.coin + (w % 10 === 0 ? foeCoins(w) * 15 * M.coin : 0)); S.stats.kills += n; if (w % 10 === 0) { exNews('boss'); if (M.air !== undefined) S.stats.airships = (S.stats.airships || 0) + 1; }
     S.wave++; S.best = Math.max(S.best, S.wave); S.vaultHp = Math.min(vaultMax(), S.vaultHp + 1 + lv('mason'));
   } else {
     S.vaultHp -= w % 10 === 0 ? S.vaultHp : Math.ceil(n * .4);

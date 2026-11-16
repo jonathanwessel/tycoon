@@ -27,13 +27,21 @@ function startWave() {
   W.queue = W.next; W.next = null; W.type = W.ntype; W.hpm = T.hp; W.active = true; W.spawnT = 0; W.spawned = 0; W.total = W.queue.length;
   W.weather = W.nweather || null; W.nweather = null; W.leaks = 0;
   W.gap = Math.max(.25, .75 - S.wave * .01) * T.gap;
-  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? bossName() + ': stop it or lose the vault' : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
+  FXS.banner = { t: 2.4, a: 'Wave ' + S.wave, b: (S.wave % 10 === 0 ? bossName() + (MAP.air !== undefined ? ': only Tesla coils and drones reach it' : ': stop it or lose the vault') : T.n) + (W.weather ? ' · ' + WEATHER[W.weather].n : '') };
   snd('wave', 220, .25, 'sawtooth', .04, 220);
 }
+/* Thunder Mesa's sky lane: the airship boss flies it. Only Tesla lightning and drones reach something in the air;
+   frost, poison, tar, blasts and soldiers pass beneath it. */
+const isAir = f => !!(f && f.air);
+const reachesAir = t => t.type === 'tesla';
 function spawn(type) {
-  // on a map with a river, boats and the boss come up the river (path MAP.river); everyone else takes the road
-  const p = MAP.river !== undefined ? (type === 'boat' || type === 'boss' ? MAP.river : 0) : W.spawned++ % PATHS.length, hp = foeHp(S.wave) * FOES[type].hp * (type === 'boss' ? 1 : W.hpm) * MAP.hp, [x, y] = posAt(0, p);
-  foes.push({ type, p, d: 0, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: 1, flash: 0, num: 0, ht: 1.5 });
+  // on a map with a river, boats and the boss come up the river (path MAP.river); on a map with a sky lane the boss
+  // flies it (MAP.air); everyone else takes the road
+  const air = type === 'boss' && MAP.air !== undefined;
+  const p = air ? MAP.air : MAP.river !== undefined ? (type === 'boat' || type === 'boss' ? MAP.river : 0) : MAP.air !== undefined ? 0 : W.spawned++ % PATHS.length;
+  const hp = foeHp(S.wave) * FOES[type].hp * (type === 'boss' ? (TOWN.boss.hp || 1) : W.hpm) * MAP.hp, [x, y] = posAt(0, p);
+  foes.push({ type, p, d: 0, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: 1, flash: 0, num: 0, ht: 1.5, air: air ? 1 : 0 });
+  if (air) { FXS.quake = Math.max(FXS.quake, .5); FXS.bossIn = 2.5; snd('rumble', 70, .9, 'sawtooth', .07, -20); floats.push({ x: x + 2.2, y: y - .3, t: 1.8, s: 'Airship!', c: '#ff8fb0', z: .45 }); return; }
   // every raider kicks up a puff of dust as it rides in; the war wagon shakes the ground
   for (let i = 0; i < (type === 'boss' ? 22 : 5); i++) parts.push({ x: x + .4 + Math.random() * .4, y: y + .5 + (Math.random() - .5) * .6, vx: Math.random() * 1.2, vy: -.3 - Math.random() * .5, g: 0, t: .7, c: '#dcc59c', s: .09, smoke: 1 });
   if (type === 'boss') { FXS.quake = Math.max(FXS.quake, .9); FXS.bossIn = 2.5; snd('rumble', 55, .7, 'sawtooth', .08, -15); floats.push({ x: x + 1.2, y: y - .3, t: 1.6, s: bossName() + '!', c: '#ff8fb0', z: .45 }); }
@@ -68,14 +76,14 @@ function hurt(f, dmg, o) {
     const D = FOES[f.type], c = foeCoins(S.wave) * D.rw * MAP.coin; earn(c); S.stats.kills++;
     if (f.psn && f.psn.spread && f.psn.t > 0) for (const o of foes) if (o !== f && o.hp > 0 && Math.hypot(o.x - f.x, o.y - f.y) < 1.3) poison(o, f.psn.dps, 4, { spread: 1 });
     if (f.type === 'boss') {
-      const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1; exNews('boss');
+      const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1; if (isAir(f)) S.stats.airships = (S.stats.airships || 0) + 1; exNews('boss');
       fx.push({ k: 'boom', x: f.x, y: f.y, r: 2.2, t: .6, d: .6 }); FXS.quake = 1; FXS.flash = .15; snd('kaboom', 60, .7, 'sawtooth', .1, -30);
       FXS.banner = { t: 2.8, a: bossName() + ' destroyed', b: '+' + fmt(bonus) + ' bonus coins', gold: 1, boss: 1 };
       for (let i = 0; i < 40; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 9, vy: -2 - Math.random() * 6, g: 9, t: 1 + Math.random() * .6, c: [P.yel, P.yelL, '#8a6a48', P.steelL, P.org][i % 5], s: .1 + Math.random() * .06 });
       for (let i = 0; i < 10; i++) setTimeout(() => fly('coin', f.x + .5 + (Math.random() - .5), f.y + .5, $('hCoinWrap')), i * 70);
     }
     if (!REDUCED) for (let i = 0; i < (f.type === 'boss' ? 6 : 1 + (Math.random() < .4)); i++) drops.push({ x: f.x + .5, y: f.y + .55, z: 0, vz: 3 + Math.random() * 2, vx: (Math.random() - .5) * 1.6, t: 1.1 });
-    if (corpses.length < 40) corpses.push({ type: f.type, x: f.x, y: f.y, dir: f.dir, t: .8 });
+    if (corpses.length < 40) corpses.push({ type: f.type, x: f.x, y: f.y, dir: f.dir, t: .8, air: f.air });
     for (let i = 0; i < 7; i++) parts.push({ x: f.x + .5, y: f.y + .5, vx: (Math.random() - .5) * 4, vy: -1 - Math.random() * 3, g: 9, t: .5, c: i % 2 ? D.c : P.white, s: .08 });
     floats.push({ x: f.x + .5, y: f.y + .2, t: .9, s: '+' + fmt(Math.max(1, c)), c: P.yel, z: .34 });
     const now = performance.now(); if (now - FXS.lastCoin > 90) { FXS.lastCoin = now; fly('coin', f.x + .5, f.y + .5, $('hCoinWrap')); snd('coin', 880, .06, 'square', .03, 440); }
@@ -112,15 +120,17 @@ function upgradeTrack(t, k) {
   const c = trackCost(t, k); t.up = t.up || {}; if ((t.up[k] || 0) >= TRACKS[k].max || S.coins < c) return false;
   S.coins -= c; t.spent = (t.spent || 0) + c; t.up[k] = (t.up[k] || 0) + 1; snd('build', 440, .12, 'triangle', .05, 440); return true;
 }
-const roadPaths = () => PATHS.map((_, i) => i).filter(i => i !== MAP.river);
+const roadPaths = () => PATHS.map((_, i) => i).filter(i => i !== MAP.river && i !== MAP.air);
 /* Does this plot touch the road (a road cell beside it or at a corner, not the river)? Barracks may only stand there. */
 const besideRoad = (c, r) => [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].some(([dx, dy]) => roadPaths().some(p => PATHS[p].segs.some(s => { const x = c + dx, y = r + dy; return x >= Math.min(s.x1, s.x2) - .01 && x <= Math.max(s.x1, s.x2) + .01 && y >= Math.min(s.y1, s.y2) - .01 && y <= Math.max(s.y1, s.y2) + .01; })));
-/* Where the barracks' soldiers join the road: the closest point of a road path. */
-function roadDoor(t) {
+/* The closest point of a road path to a spot (where the barracks' soldiers join the road, where an airship's raiders land). */
+function roadNear(cx, cy) {
   let best = { p: 0, d: 0 }, bd = 1e9;
-  for (const p of roadPaths()) for (let d = 0; d <= PATHS[p].len; d += .1) { const [x, y] = posAt(d, p), q = Math.hypot(x - t.c, y - t.r); if (q < bd) { bd = q; best = { p, d }; } }
+  for (const p of roadPaths()) for (let d = 0; d <= PATHS[p].len; d += .1) { const [x, y] = posAt(d, p), q = Math.hypot(x - cx, y - cy); if (q < bd) { bd = q; best = { p, d }; } }
   return best;
 }
+const roadDoor = t => roadNear(t.c, t.r);
+const AIR_H = 1.9; // how high the airship flies in the 3D view
 const foeHit = f => foeHp(S.wave) * FOES[f.type].hp * MAP.hp * .12; // what a raider deals to a soldier, per second
 function barracksTick(t, dt) {
   const st = troopStats(t); if (!t.door) t.door = roadDoor(t);
@@ -210,7 +220,7 @@ function buildTower(type, c, r) {
 function pickTarget(t, st) {
   let best = null, bv = 0; const mode = t.tg || 'first';
   for (const f of foes) {
-    if (f.hp <= 0 || Math.hypot(f.x - t.c, f.y - t.r) > st.range) continue;
+    if (f.hp <= 0 || Math.hypot(f.x - t.c, f.y - t.r) > st.range || (isAir(f) && !reachesAir(t))) continue;
     const v = mode === 'strong' ? f.hp : mode === 'weak' ? -f.hp : f.d / PATHS[f.p].len;
     if (!best || v > bv) { best = f; bv = v; }
   }
@@ -255,17 +265,17 @@ function combat(dt) {
   for (const f of foes) {
     const D = FOES[f.type];
     f.slow = Math.max(0, f.slow - dt); f.stun = Math.max(0, f.stun - dt); f.brit = Math.max(0, f.brit - dt); f.flash -= dt; f.num -= dt;
-    const tar = inTar(f.x, f.y), slowK = Math.max(.25, (f.slow > 0 ? .55 : 1) * (tar && !D.boat && f.type !== 'boat' ? .4 : 1));
+    const tar = !isAir(f) && inTar(f.x, f.y), slowK = Math.max(.25, (f.slow > 0 ? .55 : 1) * (tar && !D.boat && f.type !== 'boat' ? .4 : 1));
     f.held = (f.held || 0) - dt;
     if (f.stun <= 0 && !(f.held > 0)) f.d += D.spd * slowK * (f.rage ? 1.6 : 1) * wxSpd() * dt;
     if (tar && tar.burn > 0) hurt(f, tar.dps * dt, { dot: 1 }); // burning tar
     if (f.psn && f.psn.t > 0) { f.psn.t -= dt; hurt(f, f.psn.dps * dt, { dot: 1 }); }
     if (f.type === 'boss' && f.hp > 0) {
       if (!f.ph1 && f.hp <= f.max * .5) {
-        f.ph1 = 1; spawnAt('brute', f, .5); spawnAt('brute', f, 1); FXS.quake = Math.max(FXS.quake, .4);
-        floats.push({ x: f.x + .5, y: f.y - .4, t: 1.4, s: 'Brutes jump off!', c: '#d7a8ff', z: .36 }); snd('thud', 90, .2, 'square', .06, -40);
+        f.ph1 = 1; const from = isAir(f) ? Object.assign(roadNear(f.x, f.y), { dir: 1 }) : f; spawnAt('brute', from, .5); spawnAt('brute', from, 1); FXS.quake = Math.max(FXS.quake, .4);
+        floats.push({ x: f.x + .5, y: f.y - .4, t: 1.4, s: isAir(f) ? 'Brutes drop on ropes!' : 'Brutes jump off!', c: '#d7a8ff', z: .36 }); snd('thud', 90, .2, 'square', .06, -40);
       }
-      if (!f.rage && f.hp <= f.max * .25) { f.rage = 1; floats.push({ x: f.x + .5, y: f.y - .4, t: 1.4, s: 'Full steam!', c: P.org, z: .36 }); snd('steam', 400, .3, 'sawtooth', .04, -250); }
+      if (!f.rage && f.hp <= f.max * .25) { f.rage = 1; floats.push({ x: f.x + .5, y: f.y - .4, t: 1.4, s: isAir(f) ? 'Full throttle!' : 'Full steam!', c: P.org, z: .36 }); snd('steam', 400, .3, 'sawtooth', .04, -250); }
     }
     const [nx, ny] = posAt(f.d, f.p); if (Math.abs(nx - f.x) > .001) f.dir = nx > f.x ? 1 : -1; f.x = nx; f.y = ny;
     if (D.heal && (f.ht -= dt) <= 0) {
@@ -291,7 +301,7 @@ function combat(dt) {
     t.cd = 1 / st.rate; t.aim = Math.atan2(best.y - t.r, best.x - t.c); t.kick = .12;
     if (st.slow) {
       t.pulse = (t.pulse || 0) + 1; const frz = st.freeze && t.pulse % 3 === 0;
-      for (const f of foes) if (f.hp > 0 && Math.hypot(f.x - t.c, f.y - t.r) <= st.range) { if (st.frostbite) poison(f, st.dmg * 1.4, 2.5, { ice: 1 }); f.slow = st.slow; if (st.brittle) f.brit = st.slow + .5; if (frz) { f.stun = f.type === 'boss' ? .4 : 1.1; f.ice = 1; } hurt(f, st.dmg); }
+      for (const f of foes) if (f.hp > 0 && !isAir(f) && Math.hypot(f.x - t.c, f.y - t.r) <= st.range) { if (st.frostbite) poison(f, st.dmg * 1.4, 2.5, { ice: 1 }); f.slow = st.slow; if (st.brittle) f.brit = st.slow + .5; if (frz) { f.stun = f.type === 'boss' ? .4 : 1.1; f.ice = 1; } hurt(f, st.dmg); }
       fx.push({ k: 'ring', x: t.c, y: t.r, r: st.range, t: .35, c: frz ? '#ffffff' : st.brittle ? '#c7a0ff' : '#8fe8ff' });
       for (let i = 0; i < (frz ? 16 : 8); i++) { const a = Math.random() * 7, r = Math.random() * st.range; parts.push({ x: t.c + .5 + Math.cos(a) * r, y: t.r + .5 + Math.sin(a) * r, vx: 0, vy: .5, g: 0, t: .6, c: '#fff', s: .05 }); }
       snd('frost', frz ? 1600 : 1200, .08, 'sine', .03, -500);
@@ -300,11 +310,11 @@ function combat(dt) {
       shots.push({ x: t.c, y: t.r - .2, f: best, dmg: st.dmg, q0, ang: t.aim, kind: 'flask', spd: 6, cloud: st.cloud, spread: st.spread });
       snd('glug', 320, .1, 'triangle', .04, 120);
     } else if (st.chain) {
-      let cur = best, dm = st.dmg, px = t.c, py = t.r - .3; const hit = new Set();
+      let cur = best, dm = st.dmg, px = t.c, py = t.r - .3, ph = .9; const hit = new Set();
       const extra = lv('sice') ? 2 : 0; let jumps = st.chain + extra;
       for (let j = 0; j <= jumps && cur; j++) {
         hit.add(cur); const pts = [[px, py]]; for (let i = 1; i < 4; i++) pts.push([px + (cur.x - px) * i / 4 + (Math.random() - .5) * .3, py + (cur.y - py) * i / 4 + (Math.random() - .5) * .3]); pts.push([cur.x, cur.y]);
-        fx.push({ k: 'bolt', pts, t: .16, c: st.stun ? '#ff8fb0' : '#f2d04a' }); hurt(cur, dm);
+        const ch = isAir(cur) ? AIR_H + .2 : .45; fx.push({ k: 'bolt', pts, t: .16, c: st.stun ? '#ff8fb0' : '#f2d04a', h0: ph, h1: ch }); ph = ch; hurt(cur, dm);
         if (st.stun && cur.hp > 0) { cur.stun = Math.max(cur.stun, cur.type === 'boss' ? .5 : 1); cur.ice = 0; }
         // Conductive Fog: the bolt arcs through everyone in the poison cloud it struck
         const cl = lv('fog') && inCloud(cur.x, cur.y);
@@ -318,7 +328,7 @@ function combat(dt) {
       snd('zap', 900, .1, 'sawtooth', .03, -700);
     } else if (st.cone) {
       for (const f of foes) {
-        if (f.hp <= 0) continue; const dx = f.x - t.c, dy = f.y - t.r; if (Math.hypot(dx, dy) > st.range) continue;
+        if (f.hp <= 0 || isAir(f)) continue; const dx = f.x - t.c, dy = f.y - t.r; if (Math.hypot(dx, dy) > st.range) continue;
         let da = Math.abs(Math.atan2(dy, dx) - t.aim); if (da > Math.PI) da = 2 * Math.PI - da; if (da < .5) hurt(f, st.dmg, { splash: 1 });
       }
       fx.push({ k: 'cone', x: t.c, y: t.r, a: t.aim, r: st.range, t: .18 }); snd('boom', 200, .08, 'square', .05, -100);
@@ -339,7 +349,7 @@ function combat(dt) {
         poison(s.f, s.dmg, 4, { spread: s.spread });
         for (let i = 0; i < 8; i++) parts.push({ x: s.f.x + .5 + (Math.random() - .5) * r, y: s.f.y + .5, vx: (Math.random() - .5), vy: -.6 - Math.random() * .6, g: 0, t: .8, c: '#8fd14f', s: .1, smoke: 1 });
       } else if (s.splash) {
-        for (const f of foes) if (Math.hypot(f.x - s.f.x, f.y - s.f.y) <= s.splash) hurt(f, s.dmg, { splash: 1 });
+        for (const f of foes) if (!isAir(f) && Math.hypot(f.x - s.f.x, f.y - s.f.y) <= s.splash) hurt(f, s.dmg, { splash: 1 });
         fx.push({ k: 'boom', x: s.f.x, y: s.f.y, r: s.splash, t: .3 });
         for (let i = 0; i < 10; i++) parts.push({ x: s.f.x + .5, y: s.f.y + .5, vx: (Math.random() - .5) * 5, vy: -Math.random() * 4, g: 8, t: .5, c: i % 3 ? '#8a6a48' : P.org, s: .09 });
       } else { hurt(s.f, s.dmg, { pierce: s.pierce }); if (GX().parts) for (let i = 0; i < 3; i++) parts.push({ x: s.f.x + .5, y: s.f.y + .35, vx: (Math.random() - .5) * 3, vy: -Math.random() * 2, g: 6, t: .22, c: s.kind === 'bullet' ? P.yelL : '#fff', s: .05 }); }
@@ -349,13 +359,13 @@ function combat(dt) {
     if (b.f && b.f.hp > 0) { b.x = b.f.x; b.y = b.f.y; }
     if ((b.t -= dt) > 0) continue; b.done = true;
     const dmg = foeHp(S.wave) * 3 * MAP.hp;
-    for (const f of foes) if (Math.hypot(f.x - b.x, f.y - b.y) <= 1.6) hurt(f, dmg, { splash: 1 });
+    for (const f of foes) if (!isAir(f) && Math.hypot(f.x - b.x, f.y - b.y) <= 1.6) hurt(f, dmg, { splash: 1 });
     fx.push({ k: 'boom', x: b.x, y: b.y, r: 1.6, t: .45, d: .45 }); FXS.quake = Math.max(FXS.quake, .5); snd('kaboom', 70, .5, 'sawtooth', .09, -40);
     for (let i = 0; i < 26; i++) parts.push({ x: b.x + .5, y: b.y + .5, vx: (Math.random() - .5) * 8, vy: -Math.random() * 6, g: 9, t: .7, c: i % 3 ? '#8a6a48' : i % 2 ? P.org : P.yelL, s: .11 });
   }
   bombs = bombs.filter(b => !b.done);
   // poison clouds poison whoever walks through; tar pits last a while (and burn if an explosion reaches them)
-  for (const c of clouds) { c.t -= dt; c.zap = Math.max(0, (c.zap || 0) - dt); for (const f of foes) if (f.hp > 0 && Math.hypot(f.x - c.x, f.y - c.y) <= c.r) poison(f, c.dps, 4, { spread: c.spread }); }
+  for (const c of clouds) { c.t -= dt; c.zap = Math.max(0, (c.zap || 0) - dt); for (const f of foes) if (f.hp > 0 && !isAir(f) && Math.hypot(f.x - c.x, f.y - c.y) <= c.r) poison(f, c.dps, 4, { spread: c.spread }); }
   clouds = clouds.filter(c => c.t > 0);
   for (const p of tars) { p.t -= dt; p.burn = Math.max(0, (p.burn || 0) - dt); for (const e of fx) if (e.k === 'boom' && !e.lit && Math.hypot(e.x - p.x, e.y - p.y) <= p.r + (e.r || 1)) { e.lit = 1; if (!p.burn) { p.burn = 4; floats.push({ x: p.x + .5, y: p.y, t: 1, s: 'Tar alight!', c: P.org, z: .3 }); } } }
   tars = tars.filter(p => p.t > 0);
@@ -412,7 +422,7 @@ function prestige() {
 }
 /* What the deed perks give a town that starts over (a charter, or Copper Gulch at a Convention). */
 function headStart() {
-  const st = perk('start'); if (st) { if (S.town === 'ridge') { S.ext.ironmine = S.ext.quarry = 5 * st; S.shops.blast = 1; } else { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; } }
+  const st = perk('start'); if (st) { const T = TOWNS[S.town]; S.ext[T.ext[0]] = S.ext[T.ext[1]] = 5 * st; S.shops[T.shops[0]] = 1; }
   const cf = perk('coffers'); if (cf) S.coins += 500 * Math.pow(10, cf - 1);
   for (let i = 0; i < perk('fort'); i++) { const p = PLOTS[i * 2]; if (p) S.towers.push({ c: p.x, r: p.y, type: 'crossbow', lvl: 2, tg: 'first' }); }
 }

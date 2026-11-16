@@ -30,6 +30,15 @@ const ITEMS = {
   glassp:  { n: 'Glass',      p: 7 },
   bulb:    { n: 'Light bulbs', p: 50 },
   tele:    { n: 'Telegraphs', p: 700 },
+  // Thunder Mesa
+  oil:     { n: 'Crude oil',  p: 3 },
+  rubber:  { n: 'Rubber',     p: 3 },
+  baux:    { n: 'Bauxite',    p: 3 },
+  fuel:    { n: 'Fuel',       p: 10 },
+  tire:    { n: 'Tires',      p: 9 },
+  alu:     { n: 'Aluminium',  p: 10 },
+  motor:   { n: 'Motors',     p: 90 },
+  airship: { n: 'Airships',   p: 1100 },
 };
 const EXT_ALL = [
   { id: 'camp',  n: 'Lumber Camp',   out: 'wood',    rate: .5, cost: 15 },
@@ -43,6 +52,10 @@ const EXT_ALL = [
   { id: 'sandpit',  n: 'Sand Pit',     out: 'sand',  rate: .6, cost: 50 },
   // Silver Falls power: a Water Wheel makes no goods; each level powers 4 workshop levels (×2 at its milestones)
   { id: 'wheel',    n: 'Water Wheel',  out: null,    rate: 0,  cost: 200, power: 4 },
+  // Thunder Mesa
+  { id: 'well',     n: 'Oil Well',     out: 'oil',    rate: .5, cost: 120 },
+  { id: 'rubberf',  n: 'Rubber Farm',  out: 'rubber', rate: .4, cost: 100 },
+  { id: 'bauxmine', n: 'Bauxite Mine', out: 'baux',   rate: .5, cost: 150 },
 ];
 const SHOPS_ALL = [
   { id: 'saw',    n: 'Sawmill',         in: { wood: 2 },                        out: 'plank',  rate: .25, cost: 50 },
@@ -68,6 +81,12 @@ const SHOPS_ALL = [
   { id: 'glassb',   n: 'Glassblower',       in: { sand: 2 },                      out: 'glassp', rate: .2,  cost: 600 },
   { id: 'bulbw',    n: 'Bulb Works',        in: { wire: 1, glassp: 1 },           out: 'bulb',   rate: .1,  cost: 4000 },
   { id: 'telw',     n: 'Telegraph Works',   in: { wire: 2, bulb: 1, rail: 1 },    out: 'tele',   rate: .03, cost: 30000 },
+  // Thunder Mesa: balanced at equal levels like the others; motors need wire shipped in from Silver Falls
+  { id: 'oilref',   n: 'Oil Refinery',      in: { oil: 2 },                       out: 'fuel',    rate: .25, cost: 500 },
+  { id: 'tirew',    n: 'Tire Works',        in: { rubber: 2 },                    out: 'tire',    rate: .2,  cost: 800 },
+  { id: 'alusm',    n: 'Aluminium Smelter', in: { baux: 2 },                      out: 'alu',     rate: .25, cost: 1200 },
+  { id: 'motorw',   n: 'Engine Plant',      in: { fuel: 1, alu: 1, wire: 1 },     out: 'motor',   rate: .1,  cost: 6000 },
+  { id: 'hangar',   n: 'Airship Hangar',    in: { motor: 1, tire: 2, alu: 2 },    out: 'airship', rate: .03, cost: 50000 },
 ];
 const RESEARCH = [
   { id: 'tools',  n: 'Sharper Tools',    d: 'Doubles what each tap gathers.',            cost: 40,  g: 3,   max: 12 },
@@ -145,6 +164,10 @@ const MAPS = {
   falls: { n: 'Silver Falls', d: 'A road and a river both lead to the vault: raiders ride in, river pirates row in, and the boss is an ironclad steamer. Raiders pay more; charters here earn two extra deeds.',
            paths: [[[-.5, 7], [8, 7], [8, 10], [11, 10]], [[-.5, 12], [5, 12], [5, 13], [11, 13], [11, 11]]], vault: [11, 10], hp: 1.3, coin: 2.2, deed: 2, river: 1,
            pal: { yard: '#8c9a6a', a: '#a3b07a', b: '#9aa872', road: ['#6e5a40', '#8e7550', '#7e6646', '#8e7550'] } },
+  // Thunder Mesa: path 0 is the road, path 1 the sky lane (MAP.air). Only the boss flies; the sky lane blocks no plots.
+  mesa:  { n: 'Thunder Mesa', d: 'A winding road and an open sky: raiders ride in, and every tenth wave a sky pirate airship flies straight for the vault. Only Tesla coils and drones can reach it. Raiders pay more; charters here earn three extra deeds.',
+           paths: [[[-.5, 13], [3, 13], [3, 8], [6, 8], [6, 12], [9, 12], [9, 8], [11, 8]], [[-.5, 10], [4.5, 10], [4.5, 6.5], [11, 6.5], [11, 8]]], vault: [11, 8], hp: 1.4, coin: 2.8, deed: 3, air: 1,
+           pal: { yard: '#b8805a', a: '#c98a5e', b: '#bf8056', road: ['#6a4232', '#8a5a44', '#7a4e3a', '#8a5a44'] } },
 };
 /* Towns of the empire. Each has its own map(s), buildings, yard layout, gathering taps, boss and tower materials.
    Only the active town's buildings are in EXT / SHOPS / BUILD / BY_ID / SLOT at any moment (see useTown). */
@@ -163,6 +186,11 @@ const SLOT_FALLS = {
   rocks: [0, 2], sandpit: [2, 2], glassb: [4, 2], bulbw: [6, 2], telw: [8, 2], caravan: [10, 2],
   wheel: [0, 4], hall: [8, 4], office: [10, 4],
 };
+const SLOT_MESA = {
+  trees: [0, 0], well: [2, 0], oilref: [4, 0], motorw: [6, 0], market: [10, 0],
+  rocks: [0, 2], bauxmine: [2, 2], alusm: [4, 2], hangar: [6, 2], caravan: [10, 2],
+  rubberf: [0, 4], tirew: [2, 4], hall: [8, 4], office: [10, 4],
+};
 const TOWNS = {
   gulch: { n: 'Copper Gulch', era: 'Frontier', ext: ['camp', 'mine', 'drill', 'pit'], shops: ['saw', 'smelt', 'glass', 'mach', 'eng', 'mill', 'clockw', 'autow'],
            slot: SLOT_GULCH, tap: { trees: 'wood', rocks: 'ore' }, tapN: { trees: 'Chop', rocks: 'Dig' }, trees: true, maps: ['gulch'],
@@ -179,6 +207,13 @@ const TOWNS = {
            goods: { crossbow: { copper: 4 }, cannon: { copper: 10 }, frost: { glassp: 8 }, still: { copper: 6, glassp: 6 }, barracks: { wire: 40, bulb: 6 }, helipad: { tele: 3, bulb: 16 }, tesla: { wire: 10, bulb: 2 }, gatling: { tele: 1, wire: 12 } },
            start: { res: { copper: 20 }, seen: ['cu', 'sand', 'copper'] }, forge: ['refinery'], glow: ['bulbw', 'telw'],
            unlock: { from: 'ridge', best: 15, coins: 1e6 } },
+  // the airship boss flies the sky lane: only Tesla coils and drones reach it, so it has 60% of a war wagon's health
+  mesa:  { n: 'Thunder Mesa', era: 'Oil and flight', ext: ['well', 'rubberf', 'bauxmine'], shops: ['oilref', 'tirew', 'alusm', 'motorw', 'hangar'],
+           slot: SLOT_MESA, tap: { trees: 'rubber', rocks: 'baux' }, tapN: { trees: 'Tap', rocks: 'Dig' }, trees: false, maps: ['mesa'],
+           boss: { n: 'Sky pirate airship', spr: 'zeppelin', air: 1, hp: .6 },
+           goods: { crossbow: { alu: 4 }, cannon: { alu: 10 }, frost: { alu: 6, fuel: 4 }, still: { fuel: 8, alu: 4 }, barracks: { motor: 20, tire: 20 }, helipad: { motor: 12, airship: 2 }, tesla: { alu: 8, fuel: 4 }, gatling: { motor: 2, alu: 12 } },
+           start: { res: { alu: 20 }, seen: ['oil', 'rubber', 'baux', 'alu'] }, forge: ['oilref', 'alusm'], glow: ['hangar'],
+           unlock: { cap: 'transport', lv: 5, coins: 1e8 } },
 };
 const townOfMap = m => Object.keys(TOWNS).find(t => TOWNS[t].maps.includes(m)) || 'gulch';
 const towerGoods = type => TOWN.goods[type] || TOWERS[type].goods;

@@ -13,7 +13,9 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   const r = await p.evaluate(async town => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     PERF.noAuto = true; S.tut = 'done'; document.getElementById('modal').hidden = true; S.coins = 1e9; S.best = 40;
-    if (town !== 'gulch') { unlockTown('ridge'); if (town === 'falls') { S.best = 40; withTown('ridge', () => { S.best = 40; }); unlockTown('falls'); } goTown(town); await wait(300); }
+    if (town !== 'gulch') { unlockTown('ridge'); if (town === 'falls' || town === 'mesa') { S.best = 40; withTown('ridge', () => { S.best = 40; }); unlockTown('falls'); }
+      if (town === 'mesa') { S.coins = 1e12; withTown('falls', () => { S.best = 40; }); openCapital(); S.capital.lv.transport = 5; unlockTown('mesa'); S.coins = 1e9; }
+      goTown(town); await wait(300); }
     for (const k in S.res) add(k, 5000);
     const L = [12, 30, 60, 120]; BUILD.forEach((b, i) => { S[b.kind][b.def.id] = L[i % 4]; }); for (const b of BUILD.slice(0, 5)) hire(b.def.id);
     let i = 0; for (const t of Object.keys(TOWERS)) { buildTower(t, PLOTS[i].x, PLOTS[i].y); i++; }

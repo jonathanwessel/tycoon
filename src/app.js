@@ -38,7 +38,7 @@ function bossHud() {
   const boss = foes.find(f => f.type === 'boss' && f.hp > 0), bar = $('bossbar');
   bar.hidden = !boss;
   if (boss) {
-    $('bossName').textContent = bossName(); $('bossNote').textContent = boss.rage ? 'full steam' : boss.ph1 ? 'crew off' : 'stop it before the vault';
+    $('bossName').textContent = bossName(); $('bossNote').textContent = boss.air ? (boss.rage ? 'full throttle' : 'Tesla and drones only') : boss.rage ? 'full steam' : boss.ph1 ? 'crew off' : 'stop it before the vault';
     $('bossHp').textContent = fmt(Math.max(0, boss.hp)); $('bossFill').style.width = Math.max(0, boss.hp / boss.max) * 100 + '%';
     if (boss.flash > 0 && !bar.classList.contains('hit')) { bar.classList.add('hit'); setTimeout(() => bar.classList.remove('hit'), 180); }
   }
@@ -80,7 +80,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function start(data) {
-  paintSprites(); paintSprites2(); paintSprites3(); paintSprites4(); setMap('gulch');
+  paintSprites(); paintSprites2(); paintSprites3(); paintSprites4(); paintSprites5(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
   checkBadges(true); applyMotion(); protectSave(); announceVersion();
   if (S.tut === undefined && !S.towers.length && !S.charters && !Object.keys(S.towns).length) setTimeout(tutOffer, 900); else if (S.tut === undefined) S.tut = 'done'; // a brand-new game is offered the tutorial
@@ -102,8 +102,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-2'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Policies in the Capitol and the Constitutional Convention: start the empire over for Legacy, a lasting bonus, and Legacy perks';
+const GAME_VERSION = '2026.11.16-3'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Thunder Mesa, the fourth town: oil, rubber and aluminium up to airships, and a sky pirate airship boss that only Tesla coils and drones can reach';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

@@ -23,11 +23,11 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 10, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
+    v: 11, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
     legacy: { pts: 0, perks: {}, n: 0, from: 0, best: 0 }, paidDeeds: 0, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
-    stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
+    stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0, airships: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
     badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, fb: { share: .5, keep: 0, purse: 0 }, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0, view: '2d' }, GX_PRESETS.high) },
     autoWave: true, speed: 1, sound: false, last: Date.now(),
   };
@@ -68,10 +68,12 @@ const townIds = () => [S.town, ...Object.keys(S.towns)];
 const townOpen = id => id === S.town || !!S.towns[id];
 /* Best wave reached in a town (stored towns keep theirs; charters keep the best per map). */
 const townBest = id => !townOpen(id) ? 0 : Math.max(id === S.town ? S.best : S.towns[id].best || 0, S.bestMap[TOWNS[id].maps[0]] || 0);
+/* Is a town's condition to open met? A best wave in the town before it, or (Thunder Mesa) a Capital institution's level. */
+const unlockReady = id => { const u = TOWNS[id] && TOWNS[id].unlock; if (!u) return false; return u.cap ? capOpen() && capLv(u.cap) >= u.lv : townBest(u.from) >= u.best; };
 /* Open a new town (Empire tab). */
 function unlockTown(id) {
   const T = TOWNS[id], u = T && T.unlock; if (!u || townOpen(id)) return false;
-  if (townBest(u.from) < u.best || S.coins < u.coins) return false;
+  if (!unlockReady(id) || S.coins < u.coins) return false;
   S.coins -= u.coins; S.towns[id] = townFresh(T.maps[0]); S.stats.towns = (S.stats.towns || 1) + 1;
   return true;
 }
@@ -158,6 +160,7 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (o.v < 8) { if (o.capital) { o.capital.inf = o.capital.inf || 0; o.capital.tech = o.capital.tech || {}; } o.v = 8; } // v8: Influence and the tech trees
   if (o.v < 9) { if (o.capital && !o.capital.ex) o.capital.ex = { s: {}, news: [], t: 0 }; o.v = 9; } // v9: the Stock Exchange
   if (o.v < 10) { if (o.capital && !o.capital.pol) o.capital.pol = {}; o.paidDeeds = o.paidDeeds || 0; o.v = 10; } // v10: policies, the Convention and Legacy (the first life counts every coin earned so far)
+  if (o.v < 11) { if (o.stats) o.stats.airships = o.stats.airships || 0; o.v = 11; } // v11: Thunder Mesa (its goods start at zero in every town; airships brought down are counted)
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);

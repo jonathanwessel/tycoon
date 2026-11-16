@@ -223,6 +223,14 @@ const shots = process.argv[2];
       const r = { capital: openCapital() }; refresh(); goTab('capital'); await wait(200);
       r.panel = document.getElementById('panel').textContent.includes('Capitol'); r.button = !document.getElementById('bCap').hidden; r.inst = buyInst('market'); S.capital.inf = 1e4; goTab('tech'); await wait(200); r.tree = document.getElementById('panel').textContent.includes('Influence') && document.querySelectorAll('.row.tech').length >= 5; r.node = buyTech('arms');
       r.exch = buyInst('exchange'); for (let i = 0; i < 3; i++) econTowns(10); goTab('exchange'); await wait(200); r.stocks = document.querySelectorAll('.stk canvas').length >= 3; r.trade = exBuy('gulch', 10) === 10 && exSell('gulch', 5) === 5;
+      // Thunder Mesa: opened from the Capital (Department of Transport level 5); the airship flies the sky lane
+      goTab('empire'); await wait(200); r.mesaCard = document.getElementById('panel').textContent.includes('Department of Transport reaches level 5');
+      S.capital.lv.transport = 5; S.coins = 1e12; r.mesaOpen = unlockTown('mesa'); goTown('mesa'); await wait(300);
+      r.inMesa = TOWN_ID === 'mesa' && document.querySelector('h1').textContent === 'Thunder Mesa';
+      for (const k in S.res) add(k, 500); r.mesaTesla = buildTower('tesla', PLOTS[0].x, PLOTS[0].y);
+      S.wave = 10; planWave(); startWave(); W.queue = []; spawn('boss'); await wait(900);
+      r.airship = foes.some(f => f.air && f.p === MAP.air) && !!(R3D.V.foes && [...R3D.V.foes.values()].some(v => v.kind === 'zeppelin')); foes = []; W.active = false;
+      goTab('works'); await wait(200); r.mesaRows = document.querySelectorAll('.row.bld').length === 8; goTown('gulch'); await wait(300); r.mesaHome = TOWN_ID === 'gulch';
       // policies in the Capitol (two taps adopt one), then the Convention sheet and a Convention held from it
       goTab('capital'); await wait(200); r.policies = document.querySelectorAll('.row.pol').length === 6; const adopt = document.querySelector('.row.pol button'); adopt.click(); adopt.click(); await wait(100); r.policy = pol('econ') === 'free';
       goTab('convention'); await wait(200); r.convSheet = document.getElementById('panel').textContent.includes('Legacy perks');

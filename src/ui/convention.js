@@ -47,7 +47,7 @@ PANELS.convention = p => {
   p.append(h('p', null, 'Legacy from coins: 2 for every tenfold past 100 million. From waves: 1 for every 10 past wave 20. Each Legacy multiplies by 1.25.'));
   // Legacy perks
   p.append(h('h2', null, 'Legacy perks'), h('p', null, 'Bought with Legacy; spending it does not lose the bonus. They shape how every new empire begins.'));
-  const icons = { ridge: 'loco', falls: 'bulb', capitol: 'office', pot: 'star' };
+  const icons = { ridge: 'loco', falls: 'bulb', mesa: 'oil', capitol: 'office', pot: 'star' };
   for (const pk of LEGACY_PERKS) {
     const name = h('div', { cls: 'name' }), lab = h('span'), b = h('button', { on: () => { if (buyLegacy(pk.id)) say(pk.n + ': from the next Convention on.'); } }, lab);
     p.append(h('div', { cls: 'row' }, ico(icons[pk.id] || 'star'), h('div', { cls: 'grow' }, name, h('small', null, pk.d)), h('div', { cls: 'acts' }, b)));

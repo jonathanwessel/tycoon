@@ -70,7 +70,7 @@ const PANELS = {
   },
   defend(p) {
     const nxT = h('h2'), nx = h('div', { cls: 'next' }), wxl = h('div', { cls: 'wxline' }); let sig = null;
-    const bw = h('div', { cls: 'wxline warn' }, ico(TOWN.boss.spr, ''), h('span', null, h('b', null, bossName() + ' wave. '), 'If it reaches the vault, the vault falls however strong it is. Destroy it to move on.'));
+    const bw = h('div', { cls: 'wxline warn' }, ico(TOWN.boss.spr, ''), h('span', null, h('b', null, bossName() + ' wave. '), 'If it reaches the vault, the vault falls however strong it is. Destroy it to move on.' + (MAP.air !== undefined ? ' It flies: only Tesla coils and drones can reach it.' : '')));
     p.append(nxT, nx, bw, wxl);
     ups.push(() => {
       bw.hidden = S.wave % 10 !== 0;
@@ -177,7 +177,7 @@ const PANELS = {
     // a card for every town
     for (const id in TOWNS) {
       const T = TOWNS[id], live = h('b'), info = h('small'), act = h('div', { cls: 'bar' });
-      const card = h('div', { cls: 'town' }, h('div', { cls: 'cardhead' }, ico({ gulch: 'vault', ridge: 'loco', falls: 'bulb' }[id] || 'vault'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, T.n, h('i', null, T.era)), info), live), act);
+      const card = h('div', { cls: 'town' }, h('div', { cls: 'cardhead' }, ico({ gulch: 'vault', ridge: 'loco', falls: 'bulb', mesa: 'airship' }[id] || 'vault'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, T.n, h('i', null, T.era)), info), live), act);
       p.append(card);
       let shown = '';
       ups.push(() => {
@@ -189,12 +189,14 @@ const PANELS = {
           info.textContent = 'Potential +' + rate(townIncome(id)) + '/s · wave ' + t.wave + ' (best ' + t.best + ')' + (mg ? ' · ' + mg + ' foremen' : '') + (here ? ' · you are here' : ' · working in the background, waves on hold');
         } else {
           const u = T.unlock, from = TOWNS[u.from];
-          live.textContent = ''; info.textContent = townOpen(u.from) ? 'Opens after wave ' + u.best + ' in ' + from.n + ' (best so far ' + townBest(u.from) + ') for ' + fmt(u.coins) + ' coins.' : 'Open ' + from.n + ' first.';
+          live.textContent = '';
+          if (u.cap) info.textContent = !capOpen() ? 'Opens from the Capital: found it first.' : 'Opens once the ' + INST[u.cap].n + ' reaches level ' + u.lv + ' (now ' + capLv(u.cap) + '), for ' + fmt(u.coins) + ' coins.';
+          else info.textContent = townOpen(u.from) ? 'Opens after wave ' + u.best + ' in ' + from.n + ' (best so far ' + townBest(u.from) + ') for ' + fmt(u.coins) + ' coins.' : 'Open ' + from.n + ' first.';
         }
         const key = (open ? 'o' : 'l') + (here ? 'h' : '');
         if (key !== shown) {
           shown = key; act.textContent = '';
-          if (!open) { const b = h('button', { cls: 'primary', on: () => { if (unlockTown(id)) { say(T.n + ' is open! It needs goods it cannot make: set up a shipping route below.'); snd('badge', 784, .35, 'triangle', .06, 392); rebuild = true; } } }, 'Open ' + T.n + ' ', costEl(() => T.unlock.coins, null, ups)); act.append(b); ups.push(() => { b.disabled = S.coins < T.unlock.coins || townBest(T.unlock.from) < T.unlock.best; }); }
+          if (!open) { const b = h('button', { cls: 'primary', on: () => { if (unlockTown(id)) { say(T.n + ' is open! It needs goods it cannot make: set up a shipping route below.'); snd('badge', 784, .35, 'triangle', .06, 392); rebuild = true; } } }, 'Open ' + T.n + ' ', costEl(() => T.unlock.coins, null, ups)); act.append(b); ups.push(() => { b.disabled = S.coins < T.unlock.coins || !unlockReady(id); }); }
           else if (!here) act.append(h('button', { cls: 'primary', on: () => goTown(id) }, 'Play ' + T.n));
         }
       });

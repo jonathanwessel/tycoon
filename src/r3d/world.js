@@ -16,6 +16,7 @@ export const TOWN_LOOK = {
   gulch: { far: ['#e6c08a', '#d8aa70', '#c99560'], mesa: ['#c8653f', '#a94f33', '#d98a55', '#e0a46c'], grass: '#9aa046', scrub: 'cactus' },
   ridge: { far: ['#a8988a', '#93857a', '#7d7168'], mesa: ['#7e7266', '#6a5f56', '#958775', '#a89880'], grass: '#8a8a5a', scrub: 'rock' },
   falls: { far: ['#9fb07a', '#8aa06a', '#7a9460'], mesa: ['#6e8f5a', '#5c7d4c', '#8aa870', '#a3b78a'], grass: '#6f9a48', scrub: 'tree' },
+  mesa:  { far: ['#c98a66', '#a8604a', '#874838'], mesa: ['#a8483a', '#8a3a30', '#c2604a', '#d98a62'], grass: '#a39a52', scrub: 'derrick', spires: 1 },
 };
 
 export function buildWorld(ctx) {
@@ -24,7 +25,7 @@ export function buildWorld(ctx) {
   const world = new THREE.Group(); world.name = 'world';
   // road and river as polylines in world units (cell centres), each extended off the board to the west
   const way = p => { const w = PATHS[p].way.map(([x, y]) => [x + .5, y + .5]); return [[-16, w[0][1]], ...w]; };
-  const roads = PATHS.map((_, i) => i).filter(i => i !== MAP.river).map(way), river = MAP.river !== undefined ? way(MAP.river) : null;
+  const roads = PATHS.map((_, i) => i).filter(i => i !== MAP.river && i !== MAP.air).map(way), river = MAP.river !== undefined ? way(MAP.river) : null;
   const roadAt = (x, z) => { let b = { d: 1e9 }; for (const r of roads) { const q = polyDist(x, z, r); if (q.d < b.d) b = q; } return b; };
   const boardD = (x, z) => Math.max(0 - x, x - COLS, 0 - z, z - ROWS, 0);
   function height(x, z) {
@@ -79,6 +80,8 @@ export function buildWorld(ctx) {
   const R = rng(TOWN_ID.length * 13 + 5);
   const mesa = (x, z, r, h) => { const layers = 3 + Math.floor(R() * 3); let y = height(x, z) - .4; for (let i = 0; i < layers; i++) { const lh = h / layers, rr = r * (1 - i * .09); k.cyl(x, y, z, rr, lh, look.mesa[i % look.mesa.length], { r2: rr * .93, seg: 7, ry: R() * 3, jit: .1 }); y += lh; } k.cyl(x, y, z, r * (1 - layers * .09) * .95, .12, look.mesa[3], { seg: 7, r2: r * .6 }); };
   for (const [x, z, r, h] of [[-6, -9, 4, 4.2], [3, -12, 5, 5.5], [13, -10, 4.5, 4.8], [20, -5, 3, 3.6], [-11, -2, 3.2, 3.2], [24, 6, 3.5, 3], [-12, 12, 2.6, 2.4], [26, 16, 3, 2.6], [8, -16, 3, 6]]) mesa(x + (R() - .5) * 2, z + (R() - .5) * 2, r, h);
+  // Thunder Mesa: tall thin spires among the mesas
+  if (look.spires) for (const [x, z, r, h] of [[-2, -8, 1.1, 7.5], [17, -9, 1.3, 8.5], [-9, 5, .9, 5.5], [21, 1, 1, 6.2]]) mesa(x, z, r, h);
   // scrub, rocks and boulders around the board
   for (let i = 0; i < 70; i++) {
     const x = -12 + R() * (COLS + 24), z = -8 + R() * (ROWS + 18); if (boardD(x, z) < 1.2) continue;
@@ -86,6 +89,7 @@ export function buildWorld(ctx) {
     const y = height(x, z), t = R();
     if (t < .4) { k.dode(x, y + .08, z, .15 + R() * .35, R() < .5 ? 'rock' : 'rockD', { ry: R() * 3, sy: .7 }); }
     else if (look.scrub === 'cactus' && t < .7) { k.cyl(x, y, z, .08, .55 + R() * .4, 'cactus', { seg: 7 }); k.box(x + .12, y + .25, z, .15, .05, .05, 'cactusD'); k.cyl(x + .17, y + .25, z, .045, .22, 'cactus', { seg: 6 }); }
+    else if (look.scrub === 'derrick' && t < .58) { k.cone(x, y, z, .32, 1.5, 'woodD', { seg: 4, ry: .78 }); k.box(x, y + 1.45, z, .14, .1, .14, 'iron'); }
     else if (look.scrub === 'tree' && t < .75) { k.cyl(x, y, z, .07, .3, 'bark', { seg: 6 }); for (let j = 0; j < 3; j++) k.cone(x, y + .22 + j * .2, z, .4 - j * .1, .38, j % 2 ? 'leaf' : 'leafD', { seg: 7 }); }
     else k.ball(x, y + .08, z, .12 + R() * .1, look.grass, { sy: .6 });
   }
@@ -114,6 +118,12 @@ export function buildWorld(ctx) {
     const wg = strip(river, .44, -.14);
     water = new THREE.Mesh(wg, waterMaterial()); water.receiveShadow = true; water.renderOrder = 1; world.add(water);
   }
+  // the sky lane: a faint trail of chevrons on the ground, showing where the airship will fly
+  if (MAP.air !== undefined) {
+    const sky = PATHS[MAP.air].way.map(([x, y]) => [x + .5, y + .5]); sky[0][0] = Math.max(sky[0][0], .2);
+    const m = new THREE.Mesh(strip(sky, .26, .025), new THREE.MeshBasicMaterial({ map: skyLaneTexture(), transparent: true, opacity: .45, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.renderOrder = 2; m.name = 'skylane'; world.add(m);
+  }
   world.userData = { height, water };
   return world;
 }
@@ -125,6 +135,13 @@ function roadTexture(pal) {
   for (let i = 0; i < 70; i++) { g.fillStyle = R() < .5 ? pal.road[2] : pal.road[3]; g.fillRect(R() * 64, R() * 64, 2 + R() * 5, 2 + R() * 3); }
   g.fillStyle = pal.road[0]; for (const y of [17, 43]) { g.globalAlpha = .75; g.fillRect(0, y, 64, 5); g.globalAlpha = .35; g.fillRect(0, y - 2, 64, 9); } g.globalAlpha = 1;
   g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, 0, 64, 3); g.fillRect(0, 61, 64, 3);
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t;
+}
+/* Chevrons pointing the way the airship flies (u runs along the lane). */
+function skyLaneTexture() {
+  const c = document.createElement('canvas'); c.width = 32; c.height = 32; const g = c.getContext('2d');
+  g.strokeStyle = 'rgba(255,224,200,.9)'; g.lineWidth = 4; g.lineCap = 'square';
+  g.beginPath(); g.moveTo(8, 5); g.lineTo(20, 16); g.lineTo(8, 27); g.stroke();
   const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t;
 }
 /* The river: a moving ripple texture over a deep blue, brighter foam at the banks. */

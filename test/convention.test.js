@@ -87,7 +87,7 @@ test('Legacy perks: towns open, the Capitol standing, an Influence pot', () => {
 test('saves from v9 migrate: no policies, no Legacy, the first life counts every coin', () => {
   const g = load(); empire(g);
   g.run(`S.stats.coins = 2e10; const o = JSON.parse(JSON.stringify(S)); o.v = 9; delete o.capital.pol; delete o.legacy; delete o.paidDeeds; adopt(o);`);
-  assert.strictEqual(g.run('S.v'), 10); assert.strictEqual(g.run('JSON.stringify(S.capital.pol)'), '{}'); assert.strictEqual(g.run('legacyPts()'), 0);
+  assert.strictEqual(g.run('S.v'), g.run('fresh().v')); assert.strictEqual(g.run('JSON.stringify(S.capital.pol)'), '{}'); assert.strictEqual(g.run('legacyPts()'), 0);
   assert.strictEqual(g.run('legacyParts().inc'), 4, 'twenty billion coins so far'); assert.strictEqual(g.run('capOpen()'), true);
   assert.strictEqual(g.run('freeDeeds()'), g.run('S.deeds - spentDeeds()'));
 });

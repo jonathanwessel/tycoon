@@ -102,6 +102,22 @@ FOE.steamer = () => {
   const pw = wheel(.24, 'paintR'); const h = G(); h.add(pw); pw.rotation.y = Math.PI / 2; h.position.set(0, .2, -.72); root.add(h); root.userData.wheels = [h];
   root.userData.smoke = new THREE.Vector3(0, .9, .05); return root;
 };
+FOE.zeppelin = () => {
+  // the sky pirates' airship: an aluminium envelope with red bands and fins, a wooden gondola of pirates, two propellers
+  const root = G(); root.userData = { air: 1 };
+  root.add(part(k => {
+    k.ball(0, .55, 0, .38, '#c8d0dc', { det: 1, sz: 2.2, mat: 'metal' });
+    for (const z of [-.42, .42]) k.torus(0, .55, z, .335, .022, 'paintR', { ts: 14 });
+    k.box(0, .3, -.82, .03, .5, .26, 'paintR'); k.box(0, .53, -.82, .5, .03, .26, 'paintR');
+    k.box(0, -.04, 0, .26, .16, .6, 'wood'); k.box(0, .12, 0, .28, .03, .62, 'woodD');
+    for (const sx of [-1, 1]) { for (const z of [-.15, .05, .2]) k.box(sx * .132, .02, z, .01, .05, .08, 'glowW', { mat: 'glow' }); for (const z of [-.22, .22]) k.box(sx * .1, .14, z, .015, .2, .015, 'black'); }
+    for (const z of [.12, -.05]) { k.box(0, .15, z, .08, .08, .08, 'skin'); k.box(0, .23, z, .1, .03, .1, 'black'); }
+    k.box(0, .15, -.3, .015, .26, .015, 'woodD'); k.box(0, .3, -.38, .01, .1, .15, 'black');
+    for (const sx of [-1, 1]) { k.box(sx * .3, .08, -.2, .1, .1, .22, 'iron', { mat: 'metal' }); k.box(sx * .17, .12, -.2, .16, .02, .03, 'iron'); }
+  }));
+  root.userData.props = [-1, 1].map(sx => { const p = part(k => { k.box(0, -.16, 0, .04, .32, .015, 'woodL'); k.box(-.16, 0, 0, .32, .04, .015, 'woodL'); }); p.position.set(sx * .3, .13, -.33); root.add(p); return p; });
+  root.userData.smoke = new THREE.Vector3(.3, .13, -.4); return root;
+};
 export function makeFoe(type) { const f = (FOE[type] || FOE.raider)(); f.traverse(o => { if (o.isMesh) { o.castShadow = o.material.type !== 'MeshBasicMaterial'; o.receiveShadow = false; } }); return f; }
 
 /* Porters carry goods between buildings; foremen stand by their building's door. */
@@ -211,6 +227,8 @@ export const PROPS = {
   dune: (s, seed) => part(k => { k.cone(0, 0, 0, .55, .38, 'sand', { seg: 7, jit: .06 }); k.cone(.3, 0, .2, .3, .22, 'adobeL', { seg: 6 }); k.box(-.25, 0, .3, .04, .3, .04, 'woodD'); k.box(-.25, .28, .3, .2, .04, .04, 'steel', { rz: .6 }); }),
   rock: (s, seed) => part(k => { const R2 = rng(seed); k.dode(0, .18, 0, .26, 'rock', { ry: R2() * 3, sy: .75 }); k.dode(.2, .1, .12, .14, 'rockD', { ry: R2() * 3 }); }),
   rockR: (s, seed) => part(k => { const R2 = rng(seed); k.dode(0, .18, 0, .26, 'rockR', { ry: R2() * 3, sy: .75 }); k.dode(.2, .1, .12, .14, 'rockD', { ry: R2() * 3 }); }),
+  rockM: (s, seed) => part(k => { const R2 = rng(seed); k.dode(0, .18, 0, .26, '#b5533a', { ry: R2() * 3, sy: .75 }); k.dode(.2, .1, .12, .14, '#7e3524', { ry: R2() * 3 }); k.dode(-.16, .08, .1, .09, 'white', { ry: R2() * 3 }); }),
+  shrub: (s, seed) => part(k => { const R2 = rng(seed); k.cyl(0, 0, 0, .03, .12, 'bark', { seg: 5 }); for (let i = 0; i < 4; i++) { const a = R2() * 6.28, d = R2() * .14; k.ball(Math.cos(a) * d, .16 + R2() * .08, Math.sin(a) * d, .15 + R2() * .05, i % 2 ? '#8fa36a' : '#6f8452', { jit: .1, sy: .8 }); } for (let i = 0; i < 3; i++) k.ball((R2() - .5) * .3, .32, (R2() - .5) * .3, .025, 'paintY'); }),
   rockV: (s, seed) => part(k => { const R2 = rng(seed); k.dode(0, .18, 0, .26, 'verd', { ry: R2() * 3, sy: .75 }); k.dode(.2, .1, .12, .14, 'rock', { ry: R2() * 3 }); }),
   cactus: (s, seed) => part(k => { const R2 = rng(seed); k.cyl(0, 0, 0, .07, .5, 'cactus', { seg: 7, r2: .06 }); k.ball(0, .5, 0, .06, 'cactus', { sy: .7 }); for (const sx of [-1, 1]) { const y = .16 + R2() * .14; k.box(sx * .1, y, 0, .12, .05, .05, 'cactusD'); k.cyl(sx * .15, y, 0, .04, .16 + R2() * .08, 'cactus', { seg: 6 }); } k.ball(0, .56, 0, .025, 'paintR'); }),
   barrel: () => part(k => barrel(k, 0, 0)),

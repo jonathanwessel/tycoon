@@ -46,6 +46,7 @@ const conventionReady = () => { if (!capOpen()) return false; const L = legacyPa
 const LEGACY_PERKS = [
   { id: 'ridge',   n: 'Railroad Ready',   d: 'Every new empire starts with Iron Ridge open.',                                       max: 1, cost: () => 2 },
   { id: 'falls',   n: 'Lights On',        d: 'Silver Falls is open from the start too.',                                             max: 1, cost: () => 4, req: 'ridge' },
+  { id: 'mesa',    n: 'Oil Strike',       d: 'Thunder Mesa is open from the start too.',                                             max: 1, cost: () => 5, req: 'falls' },
   { id: 'capitol', n: 'Standing Capitol', d: 'The Capital is founded from the start, with every institution built at level 1.',      max: 1, cost: () => 6, req: 'falls' },
   { id: 'pot',     n: 'Founders\' Fund',   d: 'Each new empire starts with 100 Influence per rank for the tech trees.',               max: 3, cost: l => 2 + l },
 ];
@@ -73,6 +74,7 @@ function convene() {
 function legacyStart() {
   if (lperk('ridge')) S.towns.ridge = townFresh('ridge');
   if (lperk('falls')) S.towns.falls = townFresh('falls');
+  if (lperk('mesa')) S.towns.mesa = townFresh('mesa');
   if (lperk('capitol')) { S.capital.open = 1; for (const id in INST) S.capital.lv[id] = Math.max(1, capLv(id)); }
   if (lperk('pot')) S.capital.inf = (S.capital.inf || 0) + 100 * lperk('pot');
 }

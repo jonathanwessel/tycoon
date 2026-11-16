@@ -329,6 +329,94 @@ const R = {
     const bc = part(k2 => k2.ball(0, 0, 0, .06, 'paintR', { mat: 'fire' }), { cast: false }); add('blink', bc, new THREE.Vector3(.55, 1.74, -.1));
     return 1.8;
   },
+  // --- Thunder Mesa -----------------------------------------------------------------------------------------------
+  well(k, add) {
+    // a timber derrick over the old bore, a pumpjack nodding beside it, and oil barrels waiting for the refinery
+    k.box(-.45, 0, -.35, .7, .06, .7, 'woodD');
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(-.45 + sx * .22, .05, -.35 + sz * .22, .05, 1.5, .05, 'wood', { rz: -sx * .14, rx: sz * .14 });
+    for (const y of [.4, .8, 1.15]) { const s = .5 - y * .28; k.box(-.45, .05 + y, -.35 + s * .5, s, .03, .03, 'woodD'); k.box(-.45, .05 + y, -.35 - s * .5, s, .03, .03, 'woodD'); k.box(-.45 + s * .5, .05 + y, -.35, .03, .03, s, 'woodD'); k.box(-.45 - s * .5, .05 + y, -.35, .03, .03, s, 'woodD'); }
+    k.box(-.45, 1.5, -.35, .16, .08, .16, 'iron', { mat: 'metal' });
+    // the pumpjack: samson posts, a walking beam with a horse head over the well, a crank and gearbox
+    k.box(.33, 0, .25, .78, .05, .34, 'stoneD');
+    for (const sz of [-1, 1]) k.box(.35, .05, .25 + sz * .09, .05, .47, .05, 'iron', { mat: 'metal', rx: sz * .12 });
+    k.box(.62, .05, .25, .18, .16, .22, 'paintY'); k.cyl(.62, .21, .25, .05, .06, 'iron');
+    const beam = part(k2 => { k2.box(0, -.03, 0, .72, .06, .07, 'paintY'); k2.box(-.37, -.16, 0, .07, .26, .1, 'iron', { mat: 'metal' }); k2.box(.33, -.08, 0, .13, .14, .12, 'iron', { mat: 'metal' }); });
+    add('nod', beam, new THREE.Vector3(.35, .55, .25));
+    k.box(-.02, .05, .25, .02, .3, .02, 'steel', { mat: 'metal' }); k.cyl(-.02, .05, .25, .07, .1, 'iron', { seg: 8 });
+    barrel(k, -.75, .62, 0, 'black'); barrel(k, -.55, .66, 0, 'black'); barrel(k, -.66, .45, 0, 'paintR');
+    k.cyl(.05, 0, .62, .2, .01, 'black', { seg: 9, ao: false });
+    return 1.6;
+  },
+  rubberf(k, add) {
+    // rows of silver-green guayule shrubs in furrows, and a press shed that squeezes the rubber out of them
+    for (let r = 0; r < 3; r++) { const z = .62 - r * .3; k.box(-.25, 0, z, 1.25, .03, .16, 'rockD'); for (let i = 0; i < 4; i++) k.ball(-.75 + i * .32 + (r % 2) * .12, .11, z, .12, i % 2 ? '#6f8452' : '#8fa36a', { sy: .8, jit: .12 }); }
+    const top = shed(k, .45, -.45, .8, .6, .45, 'adobe', 'roofR');
+    door(k, .3, -.14, { h: .34 }); windows(k, [.65], .22, -.14, .12, .12);
+    const wh = part(k2 => { k2.torus(0, 0, 0, .17, .03, 'iron', { ts: 12 }); for (let i = 0; i < 3; i++) k2.box(0, -.17, 0, .03, .34, .03, 'iron', { rz: i * 1.05 }); });
+    const h = new THREE.Group(); h.add(wh); add('spin', h, new THREE.Vector3(-.15, .3, -.5), 'z', 2);
+    k.box(-.15, 0, -.52, .06, .3, .06, 'woodD');
+    for (const [x, z] of [[-.55, -.45], [-.75, -.6]]) k.box(x, 0, z, .18, .12, .16, 'black', { ry: x });
+    return top;
+  },
+  bauxmine(k, add) { return R.mine(k, add, { r1: 'rockR', r2: '#8e3a2a', ore: '#d9805e' }); },
+  oilref(k, add) {
+    // storage tanks, a tall distillation column, pipes, a control shed and a gas flare that burns while it works
+    for (const [x, z, r, h] of [[-.5, -.42, .3, .52], [-.55, .3, .24, .4]]) { k.cyl(x, 0, z, r, h, 'white', { seg: 12 }); k.cyl(x, h, z, r * 1.03, .05, 'tinD', { seg: 12 }); k.cyl(x, h * .55, z, r * 1.01, .05, 'paintR', { seg: 12, ao: false }); }
+    k.cyl(.15, 0, -.35, .13, 1.45, 'steel', { seg: 10, mat: 'metal' }); for (const y of [.35, .7, 1.05]) k.cyl(.15, y, -.35, .17, .04, 'iron', { seg: 10 });
+    k.cyl(.15, 1.45, -.35, .08, .1, 'iron', { seg: 8 });
+    k.box(.42, 0, .25, .55, .35, .45, 'tin'); k.box(.42, .35, .25, .6, .05, .5, 'tinD'); windows(k, [.3, .55], .14, .48, .1, .1);
+    k.box(-.17, .28, -.38, .5, .05, .05, 'iron', { mat: 'metal' }); k.box(-.16, .22, .3, .5, .05, .05, 'iron', { mat: 'metal' }); k.box(.15, .2, -.02, .05, .05, .6, 'iron', { mat: 'metal' });
+    k.cyl(.7, 0, -.62, .035, 1.1, 'iron', { seg: 6 });
+    const fl = part(k2 => { k2.cone(0, 0, 0, .07, .24, 'glowO', { mat: 'fire', seg: 6 }); k2.cone(0, 0, 0, .04, .14, 'glowW', { mat: 'fire', seg: 6 }); }, { cast: false }); add('hot', fl, new THREE.Vector3(.7, 1.1, -.62));
+    return 1.55;
+  },
+  tirew(k, add) {
+    // a brick works with a smoking stack, stacks of finished tires, and one spinning on the test stand
+    const top = shed(k, -.2, -.3, 1.2, .7, .55, 'brick', 'roofS', { trim: 'brickD' });
+    door(k, -.45, .05, { w: .32 }); windows(k, [0, .25], .3, .05, .14, .16);
+    const sm = stack(k, .25, .5, -.5, .55, .07, 'black'); add('smoke', null, sm);
+    for (const [x, z, n] of [[.65, .55, 4], [.65, .25, 3], [-.7, .6, 2]]) for (let i = 0; i < n; i++) k.torus(x, i * .07 + .035, z, .1, .045, 'black', { rx: Math.PI / 2, ts: 12 });
+    k.box(0, 0, .55, .05, .22, .05, 'iron');
+    const tr = part(k2 => { k2.torus(0, 0, 0, .15, .055, 'black', { ts: 14 }); k2.cyl(0, -.03, 0, .07, .06, 'steel', { rx: Math.PI / 2, seg: 8, mat: 'metal' }); });
+    const h = new THREE.Group(); h.add(tr); add('spin', h, new THREE.Vector3(0, .24, .58), 'z', 4);
+    return top;
+  },
+  alusm(k, add) {
+    // a long pot-line hall: a row of reduction pots glowing while it works, power from a pylon, ingots stacked out front
+    const top = shed(k, 0, -.32, 1.5, .66, .5, 'stoneL', 'tin', { trim: 'stoneD', flat: true });
+    for (let i = 0; i < 4; i++) k.box(-.56 + i * .37, 0, .14, .26, .16, .2, 'iron', { mat: 'metal' });
+    const hot = part(k2 => { for (let i = 0; i < 4; i++) k2.box(-.56 + i * .37, 0, 0, .18, .02, .13, 'glowO', { mat: 'fire' }); }, { cast: false }); add('hot', hot, new THREE.Vector3(0, .16, .14));
+    k.box(.78, 0, -.78, .05, 1.05, .05, 'iron'); k.box(.78, 1, -.78, .32, .04, .04, 'iron');
+    k.box(.4, top + .2, -.55, .75, .02, .02, 'black', { rz: -.3 });
+    const sm = chimney(k, -.55, top, -.45, .45, 'stoneD', .08); add('smoke', null, sm);
+    ingots(k, .55, .62, 'tin');
+    return top + .45;
+  },
+  motorw(k, add) {
+    // the Engine Plant: a sawtooth-roofed factory, a test bench where a motor's flywheel spins, crates of motors
+    k.box(-.15, 0, -.2, 1.3, .5, .9, 'brick', { jit: .08 });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(-.15 + sx * .63, 0, -.2 + sz * .43, .07, .5, .07, 'brickD');
+    for (let i = 0; i < 4; i++) { const x = -.64 + i * .33; k.box(x, .48, -.2, .36, .04, .94, 'roofS', { rz: -.5 }); k.box(x + .15, .5, -.2, .03, .17, .9, 'glowW', { mat: 'glow' }); }
+    door(k, -.45, .26, { w: .34, h: .4 }); windows(k, [.05, .3], .25, .26, .14, .14);
+    k.box(.55, 0, .58, .45, .2, .25, 'iron', { mat: 'metal' }); k.box(.45, .2, .58, .18, .12, .16, 'paintR');
+    const fw = part(k2 => { k2.torus(0, 0, 0, .13, .035, 'steel', { ts: 12, mat: 'metal' }); k2.box(0, -.13, 0, .03, .26, .03, 'iron'); k2.box(0, -.13, 0, .03, .26, .03, 'iron', { rz: Math.PI / 2 }); });
+    fw.rotation.y = Math.PI / 2; const h = new THREE.Group(); h.add(fw); add('spin', h, new THREE.Vector3(.68, .37, .58), 'x', 5);
+    crate(k, -.75, .62, .18); crate(k, -.55, .66, .16, 0, .4);
+    const sm = stack(k, .35, .5, -.55, .5); add('smoke', null, sm);
+    return .75;
+  },
+  hangar(k, add) {
+    // a tall arched hangar of riveted aluminium, an airship's nose poking out of its doors, and a mooring mast with a beacon
+    const r = .78, len = 1.45, s = new THREE.Shape(); s.absarc(0, 0, r, Math.PI, 0, true); s.lineTo(-r, 0);
+    const g = new THREE.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: 9 }); g.translate(0, 0, -len / 2 - .12);
+    k.add(g, 0, 0, 0, 'tin', { jit: .05 });
+    for (const z of [-.8, -.35, .1, .58]) k.add(new THREE.TorusGeometry(r + .012, .025, 4, 10, Math.PI), 0, 0, z, 'tinD');
+    k.box(0, 0, len / 2 - .11, r * 1.1, r * .84, .02, 'black');
+    k.ball(0, .4, len / 2 - .05, .3, '#c8d0dc', { det: 1, sz: 1.4, mat: 'metal' }); k.torus(0, .4, len / 2 + .1, .26, .025, 'paintR', { ts: 12 });
+    k.box(.74, 0, .7, .06, 1.15, .06, 'iron', { mat: 'metal' }); k.box(.74, 1.1, .7, .14, .05, .14, 'iron');
+    const bc = part(k2 => k2.ball(0, 0, 0, .05, 'paintR', { mat: 'fire' }), { cast: false }); add('blink', bc, new THREE.Vector3(.74, 1.22, .7));
+    return .95;
+  },
 };
 
 /* Milestones show on every building: crates at level 10, lanterns at 25, a flag at 50, gold trim at 100+. */
