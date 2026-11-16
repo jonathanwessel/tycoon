@@ -12,6 +12,7 @@ import { MAT, col } from './kit.js';
 import { makeBuilding, BUILDING_IDS } from './buildings.js';
 import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, makeSoldier, makeDrone, PROPS } from './units.js';
 import { buildWorld, makeSky } from './world.js';
+import { buildCapitalWorld, makeSite, capTier, makeCitizens, citizenAt, SITE_IDS } from './capital3d.js';
 
 const V = {}; // everything this renderer keeps
 const G_DRONE = []; // drone tracers this frame: [x, y, z, length, yaw, pitch]
@@ -342,7 +343,7 @@ function light(time) {
   // windows and furnaces glow brighter as night falls
   MAT.glow.color.setScalar(.55 + 1.45 * n);
   // lamps and fires from the 2D lighting engine's list
-  const Ls = gatherLights(time);
+  const Ls = inCap() ? capLamps(n) : gatherLights(time);
   V.lamps.forEach((l, i) => { const q = Ls[i]; if (!q) { l.intensity = 0; return; } const [x, y, r, c, k] = q; l.position.set(x, .75, y); l.color.setRGB(c[0], c[1], c[2]); l.distance = r * 1.5; l.intensity = k * 2.2; });
   // the look and bloom
   const lk = LOOKS[g.look] || LOOKS.natural, bk = [0, .45, .75, 1][g.bloom] || 0, gu = V.grade.uniforms;
@@ -383,6 +384,50 @@ function syncSelect(time, dt) {
   const bc = FXS.badCell; V.cross.visible = !!(bc && bc.t > 0);
   if (V.cross.visible) { bc.t -= dt; V.cross.position.set(bc.x + .5, Math.max(-.04, ground(bc.x + .5, bc.y + .5)) + .03, bc.y + .5); V.cross.userData.mat.opacity = Math.min(1, bc.t * 2); }
 }
+/* --- the Capital: a city square drawn instead of the town while you visit it (CAPV.on, set by the interface) ------ */
+const inCap = () => typeof CAPV !== 'undefined' && CAPV.on;
+function showTown(on) {
+  if (V.world) V.world.visible = on; V.dyn.visible = on;
+  for (const m of [V.pSolid, V.pGlow, V.pCoin, V.scorch]) m.visible = on;
+  if (V.cap) V.cap.visible = !on;
+  if (!on) { for (const o of [V.sel, V.cross, V.okTiles]) if (o) o.visible = false; for (const b of V.booms) b.visible = false; for (const r of V.rings) r.visible = false; }
+}
+function capLamps(n) { const k = .12 + .9 * n; return V.cap ? V.cap.userData.lamps.map(([x, z]) => [x, z, 1.7, [1, .78, .48], k]) : []; }
+function capFrame(r) {
+  const m = new THREE.MeshBasicMaterial({ color: '#ffb35a', transparent: true, opacity: .9, depthWrite: false }), g = new THREE.Group(), w = r * 2 - .1;
+  for (const [x, z, a, b] of [[0, -w / 2, w, .09], [0, w / 2, w, .09], [-w / 2, 0, .09, w], [w / 2, 0, .09, w]]) { const q = new THREE.Mesh(new THREE.BoxGeometry(a, .05, b), m); q.position.set(x, .03, z); g.add(q); }
+  g.userData.mat = m; return g;
+}
+function syncCapital(time, dt) {
+  if (!V.cap) { V.cap = buildCapitalWorld(CAP_SITE, COLS, ROWS); V.scene.add(V.cap); V.capB = {}; V.capF = {}; V.cits = makeCitizens(10); for (const c of V.cits) V.cap.add(c.obj); }
+  V.cap.visible = true;
+  for (const id in CAP_SITE) {
+    const s = CAP_SITE[id], l = id === 'capitol' ? 1 : capLv(id), tier = id === 'capitol' ? 1 : capTier(l, INST[id].max), key = id + tier;
+    let b = V.capB[id];
+    if (!b || b.key !== key) {
+      const rise = b && tier > b.tier && V.capSeen; if (b) V.cap.remove(b.obj);
+      b = makeSite(id, tier); b.key = key; b.tier = tier; b.lv = l; b.sc = id === 'capitol' ? 1 : 1.5;
+      b.obj.position.set(s.x, 0, s.z); b.obj.rotation.y = id === 'capitol' || !tier ? 0 : s.x < 6 ? .22 : -.22; V.cap.add(b.obj); V.capB[id] = b;
+      if (rise) b.grow = .6;
+    }
+    if (l > b.lv) { b.pop = .45; } b.lv = l;
+    let k = 1; if (b.pop > 0) { b.pop = Math.max(0, b.pop - dt); k = 1 + Math.sin((1 - b.pop / .45) * Math.PI * 2.5) * b.pop * .25; }
+    if (b.grow > 0) { b.grow = Math.max(0, b.grow - dt); const p = 1 - b.grow / .6; k *= .3 + .7 * (1 - Math.pow(1 - p, 3)) + Math.sin(p * Math.PI) * .08; }
+    b.obj.scale.set(b.sc * (1 + (k - 1) * .6), b.sc * k, b.sc * (1 + (k - 1) * .6));
+    b.movers.forEach((m, i) => { if (m.kind === 'flag') m.node.rotation.y = Math.sin(time * 3 + i + s.x) * .35 + .2; });
+    // the tapped site: a pulsing copper frame round its plot
+    const on = !!(sel && sel.site === id); let f = V.capF[id];
+    if (on && !f) { f = V.capF[id] = capFrame(s.r); f.position.set(s.x, 0, s.z); V.cap.add(f); }
+    if (f) { f.visible = on; if (on) { const p = .5 + .5 * Math.sin(time * 6); f.userData.mat.opacity = .55 + .4 * p; f.scale.setScalar(1 + p * .015); } }
+  }
+  for (const m of V.cap.userData.movers) if (m.kind === 'flag') m.node.rotation.y = Math.sin(time * 2.6 + m.node.position.x) * .35 + .2;
+  // townsfolk stroll the avenue and turn back at its ends
+  for (const c of V.cits) {
+    c.z += c.dir * c.speed * dt; if (c.z > ROWS + 1.3) c.dir = -1; else if (c.z < 6.3) c.dir = 1;
+    const [x, z] = citizenAt(c); c.obj.position.set(x, 0, z); c.obj.rotation.y = c.dir > 0 ? 0 : Math.PI; c.ph += c.speed * dt * 22; animatePerson(c.obj, c.ph, 0, false);
+  }
+  V.capSeen = true;
+}
 /* --- the frame ---------------------------------------------------------------------------------------------- */
 let lastT = 0;
 function render(time, cam) {
@@ -395,7 +440,9 @@ function render(time, cam) {
   V.cam.position.set(cam.eye[0] + (Math.random() - .5) * q, cam.eye[1] + (Math.random() - .5) * q, cam.eye[2]); V.cam.lookAt(cam.tgt[0], cam.tgt[1], cam.tgt[2]);
   V.cam.fov = cam.fov * 180 / Math.PI; V.cam.aspect = W / H; V.cam.near = .5; V.cam.far = 200; V.cam.updateProjectionMatrix();
   V.sky.position.copy(V.cam.position);
+  const cap = inCap(); showTown(!cap);
   light(time);
+  if (cap) { syncCapital(time, dt); V.composer.render(); return; }
   syncBuildings(time, dt); syncTowers(time, dt); syncFoes(time, dt); syncFx(time, dt); syncSelect(time, dt);
   // taps shake when gathered; the vault shows its reinforcement and shudders when hit
   const ts = FXS.shake.trees > 0 ? Math.sin(time * 70) * .06 : 0, rs = FXS.shake.rocks > 0 ? Math.sin(time * 80) * .04 : 0;
@@ -414,6 +461,8 @@ function prebuild() {
   for (const k of ['raider', 'runner', 'brute', 'shield', 'sapper', 'healer', 'thief', 'boss', 'train', 'boat', 'steamer', 'zeppelin']) { try { makeFoe(k); n++; } catch (e) { bad.push(k + ': ' + e.message); } }
   for (const t of Object.keys(TOWERS)) for (const b of [null, 'a', 'b']) { try { makeTower(t, b, b ? 6 : 1); n++; } catch (e) { bad.push(t + b + ': ' + e.message); } }
   for (const k of Object.keys(PROPS)) { try { PROPS[k](1, 1); n++; } catch (e) { bad.push(k + ': ' + e.message); } }
+  for (const id of SITE_IDS) for (const t of [0, 1, 2, 3, 4]) { try { makeSite(id, t); n++; } catch (e) { bad.push('capital ' + id + t + ': ' + e.message); } }
+  try { buildCapitalWorld(CAP_SITE, COLS, ROWS); n++; } catch (e) { bad.push('capital ground: ' + e.message); }
   return { n, bad };
 }
 function info() { const i = V.r.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, err: V.r.getContext().getError(), foes: V.foes.size, towers: V.towers.size }; }

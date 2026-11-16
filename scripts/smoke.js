@@ -222,6 +222,14 @@ const shots = process.argv[2];
       if (!townOpen('ridge')) unlockTown('ridge'); if (S.towns.ridge) S.towns.ridge.best = Math.max(30, S.towns.ridge.best); if (!townOpen('falls')) unlockTown('falls'); if (S.towns.falls) S.towns.falls.best = Math.max(20, S.towns.falls.best); S.coins = 1e12;
       const r = { capital: openCapital() }; refresh(); goTab('capital'); await wait(200);
       r.panel = document.getElementById('panel').textContent.includes('Capitol'); r.button = !document.getElementById('bCap').hidden; r.inst = buyInst('market'); S.capital.inf = 1e4; goTab('tech'); await wait(200); r.tree = document.getElementById('panel').textContent.includes('Influence') && document.querySelectorAll('.row.tech').length >= 5; r.node = buyTech('arms');
+      // the Capital as a place: the side button visits it, a tap on a building (projected from its roof) opens its card, the card builds, the button comes home
+      document.getElementById('bCap').click(); await wait(500);
+      r.visit = CAPV.on && document.querySelector('h1').textContent === 'The Capital' && getComputedStyle(document.getElementById('bLeave')).display !== 'none' && getComputedStyle(document.getElementById('bWave')).display === 'none';
+      const tapSite = id => { r3Camera(); const q = CAP_SITE[id], rect = cv.getBoundingClientRect(), [px, py] = r3Project(q.x, q.h * .8, q.z), k = rect.width / R3.canvas.width; cv.dispatchEvent(new MouseEvent('click', { clientX: rect.left + px * k, clientY: rect.top + py * k, bubbles: true })); };
+      tapSite('bank'); await wait(300); r.siteTap = !!(sel && sel.site === 'bank') && /Central Bank/.test(document.getElementById('card').textContent) && !!R3D.V.capB && Object.keys(R3D.V.capB).length === 7;
+      const l0 = capLv('bank'), bb = [...document.querySelectorAll('#card button')].find(b => /^(Build|Upgrade)/.test(b.textContent)); if (bb) bb.click(); await wait(300); r.siteBuild = capLv('bank') === l0 + 1;
+      tapSite('capitol'); await wait(300); r.capitolCard = /Budget and waves/.test(document.getElementById('card').textContent);
+      r.capErr = !R3D.info().err; sel = null; document.getElementById('bLeave').click(); await wait(300); r.leave = !CAPV.on && document.querySelector('h1').textContent === TOWN.n && !document.body.classList.contains('incap');
       r.exch = buyInst('exchange'); for (let i = 0; i < 3; i++) econTowns(10); goTab('exchange'); await wait(200); r.stocks = document.querySelectorAll('.stk canvas').length >= 3; r.trade = exBuy('gulch', 10) === 10 && exSell('gulch', 5) === 5;
       // Thunder Mesa: opened from the Capital (Department of Transport level 5); the airship flies the sky lane
       goTab('empire'); await wait(200); r.mesaCard = document.getElementById('panel').textContent.includes('Department of Transport reaches level 5');

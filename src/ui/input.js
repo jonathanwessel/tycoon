@@ -11,7 +11,7 @@ let holdT = null;
 const stopHold = () => { clearInterval(holdT); holdT = null; };
 cv.addEventListener('click', e => { if (SHEET.open && !docked()) { closeSheet(); e.stopImmediatePropagation(); } }, true);
 cv.addEventListener('pointerdown', ev => {
-  if (SHEET.open && !docked()) return;
+  if ((SHEET.open && !docked()) || CAPV.on) return;
   const [gx, gy] = gridAt(ev), id = slotAt(gx, gy);
   if (id !== 'trees' && id !== 'rocks') return;
   gather(id); stopHold(); holdT = setInterval(() => gather(id), 170);
@@ -19,6 +19,7 @@ cv.addEventListener('pointerdown', ev => {
 for (const e of ['pointerup', 'pointercancel', 'pointerleave']) cv.addEventListener(e, stopHold);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('click', ev => {
+  if (CAPV.on) { const id = capPick(ev); sel = id && !(sel && sel.site === id) ? { site: id } : null; return; } // the Capital: its buildings
   const [gx, gy] = gridAt(ev);
   if (gy < YARD) {
     const id = slotAt(gx, gy);

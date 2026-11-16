@@ -66,7 +66,7 @@ function buildFixed() {
   }
   const h1 = document.querySelector('h1');
   fixedUps.push(() => {
-    if (h1.textContent !== TOWN.n) h1.textContent = TOWN.n; // the header names the town you are in
+    const here = CAPV.on ? 'The Capital' : TOWN.n; if (h1.textContent !== here) h1.textContent = here; // the header names the town you are in
     $('hWave').textContent = S.wave; $('hVault').textContent = Math.max(0, S.vaultHp); $('hVault').append(h('span', { cls: 'mx' }, '/' + vaultMax()));
     $('hDeedsWrap').hidden = !S.deeds; $('hDeeds').textContent = S.deeds;
     const bw = $('bWave'); bw.disabled = W.active;

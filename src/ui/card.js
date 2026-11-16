@@ -7,7 +7,7 @@ const TOWER_TIPS = 'Tap an empty plot beside the road to build. Tap a tower to u
 function card() {
   if (sel && SHEET.open && !docked()) closeSheet(); // a thing tapped on the map: its card replaces the menu
   const box = $('card'); box.hidden = !sel; if (!sel) { box._k = box._e = null; return; }
-  const key = sel.t ? 't' + S.towers.indexOf(sel.t) + '/' + sel.t.lvl + sel.t.br : sel.b ? 'b' + sel.b.def.id : sel.vault ? 'v' : 'p' + sel.plot.join(',');
+  const key = sel.t ? 't' + S.towers.indexOf(sel.t) + '/' + sel.t.lvl + sel.t.br : sel.b ? 'b' + sel.b.def.id : sel.vault ? 'v' : sel.site ? 's' + sel.site : 'p' + sel.plot.join(',');
   if (box._k !== key) {
     const ent = key.split('/')[0], opening = !box._k, other = box._e !== ent;
     box._k = key; box._e = ent; box.textContent = ''; cardUps = []; $('sheet').scrollTop = 0; box.classList.toggle('build', !!sel.plot);
@@ -26,6 +26,8 @@ function card() {
         note.textContent = W.active ? 'Raiders are on the road. Repair between waves.' : miss ? 'Each point costs ' + fmt(repairCost()) + ' coins. A raider that gets through takes 1 or 2 strength and 5% of your coins; a ' + bossName().toLowerCase() + ' smashes the vault outright.' : 'The vault is at full strength.';
         one.disabled = W.active || !miss || S.coins < repairCost(); full.disabled = W.active || !miss || S.coins < repairCost() * miss;
       });
+    } else if (sel.site) {
+      siteCard(box, sel.site, close);
     } else if (sel.plot) {
       const [c, r] = sel.plot;
       box.append(h('div', { cls: 'cardhead' }, h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'Build a tower on the glowing plot'), h('small', null, 'Touch a tower to preview it there. Grey costs mean you are short of coins or goods.')), close));
@@ -89,4 +91,23 @@ function card() {
     }
   }
   for (const f of cardUps) f();
+}
+
+/* The card of a building in the Capital: the Capitol (its budget, the trees, the Convention) or an institution (build or
+   upgrade it, and the sheet it opens). */
+function siteCard(box, id, close) {
+  if (id === 'capitol') {
+    const info = h('small'), c = S.capital;
+    box.append(h('div', { cls: 'cardhead' }, ico('office'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'The Capitol'), info), close),
+      h('small', null, 'The seat of government. Its budget pays foremen, the War Office and the Academy in every town; its policies and the Constitutional Convention are decided here.'),
+      h('div', { cls: 'bar' }, h('button', { cls: 'primary grow1', on: () => goTab('capital') }, 'Budget and waves'), h('button', { on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), h('button', { on: () => goTab('convention') }, 'Convention')));
+    cardUps.push(() => { info.textContent = 'Takes ' + pct(c.share) + ' of every town\'s income · ' + fmt(c.inf || 0) + ' influence'; });
+    return;
+  }
+  const I = INST[id], name = h('div', { cls: 'name' }), d = h('small'), b = h('button', { cls: 'primary grow1', on: () => { if (buyInst(id)) { sparks(b); say(I.n + (capLv(id) > 1 ? ' upgraded to level ' + capLv(id) + '.' : ' built.')); } } }, h('span'), costEl(() => instCost(id), null, cardUps));
+  const bar = h('div', { cls: 'bar' }, b), go = { exchange: ['Trade shares', 'exchange'], education: ['Economy tree', 'tech'], war: ['Defence tree', 'tech'], market: ['Auto-sell rule', 'capital'] }[id];
+  let gb = null; if (go) { gb = h('button', { on: () => goTab(go[1]) }, go[0]); bar.append(gb); }
+  box.append(h('div', { cls: 'cardhead' }, ico(I.icon), h('div', { cls: 'grow' }, name, d), close), bar);
+  cardUps.push(() => { const l = capLv(id); name.textContent = I.n; if (l) name.append(h('i', null, 'Lv ' + l)); d.textContent = I.d(Math.max(1, l)) + (l ? '' : ' (at level 1)');
+    b.firstChild.textContent = l >= I.max ? 'Top level' : l ? 'Upgrade ' : 'Build '; b.lastChild.hidden = l >= I.max; b.disabled = l >= I.max || S.coins < instCost(id); if (gb) gb.hidden = id === 'exchange' && !l; });
 }

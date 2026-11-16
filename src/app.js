@@ -102,8 +102,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-3'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Thunder Mesa, the fourth town: oil, rubber and aluminium up to airships, and a sky pirate airship boss that only Tesla coils and drones can reach';
+const GAME_VERSION = '2026.11.16-4'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'A walkable 3D Capital: visit the Capitol and the institutions, tap a building to build or upgrade it';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

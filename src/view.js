@@ -77,6 +77,8 @@ function sceneLight(time) {
   return { n, dusk, wa, wk, amb, sunK, az: Math.sin(time * .012) * .9 };
 }
 /* --- the 3D bridge ----------------------------------------------------------------------------------------- */
+/* Visiting the Capital: the 3D view draws the capital city instead of the town (the town plays on meanwhile). */
+const CAPV = { on: false };
 const R3 = { on: false, ok: false, tried: false, yaw: 0, yawT: 0, pitch: .92, dist: 24, distT: 24, dragged: false, panX: 0, panZ: 0, panXT: 0, panZT: 0, vx: 0, vy: 0 };
 const M4 = {
   mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; },
@@ -118,7 +120,7 @@ function r3Camera() {
   // with a menu sheet open on a phone, look further down the board so the town shows above the sheet
   R3.shift = (R3.shift || 0) + (((typeof SHEET !== 'undefined' && SHEET.open) ? SHEET.h * dist * .38 : 0) - (R3.shift || 0)) * .15;
   // with a plot or tower selected on a phone, glide so it sits in the upper part of the screen, above its card
-  const fc = typeof sel !== 'undefined' && sel && (sel.plot || (sel.t && [sel.t.c, sel.t.r])), phone = typeof docked === 'function' && !docked();
+  const fc = typeof sel !== 'undefined' && sel && (sel.plot || (sel.t && [sel.t.c, sel.t.r]) || (sel.site && [CAP_SITE[sel.site].x - .5, CAP_SITE[sel.site].z + 1 - dist * .2])), phone = typeof docked === 'function' && !docked();
   R3.fx = (R3.fx || 0) + (((fc && phone) ? fc[0] + .5 - (COLS / 2 + R3.panX) : 0) - (R3.fx || 0)) * .12;
   R3.fz = (R3.fz || 0) + (((fc && phone) ? fc[1] + .5 + dist * .2 - (ROWS / 2 + .6 + R3.panZ) : 0) - (R3.fz || 0)) * .12;
   const tgt = R3.look ? [R3.look[0], 0, R3.look[1]] : [COLS / 2 + R3.panX + R3.fx, 0, ROWS / 2 + .6 + R3.shift + R3.panZ + R3.fz]; // R3.look: aim somewhere else (the icon renderer)
@@ -127,13 +129,17 @@ function r3Camera() {
   R3.cam = { eye, tgt, fov, asp: W / H, VP: M4.mul(Pm, V) };
   return R3.cam;
 }
-/* A tap on the canvas, as fractional map cells [x, y] like gridAt() returns: cast a ray to the ground (y = 0). */
-function r3Pick(ev) {
+/* The ray under a tap: the eye and the ray's direction. */
+function r3Ray(ev) {
   const r = cv.getBoundingClientRect(), nx = ((ev.clientX - r.left - cv.clientLeft) / cv.clientWidth) * 2 - 1, ny = 1 - ((ev.clientY - r.top - cv.clientTop) / cv.clientHeight) * 2;
   const { eye, tgt, fov, asp } = R3.cam || r3Camera(), f = norm([tgt[0] - eye[0], tgt[1] - eye[1], tgt[2] - eye[2]]), rt = norm(cross(f, [0, 1, 0])), up = cross(rt, f), th = Math.tan(fov / 2);
   const d = norm([f[0] + rt[0] * nx * th * asp + up[0] * ny * th, f[1] + rt[1] * nx * th * asp + up[1] * ny * th, f[2] + rt[2] * nx * th * asp + up[2] * ny * th]);
-  const t = (.1 - eye[1]) / d[1]; return [eye[0] + d[0] * t, eye[2] + d[2] * t];
+  return { eye, d };
 }
+/* A tap on the canvas, as fractional map cells [x, y] like gridAt() returns: cast a ray to the ground (y = 0). */
+function r3Pick(ev) { const { eye, d } = r3Ray(ev), t = (.1 - eye[1]) / d[1]; return [eye[0] + d[0] * t, eye[2] + d[2] * t]; }
+/* In the Capital: the site (the Capitol or an institution) under a tap, roofs included, or null. */
+function capPick(ev) { if (!R3.on) return null; const { eye, d } = r3Ray(ev); return capRay(eye, d); }
 /* Screen pixel of a world point, for the overlay. */
 function r3Project(x, y, z) {
   const m = R3.cam.VP, cx_ = m[0] * x + m[4] * y + m[8] * z + m[12], cy = m[1] * x + m[5] * y + m[9] * z + m[13], w = m[3] * x + m[7] * y + m[11] * z + m[15];
@@ -195,6 +201,11 @@ function r3Overlay(time) {
   const ux = R3.ux, c = cell, W = R3.canvas.width; ux.clearRect(0, 0, W, R3.canvas.height);
   ux.textAlign = 'center'; ux.textBaseline = 'middle'; ux.font = '700 ' + Math.max(9, c * .28) + 'px "Barlow Semi Condensed", sans-serif';
   const tag = (txt, x, y, z, col) => { const [px, py, w] = r3Project(x, y, z); if (w <= 0) return; const tw = ux.measureText(txt).width + c * .14; ux.fillStyle = 'rgba(22,26,42,.85)'; ux.fillRect(px - tw / 2, py - c * .16, tw, c * .32); ux.fillStyle = col || '#ece6d8'; ux.fillText(txt, px, py + 1); };
+  if (CAPV.on) { // the Capital: a sign over each site, its level or what building it costs
+    for (const id in CAP_SITE) { const s = CAP_SITE[id], l = id === 'capitol' ? 0 : capLv(id), ready = id !== 'capitol' && l < INST[id].max && S.coins >= instCost(id);
+      tag(s.n + (id === 'capitol' ? '' : l ? ' · Lv ' + l : ' · build'), s.x, s.h * (id === 'capitol' ? 1.02 : .95) + .2, s.z, ready ? '#f2d04a' : l || id === 'capitol' ? null : '#b9b2a4'); }
+    return;
+  }
   for (const b of BUILD) { const l = blv(b.def.id), [sx, sy] = SLOT[b.def.id]; if (l) tag('Lv ' + l, sx + 1, 2.05, sy + 1); }
   if (SLOT.hall) tag('Foremen', SLOT.hall[0] + 1, 2.05, SLOT.hall[1] + 1); if (SLOT.office) tag(S.deeds ? S.deeds + ' deeds' : 'Deeds', SLOT.office[0] + 1, 2.05, SLOT.office[1] + 1, S.deeds ? '#f2d04a' : null);
   // the selected plot or tower, and its reach

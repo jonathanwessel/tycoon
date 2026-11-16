@@ -33,6 +33,38 @@ function buyInst(id) {
   if (!capOpen() || capLv(id) >= INST[id].max) return false; const c = instCost(id); if (S.coins < c) return false;
   S.coins -= c; S.capital.lv[id] = capLv(id) + 1; snd('build', 520, .15, 'triangle', .05, 330); return true;
 }
+/* The Capital as a place: the Capitol at the head of an avenue and the institutions on plots either side of it, laid
+   out on the same 12 × 14 board as a town so the camera and its controls work unchanged. Each site: centre x and z,
+   half the plot's width (r), how tall its building stands (h, for taps on a roof) and a short name for its sign. */
+const CAP_SITE = {
+  capitol:   { x: 6,   z: 3.1,  r: 2.4, h: 4.2, n: 'The Capitol' },
+  market:    { x: 2.4, z: 7,    r: 1.5, h: 2.3, n: 'Market Board' },
+  transport: { x: 9.6, z: 7,    r: 1.5, h: 2.6, n: 'Transport' },
+  bank:      { x: 2.4, z: 10,   r: 1.5, h: 2.2, n: 'Central Bank' },
+  education: { x: 9.6, z: 10,   r: 1.5, h: 2.6, n: 'Education' },
+  exchange:  { x: 2.4, z: 13,   r: 1.5, h: 2.3, n: 'Stock Exchange' },
+  war:       { x: 9.6, z: 13,   r: 1.5, h: 2.4, n: 'War Office' },
+};
+/* The site on the ground at board point (x, z), or null (the avenue, the lawns). */
+function capSiteAt(x, z) { for (const id in CAP_SITE) { const s = CAP_SITE[id]; if (Math.abs(x - s.x) <= s.r && Math.abs(z - s.z) <= s.r) return id; } return null; }
+/* The site a tap's ray hits first: each building as a box (most of its plot, up to its height), else the ground under
+   the ray. o is the eye, d the ray's direction (both [x, y, z]). Taps on a tall roof pick that building, not the plot
+   behind it. */
+function capRay(o, d) {
+  let best = null, bt = Infinity;
+  for (const id in CAP_SITE) {
+    const s = CAP_SITE[id], lo = [s.x - s.r * .85, 0, s.z - s.r * .85], hi = [s.x + s.r * .85, s.h, s.z + s.r * .85];
+    let t0 = 0, t1 = Infinity;
+    for (let i = 0; i < 3; i++) {
+      if (Math.abs(d[i]) < 1e-9) { if (o[i] < lo[i] || o[i] > hi[i]) { t0 = Infinity; break; } continue; }
+      let a = (lo[i] - o[i]) / d[i], b = (hi[i] - o[i]) / d[i]; if (a > b) [a, b] = [b, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+    }
+    if (t0 <= t1 && t0 < bt) { bt = t0; best = id; }
+  }
+  if (best) return best;
+  if (d[1] >= 0) return null; const t = -o[1] / d[1]; return capSiteAt(o[0] + d[0] * t, o[2] + d[2] * t);
+}
 /* Split weights as fractions that add up to one. */
 function capSplit() { const s = S.capital.split, t = (s.foremen + s.war + s.academy) || 1; return { foremen: s.foremen / t, war: s.war / t, academy: s.academy / t }; }
 

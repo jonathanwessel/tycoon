@@ -6,7 +6,7 @@
    ========================================================= */
 PANELS.capital = p => {
   if (!capOpen()) {
-    const ready = capitalReady(), b = h('button', { cls: 'primary', on: () => { if (openCapital()) { say('The Capital is founded. Set the budget in the Capitol.'); rebuild = true; } } }, 'Found the Capital ', costEl(() => CAPITAL.coins, null, ups));
+    const ready = capitalReady(), b = h('button', { cls: 'primary', on: () => { if (openCapital()) { rebuild = true; visitCapital(); say('The Capital is founded. Tap the Capitol to set its budget, and the empty lots to build institutions.'); } } }, 'Found the Capital ', costEl(() => CAPITAL.coins, null, ups));
     p.append(h('h2', null, 'The Capital'), h('p', null, 'The seat of your empire\'s government. Its Capitol takes a share of what every town earns and spends it for you: foremen upgrade buildings, the War Office upgrades towers (slowly), and the Academy does research. It also decides which towns fight their waves on their own. Institutions add bonuses for every town.'),
       h('p', null, ready ? 'Silver Falls has held out to wave ' + CAPITAL.best + '. The Capital can be founded.' : 'Opens once Silver Falls has reached wave ' + CAPITAL.best + (townOpen(CAPITAL.from) ? ' (best so far: ' + townBest(CAPITAL.from) + ').' : '. Open Silver Falls from the Empire tab first.')), b);
     ups.push(() => { b.disabled = !ready || S.coins < CAPITAL.coins; });
@@ -50,11 +50,33 @@ PANELS.capital = p => {
   p.append(h('p', null, 'Market Board rule for every town:'), keepSeg);
 };
 
-/* The side button for the Capital (a dome), shown once Silver Falls is open. */
+/* Visiting the Capital: the 3D view shows the capital city (the Capitol and the institutions, each tappable for its
+   card) while the town you left plays on. The camera of the town is kept for the way back. */
+function visitCapital() {
+  if (!capOpen() || CAPV.on) return false;
+  CAPV.on = true; CAPV.cam = { yawT: R3.yawT, distT: R3.distT, panXT: R3.panXT, panZT: R3.panZT };
+  R3.yawT = 0; R3.distT = 24; R3.panXT = R3.panZT = 0; R3.vx = R3.vy = 0; sel = null; stopHold();
+  if (SHEET.open && !docked()) closeSheet();
+  document.body.classList.add('incap'); snd('tab', 392, .2, 'triangle', .04, 196); refresh(); return true;
+}
+function leaveCapital(quiet) {
+  if (!CAPV.on) return false;
+  CAPV.on = false; if (CAPV.cam) Object.assign(R3, CAPV.cam); R3.vx = R3.vy = 0; if (sel && sel.site) sel = null; document.body.classList.remove('incap');
+  if (!quiet) refresh(); return true;
+}
+/* The side button for the Capital (a dome), shown once Silver Falls is open: it visits the Capital (or brings you back),
+   or before it is founded opens the page about founding it. */
 (() => {
-  const b = h('button', { cls: 'mapbtn', id: 'bCap', 'aria-label': 'The Capital', title: 'The Capital (C)', on: () => goTab('capital') });
+  const go = () => { if (!capOpen()) return goTab('capital'); if (CAPV.on) leaveCapital(); else visitCapital(); };
+  const b = h('button', { cls: 'mapbtn', id: 'bCap', 'aria-label': 'The Capital', title: 'The Capital (C)', on: go });
   b.innerHTML = '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7.5 0h1v2.1A5 5 0 0 1 13 7h1v2H2V7h1a5 5 0 0 1 4.5-4.9zM3 10h2v4H3zm4 0h2v4H7zm4 0h2v4h-2zM1 15h14v1H1z"/></svg>';
   $('bMis').after(b);
-  fixedUps.push(() => { b.hidden = !(capOpen() || townOpen(CAPITAL.from)); b.classList.toggle('ready', !capOpen() && capitalReady() && S.coins >= CAPITAL.coins); });
-  document.addEventListener('keydown', e => { if ((e.key === 'c' || e.key === 'C') && !(e.target.closest && e.target.closest('textarea, input')) && !b.hidden) goTab('capital'); });
+  fixedUps.push(() => { if (CAPV.on && !capOpen()) leaveCapital(true); // a Convention dissolves the Capital
+    b.hidden = !(capOpen() || townOpen(CAPITAL.from)); b.classList.toggle('ready', !capOpen() && capitalReady() && S.coins >= CAPITAL.coins); b.classList.toggle('on', CAPV.on);
+    const t = CAPV.on ? 'Back to ' + TOWN.n + ' (C)' : 'The Capital (C)'; if (b.title !== t) { b.title = t; b.setAttribute('aria-label', t); } });
+  document.addEventListener('keydown', e => { if (e.target.closest && e.target.closest('textarea, input')) return;
+    if ((e.key === 'c' || e.key === 'C') && !b.hidden) go(); else if (e.key === 'Escape' && CAPV.on && !SHEET.open && !sel && $('modal').hidden) leaveCapital(); });
+  // in the Capital the wave controls give way to the way home (with the home town's wave, which plays on)
+  const back = $('bLeave'); back.addEventListener('click', () => leaveCapital());
+  fixedUps.push(() => { if (!CAPV.on) return; const t = '◀ Back to ' + TOWN.n + (W.active ? ' · wave ' + S.wave + ' under way' : ''); if (back.textContent !== t) back.textContent = t; back.classList.toggle('live', W.active); });
 })();

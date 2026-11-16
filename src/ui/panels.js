@@ -201,7 +201,7 @@ const PANELS = {
         }
       });
     }
-    p.append(h('h2', null, 'The Capital'), h('div', { cls: 'bar' }, h('button', { cls: capOpen() ? '' : 'primary', on: () => goTab('capital') }, capOpen() ? 'Go to the Capital' : capitalReady() ? 'Found the Capital' : 'About the Capital')));
+    p.append(h('h2', null, 'The Capital'), h('div', { cls: 'bar' }, h('button', { cls: capOpen() ? '' : 'primary', on: () => capOpen() ? (visitCapital() || closeSheet()) : goTab('capital') }, capOpen() ? 'Go to the Capital' : capitalReady() ? 'Found the Capital' : 'About the Capital')));
     // shipping routes
     p.append(h('h2', null, 'Shipping routes'));
     const sug = h('div', { cls: 'sugs' }), list = h('div'), form = h('div', { cls: 'bar routeform' });

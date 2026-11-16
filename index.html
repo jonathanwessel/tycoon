@@ -369,6 +369,8 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 .mapbtn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .45); }
 #bMis.ready, #bCap.ready, .bar button.ready { border-color: var(--gold); color: var(--gold); }
 #bCap { color: #9fd0ff; }
+#bCap.on { color: var(--gold); border-color: var(--gold); }
+#bLeave { display: none; } body.incap .controls > :not(#bLeave) { display: none !important; } body.incap .controls > #bLeave { display: block; flex: 1; min-width: 0; min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row.fund input[type=range] { width: 100%; accent-color: var(--copper); }
 .mcount { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px; background: var(--bad); color: #fff; font: 700 .72rem/15px var(--body); border: 2px solid #12152a; text-align: center; }
 .mcount.pop { animation: mpop .4s steps(5, end); }
@@ -514,6 +516,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
       <button class="ab" id="ab-tar"></button>
       <button class="ab" id="ab-ot"></button>
       <button id="bSpeed">1×</button>
+      <button id="bLeave" class="primary">Back</button>
     </div>
     <div class="stock" id="stock"></div>
   </section>
