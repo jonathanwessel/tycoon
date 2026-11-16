@@ -267,3 +267,18 @@ test('missions are per town: switching towns keeps each chain, and old saves kee
   assert.strictEqual(h.run('S.goal'), 0, 'Iron Ridge starts at its first mission');
   assert.strictEqual(h.run('S.towns.gulch.goal'), 9, 'the old progress stays with Copper Gulch');
 });
+
+test('a fresh start keeps deeds (plus 10), perks, badges and stats, and backs up the old save', () => {
+  const g = load();
+  const old = g.run(`(() => { const o = fresh(); o.v = 6; o.deeds = 7; o.perks = { teams: 2 }; o.badges = { k100: 1 }; o.stats.kills = 1234; o.coins = 9e9; o.ext.camp = 80; return JSON.stringify(o); })()`);
+  assert.strictEqual(g.run(`adopt(${old}, 99)`), true);
+  assert.strictEqual(g.run('S.deeds'), 17, 'deeds kept plus 10');
+  assert.strictEqual(g.run('S.perks.teams'), 2);
+  assert.strictEqual(g.run('S.badges.k100'), 1);
+  assert.strictEqual(g.run('S.stats.kills'), 1234);
+  assert.ok(g.run('S.coins') < 1e6 && !g.run('S.ext.camp'), 'the town itself starts over');
+  assert.ok(g.store.has('copper-gulch-save-v1-before-v6'), 'old save backed up');
+  assert.ok(/starts fresh/.test(g.run('S.movedNote')));
+  // with no fresh start set (WIPE_V 0), a save is migrated as usual
+  const h = load(); assert.strictEqual(h.run(`adopt(${old})`), true); assert.strictEqual(h.run('S.ext.camp'), 80);
+});

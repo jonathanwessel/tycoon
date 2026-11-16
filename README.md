@@ -29,7 +29,7 @@ Open `index.html` in a browser. There is no build step and nothing to install.
 
 ## Code
 
-`index.html` holds the page and its styles; the game's code is in `src/` as plain scripts loaded in order (no build step): definitions, map, pixel art, state and saves, economy, goals, combat, effects, the 2D renderer, the WebGL lighting engine, the interface, and the app (loop, install, updates).
+`index.html` holds the page and its styles; the game's code is in `src/` as plain scripts loaded in order (no build step): definitions, map, pixel art (the interface icons), state and saves, economy, goals, combat, effects, the view (layout, graphics settings, camera and taps), the interface (`src/ui/`: building blocks, actions, the card, map taps, the menu sheet, panels, the fixed parts, settings), and the app (loop, install, updates). The 3D town is drawn by `src/r3d/`, ES modules on three.js (vendored in `vendor/three`, MIT). Serve the folder over http to play locally (`node scripts/serve.js`); modules do not load from file:// pages.
 
 ## Checks
 

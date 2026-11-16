@@ -18,8 +18,7 @@ function load(opts = {}) {
   const ctx = vm.createContext(sandbox);
   // stand-ins for the parts of the interface and drawing the simulation calls
   vm.runInContext(`var rebuild = false; var cv = { getBoundingClientRect: () => ({ width: 0, height: 0 }) };
-    function $() { return null; } function say() {} function refresh() {} function bakeGround() {} function medal() {}
-    const GLX = { groundDirty: false };`, ctx);
+    function $() { return null; } function say() {} function refresh() {} function medal() {}`, ctx);
   for (const f of SIM_FILES) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8'), ctx, { filename: 'src/' + f });
   vm.runInContext(`useTown('gulch'); setMap('gulch');`, ctx);
   return { ctx, store, run: code => vm.runInContext(String(code), ctx), call: (fn, ...args) => vm.runInContext(`(${fn})(...${JSON.stringify(args)})`, ctx) };

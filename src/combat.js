@@ -390,7 +390,7 @@ function prestige() {
     sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {}, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
     town: S.town, towns: S.towns, routes: S.routes, inbox: S.inbox, railOpen: S.railOpen, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
   const map = TOWNS[S.town].maps[0];
-  S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map); bakeGround();
+  S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map);
   const st = perk('start'); if (st) { if (S.town === 'ridge') { S.ext.ironmine = S.ext.quarry = 5 * st; S.shops.blast = 1; } else { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; } }
   const cf = perk('coffers'); if (cf) S.coins += 500 * Math.pow(10, cf - 1);
   for (let i = 0; i < perk('fort'); i++) { const p = PLOTS[i * 2]; if (p) S.towers.push({ c: p.x, r: p.y, type: 'crossbow', lvl: 2, tg: 'first' }); }

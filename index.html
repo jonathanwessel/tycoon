@@ -88,7 +88,7 @@ canvas#cv {
 }
 .toast.show { opacity: 1; transform: none; }
 /* the lighting engine's output sits exactly over the map canvas, inside its frame; taps go through to the map */
-#glv, #g3, #g3u { position: absolute; left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 6px); pointer-events: none; border-radius: 1px; image-rendering: pixelated; }
+#g3, #g3u { position: absolute; left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 6px); pointer-events: none; border-radius: 1px; image-rendering: pixelated; }
 .mapbtn { position: absolute; left: 8px; bottom: 8px; width: 38px; height: 38px; min-height: 38px; padding: 0; display: grid; place-items: center; background: rgba(22, 26, 42, .78); border-color: rgba(236, 230, 216, .25); }
 #bFull { left: 54px; }
 #bSet { left: 100px; }
@@ -123,6 +123,7 @@ body.mapfull #card:not([hidden]) { position: fixed; z-index: 50; left: 0; right:
 .pausecover:focus-visible { outline-offset: -4px; }
 .pausecover b { font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--copper); }
 .pausecover span { color: var(--fg); font-weight: 600; }
+.cover3d { cursor: default; } .cover3d span { max-width: 32ch; } .cover3d b::before { display: none; }
 .pausecover b::before { content: ''; display: block; width: 0; height: 0; margin: 0 auto 10px; border-style: solid; border-width: 18px 0 18px 30px; border-color: transparent transparent transparent var(--copper); }
 .controls { display: flex; gap: 6px; align-items: stretch; position: relative; }
 .speedmenu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; display: grid; gap: 4px; padding: 6px; background: var(--panel); border: 2px solid var(--copper); border-radius: 3px; box-shadow: 4px 4px 0 rgba(0, 0, 0, .45); animation: popin .16s steps(3, end); }
@@ -413,8 +414,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   .chip { min-width: 0; padding: 2px 6px 2px 4px; background: rgba(31, 37, 57, .9); }
   .chip img.px { width: 20px; height: 20px; }
   .stage { position: fixed; inset: 0; z-index: 0; display: block; background: var(--bg); }
-  .mapwrap { position: absolute; left: 50%; top: calc(var(--top) + (100vh - var(--top) - var(--bot)) / 2); top: calc(var(--top) + (100dvh - var(--top) - var(--bot)) / 2); transform: translate(-50%, -50%); margin: 0; width: min(100%, calc((100vh - var(--top) - var(--bot)) * 12 / 14)); width: min(100%, calc((100dvh - var(--top) - var(--bot)) * 12 / 14)); }
-  body.v3 .mapwrap { inset: 0; transform: none; width: auto; height: auto; aspect-ratio: auto; }
+  body.v3 .mapwrap { position: absolute; margin: 0; inset: 0; transform: none; width: auto; height: auto; aspect-ratio: auto; }
   .controls { position: fixed; z-index: 25; left: 8px; right: 8px; bottom: calc(var(--navh) + 8px); transition: opacity .18s, transform .18s; }
   nav.tabs { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; padding: 5px 6px max(6px, env(safe-area-inset-bottom, 0px)); background: rgba(16, 19, 32, .97); border-top: 2px solid var(--line); }
   nav.tabs button { min-height: 50px; }
@@ -436,8 +436,6 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   .bossbar { position: fixed; top: calc(var(--top) + 6px); }
   .banner { position: fixed; top: 38%; }
   /* in 2D the board is centred and its buttons sit in a row beneath it */
-  body:not(.v3) .mapbtn, body:not(.v3) #bMis, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { position: absolute; top: calc(100% + 8px); bottom: auto; } /* the centred 2D board is transformed, so these sit in its own coordinates */
-  body:not(.v3) #bMis { right: 138px; } body:not(.v3) #bPause { right: 92px; } body:not(.v3) #bFull { right: 46px; } body:not(.v3) #bSet { right: 0; }
   .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 184px); }
   /* hide the interface: only the town (and the button that brings the interface back) */
   body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bMis, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
@@ -445,7 +443,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 }
 </style>
 </head>
-<body>
+<body class="v3">
 <div class="app">
   <header>
     <h1>Copper Gulch</h1>
@@ -467,6 +465,8 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
       <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="hideui" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 8c2-3.5 4.5-5 7-5s5 1.5 7 5c-2 3.5-4.5 5-7 5S3 11.5 1 8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="2.2" fill="currentColor"/></svg><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>
       <button class="mapbtn" id="bSet" aria-label="Settings" title="Settings: graphics, sound, game"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M7 0h2v2.3l1.5.6 1.6-1.6 1.4 1.4-1.6 1.6.6 1.5H16v2h-2.3l-.6 1.5 1.6 1.6-1.4 1.4-1.6-1.6-1.5.6V16H7v-2.3l-1.5-.6-1.6 1.6-1.4-1.4 1.6-1.6L2.3 9H0V7h2.3l.6-1.5-1.6-1.6 1.4-1.4 1.6 1.6L7 2.3zM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"/></svg></button>
       <div class="fpsmeter" id="fpsMeter" hidden></div>
+      <div class="pausecover cover3d" id="loading3d"><b>Copper Gulch</b><span>Loading the town…</span></div>
+      <div class="pausecover cover3d" id="no3d" hidden><b>No 3D here</b><span>Copper Gulch needs WebGL 2, which this browser or device does not offer. Try an up-to-date Chrome, Edge, Firefox or Safari.</span></div>
       <button class="pausecover" id="pauseCover" hidden><b>Paused</b><span>Tap to carry on</span></button>
     </div>
     <div class="controls">
@@ -496,10 +496,15 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/goals.js"></script>
 <script src="src/combat.js"></script>
 <script src="src/fx.js"></script>
-<script src="src/render2d.js"></script>
-<script src="src/gl.js"></script>
-<script src="src/render3d.js"></script>
-<script src="src/ui.js"></script>
+<script src="src/view.js"></script>
+<script src="src/ui/core.js"></script>
+<script src="src/ui/actions.js"></script>
+<script src="src/ui/card.js"></script>
+<script src="src/ui/input.js"></script>
+<script src="src/ui/sheet.js"></script>
+<script src="src/ui/panels.js"></script>
+<script src="src/ui/hud.js"></script>
+<script src="src/ui/settings.js"></script>
 <script src="src/app.js"></script>
 <script type="module" src="src/r3d/main.js"></script>
 </body>

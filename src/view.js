@@ -1,11 +1,82 @@
 'use strict';
 /* =========================================================
-   3D view bridge
-   The 3D town is drawn by the three.js renderer in src/r3d/ (an ES module that loads after these scripts and
-   registers window.R3D). This bridge owns what the rest of the game talks to: the camera and its controls, turning
-   taps back into map cells, projecting world points to the screen, and the flat overlay (levels, health bars,
-   floating numbers, the boss bar and banners) drawn on a canvas above the 3D one.
+   The view: the 3D town and everything the rest of the game asks of it.
+   The town is drawn by the three.js renderer in src/r3d/ (an ES module that loads after these scripts and registers
+   window.R3D). This file owns the map element (#cv, a transparent layer that takes the taps and gestures), the
+   layout size and render scale, the graphics settings, the lights the scene uses (sun, sky, lamps and fires), the
+   camera and its controls, turning taps into map cells, projecting world points to the screen, and the overlay
+   (levels, health bars, floating numbers) drawn on a canvas above the 3D one.
    ========================================================= */
+const cv = document.getElementById('cv'); let cell = 30;
+const renderScale = () => { const rs = GX().res || 1; return Math.max(.5, Math.min((window.devicePixelRatio || 1) * rs, rs > 1 ? 3 : 2)); };
+const TREES = [[.5, .75, 1.15], [1.45, .65, 1.25], [.95, 1.45, 1.2]]; // the tap area's trees (or boulders): x, y, size within its plot
+/* Frame-time watch: a device that struggles for several seconds gets a lower graphics preset. */
+const PERF = { frames: 0, slow: 0, noAuto: false, res: null };
+const MAXL = 48; // at most this many lamps and fires are gathered each frame (the renderer lights the strongest)
+/* Size the map layer (and the 3D canvases) to the screen. */
+function fit() {
+  if (typeof layoutVars === 'function') layoutVars();
+  const dpr = renderScale(); cv.width = Math.round((cv.clientWidth || 360) * dpr); cv.height = Math.round((cv.clientHeight || 420) * dpr);
+  cell = Math.min(cv.width / COLS, cv.height / ROWS); // the overlay's text and bars size from this
+  r3Resize();
+}
+/* Graphics settings: start the 3D view (or say why it cannot), apply scanlines and the render scale. */
+function applyGfx() {
+  const g = GX();
+  R3.on = r3Setup();
+  if (R3.canvas) { R3.canvas.hidden = !R3.on; R3.ux.canvas.hidden = !R3.on; }
+  $('loading3d').hidden = R3.on || R3.tried; $('no3d').hidden = R3.on || !R3.tried;
+  const mw = document.querySelector('.mapwrap'); if (mw) mw.classList.toggle('scan', !!g.scan);
+  if (cv.width && PERF.res !== g.res) { PERF.res = g.res; fit(); }
+  PERF.slow = 0; PERF.frames = 0;
+}
+function setGx(k, v) {
+  const g = GX();
+  if (k === 'preset') { Object.assign(g, GX_PRESETS[v]); g.preset = v; }
+  else { g[k] = v; if (k in GX_PRESETS.high) g.preset = Object.keys(GX_PRESETS).find(p => Object.keys(GX_PRESETS[p]).every(q => GX_PRESETS[p][q] === g[q])) || 'custom'; }
+  applyGfx();
+}
+/* --- light: every lamp and fire this frame (the 3D renderer turns the strongest into point lights) --------------- */
+function gatherLights(time) {
+  const L = [], n = FXS.night, add = (x, y, r, col, k) => { if (k > .02) L.push([x, y, r, col, k]); };
+  const WARM = [1, .64, .32], LAMP = [1, .78, .48], TEAL = [.35, .95, .9], ICE = [.55, .9, 1], GOLD = [1, .85, .35], PINK = [1, .38, .5], FIRE = [1, .5, .18];
+  const lamp = .12 + .88 * n;
+  for (const [tx, ty] of [[VAULT[0] - .08, VAULT[1] - .05], [VAULT[0] - .08, VAULT[1] + 1.25]]) add(tx, ty - .35, 2.4, WARM, (.35 + .75 * n) * (.9 + Math.sin(time * 9 + ty) * .1));
+  for (const b of BUILD) if (blv(b.def.id)) { const [sx, sy] = SLOT[b.def.id]; add(sx + 1, sy + 1.75, 1.35, LAMP, .5 * lamp * (.92 + Math.sin(time * 3 + sx) * .08)); }
+  for (const id of ['market', 'hall', 'office']) add(SLOT[id][0] + 1, SLOT[id][1] + 1.75, 1.35, LAMP, .45 * lamp);
+  for (const id of TOWN.forge) if (blv(id) && ACT[id] > .08) add(SLOT[id][0] + 1, SLOT[id][1] + 1.25, 2, FIRE, (.3 + .7 * n) * (.85 + Math.sin(time * 13 + SLOT[id][0]) * .15));
+  for (const id of TOWN.glow) if (blv(id)) add(SLOT[id][0] + 1, SLOT[id][1] + 1.5, 1.4, TEAL, .55 * lamp);
+  for (const t of S.towers) {
+    const x = t.c + .5, y = t.r + .5, kick = t.kick > 0 ? t.kick / .12 : 0;
+    if (t.type === 'frost') add(x, y - .25, 1.6, ICE, .3 + .5 * n);
+    else if (t.type === 'tesla') add(x, y - .45, 1.8 + kick, t.br === 'b' ? PINK : GOLD, .35 + .55 * n + kick * .8);
+    else if (kick > 0) add(x + Math.cos(t.aim || 0) * .55, y + Math.sin(t.aim || 0) * .55 - .15, 1.7, WARM, kick * 1.3);
+  }
+  for (const s of shots.slice(0, 14)) add(s.x + .5, s.y + .5, .9, s.kind === 'ball' ? FIRE : LAMP, .45 + .3 * n);
+  for (const e of fx) {
+    if (e.k === 'boom') add(e.x + .5, e.y + .5, e.r * 2.6 + 1, FIRE, 2.2 * Math.min(1, e.t * 4));
+    else if (e.k === 'bolt') { const p = e.pts[e.pts.length - 1]; add(p[0] + .5, p[1] + .5, 1.6, e.c === '#ff8fb0' ? PINK : GOLD, 1.4 * e.t / .16); }
+    else if (e.k === 'ring') add(e.x + .5, e.y + .5, e.r * 1.1, ICE, .6 * Math.min(1, e.t * 3));
+    else if (e.k === 'cone') add(e.x + .5 + Math.cos(e.a) * .8, e.y + .5 + Math.sin(e.a) * .8, 2, WARM, 1.4 * e.t / .18);
+  }
+  for (const b of bombs) add(b.x + .5, b.y + .2, 1, FIRE, .9);
+  for (const f of foes) if (f.rage) add(f.x + .5, f.y + .3, 1.3, FIRE, .7);
+  if (FXS.flies && n > .05 && !REDUCED) for (const q of FXS.flies) add(q.x, q.y, .6, [.75, 1, .45], .7 * n * (.5 + .5 * Math.sin(time * 3 + q.ph)));
+  L.sort((a, b) => b[4] * b[2] - a[4] * a[2]);
+  return L.slice(0, MAXL);
+}
+function sceneLight(time) {
+  const n = Math.min(1, FXS.night), dusk = Math.sin(Math.PI * n), wa = FXS.wxA || 0, wk = FXS.wxK;
+  const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  // night stays readable (raiders must be visible on the road); dusk passes through a warm sunset
+  let amb = mix([1, .98, .93], [.4, .42, .64], n);
+  amb = mix(amb, [1.02, .66, .46], dusk * .55);
+  const tint = wk === 'rain' ? [.74, .8, .94] : wk === 'dust' ? [1.06, .9, .72] : wk === 'heat' ? [1.08, .97, .84] : wk === 'moon' ? [1.05, 1.1, 1.3] : [1, 1, 1];
+  amb = amb.map((v, i) => v * (1 + (tint[i] - 1) * wa));
+  const sunK = (1 - n) * (wk === 'rain' ? 1 - .65 * wa : wk === 'dust' ? 1 - .45 * wa : 1);
+  return { n, dusk, wa, wk, amb, sunK, az: Math.sin(time * .012) * .9 };
+}
+/* --- the 3D bridge ----------------------------------------------------------------------------------------- */
 const R3 = { on: false, ok: false, tried: false, yaw: 0, yawT: 0, pitch: .92, dist: 24, distT: 24, dragged: false, panX: 0, panZ: 0, panXT: 0, panZT: 0, vx: 0, vy: 0 };
 const M4 = {
   mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; },
@@ -139,5 +210,4 @@ function r3Overlay(time) {
   ux.lineJoin = 'round';
   for (const f of floats) { const [px, py, w] = r3Project(f.x, .9 + (1 - Math.min(1, f.t)) * .4, f.y); if (w <= 0) continue; ux.globalAlpha = Math.min(1, f.t * 3); ux.font = '700 ' + Math.max(9, f.z * c * (1 + .55 * Math.max(0, 1 - (f.a || 0) / .16))) + 'px "Barlow Semi Condensed", sans-serif'; ux.lineWidth = Math.max(2, c * .08); ux.strokeStyle = '#2a1c22'; ux.strokeText(f.s, px, py); ux.fillStyle = f.c; ux.fillText(f.s, px, py); }
   ux.globalAlpha = 1;
-  const keep = cx; cx = ux; drawHUD(); cx = keep;
 }

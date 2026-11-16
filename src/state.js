@@ -3,13 +3,13 @@
    State and saving
    ========================================================= */
 /* Graphics options. A preset fills in the detail settings; changing any detail makes the preset "custom".
-   light: the WebGL lighting engine; shadow 0-3; bloom (glow) 0-3; res: render scale; parts: particle budget 0-3;
+   shadow 0-3; bloom (glow) 0-3; res: render scale; parts: particle budget 0-3;
    weather: rain/dust/heat particles; shake: screen shake; fps: frame cap. Look, grain, scanlines are style, not quality. */
 const GX_PRESETS = {
-  low:   { light: 0, shadow: 0, bloom: 0, res: .75, parts: 0, weather: 1, shake: 1, fps: 30 },
-  med:   { light: 1, shadow: 1, bloom: 1, res: .75, parts: 1, weather: 1, shake: 1, fps: 60 },
-  high:  { light: 1, shadow: 2, bloom: 2, res: 1,   parts: 2, weather: 1, shake: 1, fps: 60 },
-  ultra: { light: 1, shadow: 3, bloom: 3, res: 1.5, parts: 3, weather: 1, shake: 1, fps: 60 },
+  low:   { shadow: 0, bloom: 0, res: .6, parts: 0, weather: 1, shake: 1, fps: 30 },
+  med:   { shadow: 1, bloom: 1, res: .75, parts: 1, weather: 1, shake: 1, fps: 60 },
+  high:  { shadow: 2, bloom: 2, res: 1,   parts: 2, weather: 1, shake: 1, fps: 60 },
+  ultra: { shadow: 3, bloom: 3, res: 1.5, parts: 3, weather: 1, shake: 1, fps: 60 },
 };
 /* Colour looks: graded in the lighting engine's final pass, or with a CSS filter in simple mode. */
 const LOOKS = {
@@ -118,8 +118,21 @@ function load() {
     adopt(o);
   } catch (e) {}
 }
-function adopt(o) {
+/* A fresh start. When a release changes progress too much to carry saves over fairly, raise WIPE_V to that release's
+   save version: older saves then start a new empire. Kept: deeds and perks plus WIPE_GIFT bonus deeds as a head start,
+   badges, lifetime stats, charters signed, settings and sound. The old save is copied to a backup key first. */
+const WIPE_V = 0, WIPE_GIFT = 10;
+function freshStart(o) {
+  try { localStorage.setItem(KEY + '-before-v' + (o.v || 0), JSON.stringify(o)); } catch (e) {}
+  const n = fresh(), gift = WIPE_GIFT;
+  n.deeds = (o.deeds || 0) + gift; n.perks = o.perks || {}; n.badges = o.badges || {}; n.charters = o.charters || 0; n.goalsDone = o.goalsDone || 0;
+  n.stats = Object.assign(n.stats, o.stats || {}); n.opt = Object.assign(n.opt, o.opt || {}); n.sound = o.sound !== undefined ? o.sound : n.sound; if (o.tut) n.tut = o.tut;
+  n.movedNote = 'Copper Gulch was rebuilt, so your empire starts fresh. You keep your badges, perks and ' + (o.deeds || 0) + ' deeds, plus ' + gift + ' more as a thank-you: every town works faster for them.';
+  return n;
+}
+function adopt(o, wipeV = WIPE_V) {
   if (!o || typeof o !== 'object' || !o.res) return false;
+  if (wipeV && (o.v || 0) < wipeV) o = freshStart(o);
   if (!o.v) { (o.towers || []).forEach(t => { t.r += 2; }); o.v = 2; } // v1 maps had a two-row yard
   if (o.v < 3) { if (o.goal >= 7) o.goal++; o.v = 3; } // v3 added the vault goal at position 7
   if (o.v < 4) { o.town = 'gulch'; o.towns = {}; o.v = 4; } // v4: the old save becomes the first town of an empire
@@ -131,6 +144,7 @@ function adopt(o) {
     if (o.town && o.town !== 'gulch' && o.towns && o.towns.gulch) { o.towns.gulch.goal = o.goal || 0; o.towns.gulch.gq = null; o.goal = 0; o.gq = null; }
     o.eg = 0; o.v = 6;
   }
+  if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
   for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt']) S[k] = Object.assign(fresh()[k], o[k]);

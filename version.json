@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-24",
-  "notes": "Drag the map to pan (two fingers pinch and twist). Selling a tower now takes two taps. The boss health bar is back, for every boss. Choosing a plot shows it glowing with a preview of the tower. The Works tab starts with your buildings; foreman settings have their own panel."
+  "version": "2026.11.15-25",
+  "notes": "The game is now 3D only, and its code has been tidied. Low quality is a lighter 3D view for slower phones."
 }

@@ -65,13 +65,14 @@ function frame(now) {
   }
   // the 30 fps setting keeps the simulation running every frame but draws every other one or so (saves battery)
   const cap = GX().fps === 30 ? 1 / 31 : 0; drawAcc += dt;
-  if (drawAcc >= cap) { if (R3.on) r3Render(playT); else draw(playT); drawAcc = cap ? drawAcc % cap : 0; fpsN++; }
+  if (drawAcc >= cap) { if (R3.on) r3Render(playT); drawAcc = cap ? drawAcc % cap : 0; fpsN++; }
   tickHud(Math.min(dt, .1));
-  fpsT += dt; if (fpsT >= .5) { const el = $('fpsMeter'); if (el) { el.hidden = !GX().fpsShow; el.textContent = Math.round(fpsN / fpsT) + ' fps' + (GLX.on ? ' · ' + (GLX.nLights || 0) + ' lights' : ''); } fpsT = 0; fpsN = 0; }
+  fpsT += dt; if (fpsT >= .5) { const el = $('fpsMeter'); if (el) { el.hidden = !GX().fpsShow; el.textContent = Math.round(fpsN / fpsT) + ' fps'; } fpsT = 0; fpsN = 0; }
   // if lighting makes a device struggle (well under 30 frames a second for several seconds), drop to simple graphics
-  if ((GLX.on || R3.on) && !GLX.noAuto && !document.hidden && dt > 0 && dt < .5) {
-    GLX.frames++; if (dt > 1 / 24) GLX.slow++;
-    if (GLX.frames >= 240) { if (GLX.slow > 170 && R3.on) { setGx('view', '2d'); say('Switched back to the 2D view to keep the game smooth. You can try 3D again from the gear button.'); } else if (GLX.slow > 170) { setGx('preset', GX().preset === 'ultra' || GX().preset === 'high' ? 'med' : 'low'); say('Lowered the graphics quality to keep the game smooth. Change it any time with the gear button on the map.'); } GLX.frames = GLX.slow = 0; }
+  // a device that struggles (well under 30 frames a second for several seconds) gets a lower graphics preset
+  if (R3.on && !PERF.noAuto && !document.hidden && dt > 0 && dt < .5) {
+    PERF.frames++; if (dt > 1 / 24) PERF.slow++;
+    if (PERF.frames >= 240) { if (PERF.slow > 170 && GX().preset !== 'low') { setGx('preset', GX().preset === 'ultra' || GX().preset === 'high' ? 'med' : 'low'); say('Lowered the graphics quality to keep the game smooth. Change it any time with the gear button.'); } PERF.frames = PERF.slow = 0; }
   }
   uiT -= dt; if (uiT <= 0) { uiT = .2; refresh(); }
   if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('show');
@@ -99,8 +100,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-24'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Drag the map to pan (two fingers pinch and twist). Selling a tower now takes two taps. The boss health bar is back, for every boss. Choosing a plot shows it glowing with a preview of the tower. The Works tab starts with your buildings; foreman settings have their own panel.';
+const GAME_VERSION = '2026.11.15-25'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'The game is now 3D only, and its code has been tidied. Low quality is a lighter 3D view for slower phones.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
@@ -156,7 +157,7 @@ function saveFile() {
 }
 function loadFile() {
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
-  inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { if (!adopt(JSON.parse(t))) throw 0; bakeGround(); wipeField(); W.countdown = 15; applyMotion(); applyGfx(); save(); say('Save loaded from file.'); }).catch(() => say('That file is not a Copper Gulch save.')); };
+  inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { if (!adopt(JSON.parse(t))) throw 0; wipeField(); W.countdown = 15; applyMotion(); applyGfx(); save(); say('Save loaded from file.'); }).catch(() => say('That file is not a Copper Gulch save.')); };
   inp.click();
 }
 const hot = window.claude && window.claude.hot;

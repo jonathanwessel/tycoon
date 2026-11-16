@@ -19,7 +19,7 @@ const out = path.resolve(__dirname, '..', 'icons');
     S.coins = 1e9; for (const k in S.res) add(k, 5000); BUILD.forEach((b, i) => { S[b.kind][b.def.id] = [12, 30, 60][i % 3]; });
     const [vx, vy] = VAULT; buildTower('tesla', vx - 1, vy - 2); buildTower('frost', vx + 1, vy - 2);
     for (const t of S.towers) { t.lvl = 6; t.born = 0; t.aim = Math.PI * .8; }
-    S.opt.gx.look = 'natural'; setGx('preset', 'high'); setGx('view', '3d'); await wait(800);
+    S.opt.gx.look = 'natural'; setGx('preset', 'high'); for (let i = 0; i < 40 && !R3.on; i++) await wait(100); await wait(400);
     setPaused(true); FXS.night = .92; FXS.flash = 0; FXS.quake = 0; foes = []; floats = []; parts = []; FXS.banner = null;
     R3.look = [vx + .5, vy - .3]; R3.pitch = .58; R3.yaw = R3.yawT = -.35; R3.dist = R3.distT = 6.4;
     const shot = () => { R3.ux.canvas.hidden = true; r3Render(30); return R3.canvas; };

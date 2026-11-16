@@ -114,8 +114,7 @@ export function buildWorld(ctx) {
     const wg = strip(river, .44, -.14);
     water = new THREE.Mesh(wg, waterMaterial()); water.receiveShadow = true; water.renderOrder = 1; world.add(water);
   }
-  const clouds = [];
-  world.userData = { height, water, clouds };
+  world.userData = { height, water };
   return world;
 }
 

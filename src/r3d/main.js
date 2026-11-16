@@ -1,7 +1,7 @@
 /* Copper Gulch 3D: the town drawn with three.js. The game's simulation (plain scripts sharing global state: S, foes,
    shots, parts, fx, SLOT...) runs unchanged; each frame this module mirrors that state into a scene of models built
    in code, lights it (sun and moon with soft shadows, sky light, up to 8 lamps and fires), and finishes it with bloom
-   and the chosen colour look. The classic bridge in src/render3d.js owns the camera, picking and the flat overlay. */
+   and the chosen colour look. The bridge in src/view.js owns the camera, picking and the flat overlay. */
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -398,8 +398,6 @@ function render(time, cam) {
   const bands = Math.floor(lv('vault') / 4);
   if (bands !== V.vaultBands) { if (V.vault) V.dyn.remove(V.vault); V.vault = makeVault(bands); V.vault.position.set(VAULT[0] + .5, ground(VAULT[0] + .5, VAULT[1] + .5), VAULT[1] + .5); V.dyn.add(V.vault); V.vaultBands = bands; }
   V.vault.scale.setScalar(FXS.flash > 0 ? 1 + Math.sin(time * 90) * .03 : 1);
-  // clouds drift their shadows over the town
-  (V.world.userData.clouds || []).forEach((c, i) => { const cl = FXS.clouds && FXS.clouds[i]; if (cl) c.position.set(cl.x, 9, cl.y); });
   const w = V.world.userData.water; if (w) w.material.map.offset.x = -time * .35;
   V.composer.render();
 }
@@ -417,4 +415,4 @@ function info() { const i = V.r.info; return { calls: i.render.calls, tris: i.re
 
 window.R3D = { setup, resize, render, prebuild, info, V };
 // the game may already want the 3D view: switch it on now that the engine has loaded
-try { if (typeof S !== 'undefined' && S && GX().view === '3d') applyGfx(); } catch (e) { /* the game has not started yet; it will ask when it does */ }
+try { if (typeof S !== 'undefined' && S) { applyGfx(); fit(); } } catch (e) { /* the game has not started yet; it will ask when it does */ }

@@ -13,8 +13,7 @@ function mk(name, w, h, fn) {
   const op = (x, y) => x >= 0 && y >= 0 && x < w && y < h && o[(y * w + x) * 4 + 3] > 0;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!op(x, y) && (op(x - 1, y) || op(x + 1, y) || op(x, y - 1) || op(x, y + 1))) { const i = (y * w + x) * 4; a[i] = 42; a[i + 1] = 28; a[i + 2] = 34; a[i + 3] = 255; }
   g.putImageData(d, 0, 0);
-  const tint = (col, mode) => { const s = document.createElement('canvas'); s.width = w; s.height = h; const sg = s.getContext('2d'); sg.drawImage(cvs, 0, 0); sg.globalCompositeOperation = mode; sg.fillStyle = col; sg.fillRect(0, 0, w, h); return s; };
-  SPR[name] = cvs; SPR[name + '_w'] = tint('#fff', 'source-in'); SPR[name + '_i'] = tint('rgba(150,225,255,.6)', 'source-atop'); SPR[name + '_p'] = tint('rgba(130,220,70,.5)', 'source-atop');
+  SPR[name] = cvs;
 }
 function iconURL(name) {
   if (!URLS[name]) { const im = SPR[name], c = document.createElement('canvas'); c.width = im.width * 4; c.height = im.height * 4; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, c.width, c.height); URLS[name] = c.toDataURL(); }

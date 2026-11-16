@@ -12,14 +12,14 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await p.goto(srv.url); await p.waitForTimeout(1500);
   const r = await p.evaluate(async town => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    GLX.noAuto = true; S.coins = 1e9; S.best = 40;
+    PERF.noAuto = true; S.coins = 1e9; S.best = 40;
     if (town !== 'gulch') { unlockTown('ridge'); if (town === 'falls') { S.best = 40; withTown('ridge', () => { S.best = 40; }); unlockTown('falls'); } goTown(town); await wait(300); }
     for (const k in S.res) add(k, 5000);
     const L = [12, 30, 60, 120]; BUILD.forEach((b, i) => { S[b.kind][b.def.id] = L[i % 4]; }); for (const b of BUILD.slice(0, 5)) hire(b.def.id);
     let i = 0; for (const t of Object.keys(TOWERS)) { buildTower(t, PLOTS[i].x, PLOTS[i].y); i++; }
     const bk = S.towers.find(t => t.type === 'barracks'); if (bk) { for (const k of ['time', 'count', 'power']) for (let i = 0; i < 5; i++) upgradeTrack(bk, k); rebuildHelipad(bk); }
     S.towers.forEach((t, j) => { for (let k = 0; k < 4; k++) upgradeTower(t); branchTower(t, j % 2 ? 'b' : 'a'); });
-    setGx('preset', 'high'); setGx('view', '3d'); refresh(); await wait(1500);
+    setGx('preset', 'high'); for (let i = 0; i < 60 && !R3.on; i++) await wait(100); refresh(); await wait(1500);
     return { on: R3.on };
   }, town);
   if (!r.on) { console.log('3D did not start', errs); process.exit(1); }
@@ -42,9 +42,7 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('missions');
   await p.evaluate(async () => { closeSheet(); for (const t of S.towers) if (t.c > 0) { sel = { t }; break; } refresh(); await new Promise(r => setTimeout(r, 800)); });
   await shot('card');
-  await p.evaluate(async () => { sel = null; setGx('view', '2d'); refresh(); await new Promise(r => setTimeout(r, 800)); });
-  await shot('2d');
-  await p.evaluate(async () => { setGx('view', '3d'); S.wave = 20; foes = []; W.queue = []; W.active = false; planWave(); startWave(); goTab('works'); await new Promise(r => setTimeout(r, 4000)); });
+  await p.evaluate(async () => { sel = null; S.wave = 20; foes = []; W.queue = []; W.active = false; planWave(); startWave(); goTab('works'); await new Promise(r => setTimeout(r, 4000)); });
   await shot('works');
   await p.evaluate(async () => { closeSheet(); const pl = PLOTS.find(q => !S.towers.some(t => t.c === q.x && t.r === q.y)); sel = { plot: [pl.x, pl.y] }; GHOST.type = 'cannon'; refresh(); await new Promise(r => setTimeout(r, 800)); });
   await shot('select');

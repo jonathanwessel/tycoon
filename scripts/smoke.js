@@ -18,15 +18,17 @@ const shots = process.argv[2];
     p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
     await p.goto(URL);
-    await p.waitForTimeout(500);
-    // the map's render must match its size on screen
-    if (!(await p.evaluate(() => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && cell > 0 && Math.abs(cell * COLS - cv.width) < 1))) errs.push('map render size does not match the map on screen');
+    // the 3D view starts once its module has loaded
+    const on3d = await p.evaluate(async () => { for (let i = 0; i < 60 && !R3.on; i++) await new Promise(r => setTimeout(r, 100)); PERF.noAuto = true; return R3.on; });
+    if (!on3d) { console.log(name, 'FAIL: the 3D view did not start'); failed = true; await p.close(); continue; }
+    // the map layer and the 3D canvas match the screen
+    if (!(await p.evaluate(() => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && Math.abs(cv.height - Math.round(cv.clientHeight * renderScale())) <= 2 && R3.canvas.width === cv.width && cell > 0))) errs.push('map render size does not match the map on screen');
     const r = await p.evaluate(() => {
       // measured on every tap: the layout can still settle after load (landscape phones especially)
-      const at = (c, r, rect = document.getElementById('cv').getBoundingClientRect()) => ({ clientX: rect.left + (c + .5) * rect.width / COLS, clientY: rect.top + (r + .5) * rect.height / ROWS, bubbles: true });
+      const at = (c, r) => { r3Camera(); const rect = cv.getBoundingClientRect(), [px, py] = r3Project(c + .5, r < YARD ? .22 : 0, r + .5), k = rect.width / R3.canvas.width; return { clientX: rect.left + px * k, clientY: rect.top + py * k, bubbles: true, pointerId: 1 }; };
       window.tap = (c, r) => document.getElementById('cv').dispatchEvent(new MouseEvent('click', at(c, r)));
       const cvEl = document.getElementById('cv');
-      cvEl.dispatchEvent(new PointerEvent('pointerdown', at(0, 0))); cvEl.dispatchEvent(new PointerEvent('pointerup', at(0, 0)));
+      cvEl.dispatchEvent(new PointerEvent('pointerdown', at(.6, .8))); cvEl.dispatchEvent(new PointerEvent('pointerup', at(.6, .8)));
       const tapped = S.res.wood > 0;
       S.coins = 1e9; for (const k in S.res) add(k, 5000);
       for (const b of BUILD) S[b.kind][b.def.id] = 12;
@@ -90,7 +92,7 @@ const shots = process.argv[2];
       openSettings('gfx'); const btn = t => [...document.querySelectorAll('.setrow button')].find(b => b.textContent === t);
       let gfx = true;
       // each preset must also size the render to the map (catches a map drawn at the wrong scale, which throws no error)
-      const sized = () => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && (!GLX.on || GLX.canvas.width === cv.width);
+      const sized = () => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && R3.canvas.width === cv.width;
       for (const [label, key] of [['Low', 'low'], ['Medium', 'med'], ['Ultra', 'ultra'], ['High', 'high']]) { btn(label).click(); await wait(150); if (GX().preset !== key || !sized()) gfx = false; }
       for (const k in LOOKS) { btn(LOOKS[k].n).click(); await wait(120); if (GX().look !== k) gfx = false; }
       btn('Natural').click(); btn('Soft').click(); if (GX().preset !== 'custom') gfx = false; btn('High').click();
@@ -118,16 +120,13 @@ const shots = process.argv[2];
     if (ui.badges < 18) errs.push('expected 18 badges, got ' + ui.badges);
     if (!ui.got) errs.push('no badges earned after a war wagon');
     for (const k of ['calm', 'held', 'frozen', 'resumed', 'menu', 'foreman', 'full', 'gfx', 'coal']) if (!ui[k]) errs.push('settings/controls check failed: ' + k);
-    // the lighting engine: renders frames with lights, and simple mode still works (no WebGL here is a warning, not a failure)
+    // lights: a wave at dusk gathers lamps and fires, and the 3D frame draws without WebGL errors
     const lit = await p.evaluate(async () => {
-      const wait = ms => new Promise(r => setTimeout(r, ms));
-      GLX.noAuto = true; setGx('preset', 'high'); if (!GLX.on) return { on: false };
-      S.wave = 9; planWave(); startWave(); await wait(600); const lights = GLX.nLights, glErr = GLX.gl.getError();
-      setGx('light', 0); await wait(200); const simpleOk = !GLX.on; setGx('preset', 'high'); foes = []; W.queue = [];
-      return { on: true, lights, glErr, simpleOk };
+      const wait = ms => new Promise(r => setTimeout(r, ms)); setGx('preset', 'high');
+      S.wave = 9; planWave(); startWave(); await wait(600); const lights = gatherLights(5).length, err = R3D.info().err; foes = []; W.queue = [];
+      return { lights, err };
     });
-    if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');
-    else { if (!(lit.lights > 0)) errs.push('lighting engine gathered no lights'); if (lit.glErr) errs.push('WebGL error ' + lit.glErr); if (!lit.simpleOk) errs.push('simple graphics did not switch off lighting'); }
+    if (!(lit.lights > 0)) errs.push('no lights gathered'); if (lit.err) errs.push('WebGL error ' + lit.err);
     // poison and tar: a Still makes clouds, Frostbite chills and hurts, the Tar Pit pours on the road
     const tox = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -171,16 +170,16 @@ const shots = process.argv[2];
     const v3 = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
       for (let i = 0; i < 40 && !window.R3D; i++) await wait(100); // the 3D engine module loads after the game
-      setGx('view', '3d'); if (!R3.on) { setGx('view', '2d'); return { on: false }; }
+      if (!R3.on) return { on: false };
       await wait(300); const st = document.querySelector('.stage').getBoundingClientRect(), gr = R3.canvas.getBoundingClientRect(), fills = docked() || (Math.abs(gr.width - st.width) < 2 && Math.abs(gr.height - st.height) < 2);
       S.wave = 9; planWave(); startWave(); await wait(800);
       const err = R3D.info().err, built = R3D.prebuild(), r = cv.getBoundingClientRect(), [px, py] = r3Project(5.5, .1, 10.5), s = cv.clientWidth / R3.canvas.width;
       const g = r3Pick({ clientX: r.left + cv.clientLeft + px * s, clientY: r.top + cv.clientTop + py * s });
-      foes = []; W.queue = []; W.active = false; setGx('view', '2d');
-      return { on: true, err, fills, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad, back2d: !R3.on };
+      foes = []; W.queue = []; W.active = false;
+      return { on: true, err, fills, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad };
     });
     if (!v3.on) console.log(name, 'warning: no WebGL2 in this browser, 3D view not tested');
-    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.fills || !v3.back2d) errs.push('3D check failed: ' + JSON.stringify(v3));
+    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.fills) errs.push('3D check failed: ' + JSON.stringify(v3));
     // the empire: open Iron Ridge, play a wave there with its boss, ship goods, look at the Empire tab, come home
     const emp = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

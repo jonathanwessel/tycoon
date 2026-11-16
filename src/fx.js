@@ -18,7 +18,11 @@ function flyPx(icon, x0, y0, target) {
   const a = im.animate([{ transform: 'translate(0,0) scale(1.2)' }, { transform: `translate(${dx * .35}px,${dy * .35 - 46}px) scale(1.5)`, offset: .4 }, { transform: `translate(${dx}px,${dy}px) scale(.8)` }], { duration: 620, easing: 'ease-in' });
   const end = () => { if (im.isConnected) { im.remove(); flyN--; bump(target); } }; a.onfinish = end; a.oncancel = end;
 }
-function fly(icon, gx, gy, target) { const r = cv.getBoundingClientRect(); if (r.width) flyPx(icon, r.left + gx / COLS * r.width, r.top + gy / ROWS * r.height, target); }
+function fly(icon, gx, gy, target) {
+  if (typeof R3 === 'undefined' || !R3.on || !R3.cam) return; // gx, gy: map cells (fractions allowed)
+  const [px, py, w] = r3Project(gx, .5, gy); if (w <= 0) return; const r = R3.canvas.getBoundingClientRect(), s = r.width / R3.canvas.width;
+  flyPx(icon, r.left + px * s, r.top + py * s, target);
+}
 function flyFrom(icon, from, target) { const r = from.getBoundingClientRect(); if (r.width) flyPx(icon, r.left + r.width / 2, r.top + r.height / 2, target); }
 const RATE = {}, lastRes = {}, HIST = {}; let rateT = 0, histT = 0;
 function maker(k) {
@@ -46,8 +50,6 @@ function cosmetics(dt, time) {
   for (const t of S.towers) if (t.born > 0) t.born = Math.max(0, t.born - dt);
   if (!REDUCED && weeds.length < 2 && Math.random() < dt / 14) weeds.push({ x: -1, y: YARD + .5 + Math.random() * (ROWS - YARD - 1.5), vx: 1.1 + Math.random() * .9, a: 0, ph: Math.random() * 6 });
   for (const w of weeds) { w.x += w.vx * dt; w.a += w.vx * dt * 2.4; } weeds = weeds.filter(w => w.x < COLS + 1);
-  if (!FXS.clouds) FXS.clouds = [0, 1, 2].map(i => ({ x: Math.random() * COLS, y: Math.random() * ROWS, r: 2.2 + Math.random() * 1.6, v: .12 + Math.random() * .1 }));
-  for (const cl of FXS.clouds) { cl.x += cl.v * dt; if (cl.x - cl.r > COLS) { cl.x = -cl.r; cl.y = Math.random() * ROWS; } }
   FXS.night += ((W.active ? 1 : 0) - FXS.night) * Math.min(1, dt * 1.2);
   if (FXS.banner && (FXS.banner.t -= dt) <= 0) FXS.banner = null;
   for (const p of parts) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; }
@@ -92,8 +94,6 @@ function cosmetics(dt, time) {
   // coins bounce out of fallen raiders; vultures circle; idle towers look around; a raging war wagon smokes
   for (const d of drops) { d.t -= dt; d.vz -= 14 * dt; d.z += d.vz * dt; d.x += d.vx * dt; if (d.z < 0) { d.z = 0; d.vz = Math.abs(d.vz) * .45; d.vx *= .6; } }
   drops = drops.filter(d => d.t > 0);
-  if (!FXS.birds) FXS.birds = [0, 1].map(i => ({ cx: 3 + Math.random() * 6, cy: YARD + 2 + Math.random() * 4, r: 1.6 + Math.random(), a: Math.random() * 7, v: (.35 + Math.random() * .2) * (i ? -1 : 1) }));
-  for (const b of FXS.birds) { b.a += b.v * dt; b.cx += Math.sin(time * .05 + b.r) * dt * .2; }
   for (const t of S.towers) if (t.cd < -1.5 && !(t.jam > 0)) t.aim = (t.aim || 0) + Math.sin(time * .8 + t.c * 1.7) * dt * .7;
   for (const f of foes) if (f.rage && Math.random() < dt * 12) parts.push({ x: f.x + .5 - f.dir * .3, y: f.y + .1, vx: -f.dir * .4, vy: -.8, g: 0, t: .9, c: '#4a4450', s: .12, smoke: 1 });
   rateT += dt; if (rateT >= 1) { for (const k in ITEMS) { const r = (S.res[k] - (lastRes[k] === undefined ? S.res[k] : lastRes[k])) / rateT; RATE[k] = RATE[k] === undefined ? r : RATE[k] * .6 + r * .4; lastRes[k] = S.res[k]; } rateT = 0; }

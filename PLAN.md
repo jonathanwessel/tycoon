@@ -178,3 +178,14 @@ Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29
 6. [ ] Stock Exchange: shares in your towns.
 7. [ ] Policies and the Constitutional Convention (global prestige, paying Legacy).
 8. [ ] Thunder Mesa, the fourth town: oil and airships.
+
+## Revised roadmap (after the Barracks)
+
+- [x] Release A: drag to pan (pinch, twist), two-tap selling, boss bar and banners in the interface, clear plot selection with a ghost tower, a tidy Works tab.
+- [x] Release B: 3D only. `src/render2d.js`, `src/gl.js` and `src/render3d.js` became `src/view.js`; `src/ui.js` was split into `src/ui/`; dead 2D code was removed; presets are 3D presets; a controlled fresh start (`WIPE_V`, 10 bonus deeds) is ready but switched off.
+- [ ] Release C: tutorial.
+- [ ] Release D: the Capital with the Capitol: a global budget for foremen, the War Office (slow tower auto-upgrades) and the Academy (auto-research), plus auto-wave control per town. Uses the fresh start.
+- [ ] Release E: Economy and Defence tech trees (Influence).
+- [ ] Release F: Stock Exchange.
+- [ ] Release G: policies and the Constitutional Convention (Legacy).
+- [ ] Release H: Thunder Mesa.
