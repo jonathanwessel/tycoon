@@ -159,3 +159,11 @@ What changed:
 - Every Locomotive Works level adds 10% train capacity.
 
 Early pacing is unchanged (balance bot: wave 10 at about 6 min, first deed at 29-34 min, best wave about 50).
+
+## Poison, tar and Tesla combos
+
+- [x] Snake Oil Still (700 coins): lobs flasks that leave poison clouds; poison gets past shields; healers cure it. Paths: Plague Cloud (clouds twice as wide and long) or Spreading Fever (poison jumps to neighbours when a raider dies).
+- [x] Frost Lens third path, Frostbite: chilled raiders take damage over time.
+- [x] Tesla research: Conductive Fog (lightning arcs through a poison cloud) and Superconducting Ice (twice the reach, no power loss and two extra jumps across chilled raiders).
+- [x] Tar Pit power (from wave 8, 50 s cooldown): tar ahead of the thickest group slows raiders to 40% for 12 s; an explosion sets it alight.
+- [x] Raiders +1% health per wave from wave 13, capped at +15%. The balance bot still reaches wave 50, with the first deed at about 32 minutes.

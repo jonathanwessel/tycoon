@@ -2,10 +2,10 @@
 /* =========================================================
    Combat
    ========================================================= */
-let foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
+let clouds = [], tars = [], foes = [], shots = [], fx = [], parts = [], floats = [], workers = [], bombs = [], corpses = [], weeds = [], drops = [], sel = null;
 const FXS = { shake: {}, gold: {}, pop: {}, scorch: [], quake: 0, night: 0, banner: null, flash: 0, car: 9, lastCoin: 0, flow: {} };
 const W = { active: false, queue: [], next: null, ntype: 'mixed', type: 'mixed', shown: null, spawnT: 0, gap: .7, countdown: 30, spawned: 0, hpm: 1 };
-const foeHp = w => 10 * Math.pow(1.25, w - 1) * (1 + w * .05);
+const foeHp = w => 10 * Math.pow(1.25, w - 1) * (1 + w * .05) * (1 + Math.min(.15, Math.max(0, w - 12) * .01));
 const foeCoins = w => 2 * Math.pow(1.12, w - 1) * (1 + .2 * lv('bounty'));
 function planWave() {
   const w = S.wave; let type = 'mixed';
@@ -42,19 +42,30 @@ function spawnAt(type, from, back) {
   const hp = foeHp(S.wave) * FOES[type].hp * W.hpm * MAP.hp, d = Math.max(0, from.d - back), [x, y] = posAt(d, from.p);
   foes.push({ type, p: from.p, d, hp, max: hp, slow: 0, stun: 0, brit: 0, sh: FOES[type].shield || 0, x, y, dir: from.dir, flash: 0, num: 0, ht: 1.5 });
 }
+function poison(f, dps, t, o = {}) {
+  if (f.hp <= 0) return;
+  if (!f.psn || f.psn.t <= 0 || dps >= f.psn.dps) f.psn = { dps, t, spread: o.spread || (f.psn && f.psn.spread), ice: o.ice };
+  else f.psn.t = Math.max(f.psn.t, t);
+}
+/* Where a point is: inside a tar pit, or inside a poison cloud. */
+const inTar = (x, y) => tars.find(p => Math.hypot(p.x - x, p.y - y) <= p.r);
+const inCloud = (x, y) => clouds.find(c => Math.hypot(c.x - x, c.y - y) <= c.r);
 function hurt(f, dmg, o) {
   if (f.hp <= 0) return;
-  if (f.sh > 0 && !(o && o.pierce)) {
+  if (f.sh > 0 && !(o && (o.pierce || o.dot))) {
     if (o && o.splash) { f.sh = 0; } else { f.sh--; f.flash = .05; }
     for (let i = 0; i < 4; i++) parts.push({ x: f.x + .5 + f.dir * .2, y: f.y + .4, vx: (Math.random() - .5) * 3, vy: -1 - Math.random() * 2, g: 8, t: .3, c: P.steelL, s: .06 });
     if (f.sh <= 0) { floats.push({ x: f.x + .5, y: f.y, t: .8, s: 'Shield broken', c: P.steelL, z: .26 }); snd('clang', 1500, .06, 'square', .03, -900); }
     if (!(o && o.splash)) return;
   }
   if (f.brit > 0) dmg *= 1.3;
-  f.hp -= dmg; f.flash = .09;
-  if (f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .35; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, dmg)), c: '#fff', z: .26 }); }
+  f.hp -= dmg; if (!(o && o.dot)) f.flash = .09;
+  if (o && o.dot) { f.dotN = (f.dotN || 0) + dmg; dmg = 0; } // damage over time adds up and shows now and then, not every tick
+  if (f.dotN > 0 && f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .5; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, f.dotN)), c: '#a8ff7a', z: .24 }); f.dotN = 0; }
+  if (dmg > 0 && f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .35; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, dmg)), c: '#fff', z: .26 }); }
   if (f.hp <= 0) {
     const D = FOES[f.type], c = foeCoins(S.wave) * D.rw * MAP.coin; earn(c); S.stats.kills++;
+    if (f.psn && f.psn.spread && f.psn.t > 0) for (const o of foes) if (o !== f && o.hp > 0 && Math.hypot(o.x - f.x, o.y - f.y) < 1.3) poison(o, f.psn.dps, 4, { spread: 1 });
     if (f.type === 'boss') {
       const bonus = Math.ceil(foeCoins(S.wave) * 15 * MAP.coin); earn(bonus); S.stats.bosses = (S.stats.bosses || 0) + 1;
       fx.push({ k: 'boom', x: f.x, y: f.y, r: 2.2, t: .6, d: .6 }); FXS.quake = 1; FXS.flash = .15; snd('kaboom', 60, .7, 'sawtooth', .1, -30);
@@ -80,6 +91,7 @@ function towerStats(t) {
     dmg: d.dmg * (b.dmg || 1) * Math.pow(1.45, t.lvl) * dmgMult() * wd, range: (d.range + (b.range || 0) + Math.min(1, t.lvl * .06)) * wr, rate: d.rate * (b.rate || 1),
     splash: b.splash || d.splash || 0, chain: b.chain || d.chain || 0, falloff: b.falloff || .7, slow: d.slow || 0,
     cone: b.cone, freeze: b.freeze, brittle: b.brittle, stun: b.stun, pierce: b.pierce,
+    poison: d.poison, cloud: b.cloud || 1, spread: b.spread, frostbite: b.frostbite,
   };
 }
 const towerCount = type => S.towers.filter(t => t.type === type).length;
@@ -143,7 +155,10 @@ function combat(dt) {
   for (const f of foes) {
     const D = FOES[f.type];
     f.slow = Math.max(0, f.slow - dt); f.stun = Math.max(0, f.stun - dt); f.brit = Math.max(0, f.brit - dt); f.flash -= dt; f.num -= dt;
-    if (f.stun <= 0) f.d += D.spd * (f.slow > 0 ? .55 : 1) * (f.rage ? 1.6 : 1) * wxSpd() * dt;
+    const tar = inTar(f.x, f.y), slowK = Math.max(.25, (f.slow > 0 ? .55 : 1) * (tar && !D.boat && f.type !== 'boat' ? .4 : 1));
+    if (f.stun <= 0) f.d += D.spd * slowK * (f.rage ? 1.6 : 1) * wxSpd() * dt;
+    if (tar && tar.burn > 0) hurt(f, tar.dps * dt, { dot: 1 }); // burning tar
+    if (f.psn && f.psn.t > 0) { f.psn.t -= dt; hurt(f, f.psn.dps * dt, { dot: 1 }); }
     if (f.type === 'boss' && f.hp > 0) {
       if (!f.ph1 && f.hp <= f.max * .5) {
         f.ph1 = 1; spawnAt('brute', f, .5); spawnAt('brute', f, 1); FXS.quake = Math.max(FXS.quake, .4);
@@ -154,7 +169,7 @@ function combat(dt) {
     const [nx, ny] = posAt(f.d, f.p); if (Math.abs(nx - f.x) > .001) f.dir = nx > f.x ? 1 : -1; f.x = nx; f.y = ny;
     if (D.heal && (f.ht -= dt) <= 0) {
       f.ht = 2.5; let any = false;
-      for (const o of foes) if (o !== f && o.hp > 0 && o.hp < o.max && Math.hypot(o.x - f.x, o.y - f.y) < 1.6) { o.hp = Math.min(o.max, o.hp + o.max * .15); any = true; parts.push({ x: o.x + .5, y: o.y + .1, vx: 0, vy: -1, g: 0, t: .6, c: P.grnL, s: .1, plus: 1 }); }
+      for (const o of foes) if (o !== f && o.hp > 0 && o.hp < o.max && Math.hypot(o.x - f.x, o.y - f.y) < 1.6) { o.hp = Math.min(o.max, o.hp + o.max * .15); o.psn = null; any = true; parts.push({ x: o.x + .5, y: o.y + .1, vx: 0, vy: -1, g: 0, t: .6, c: P.grnL, s: .1, plus: 1 }); }
       if (any) fx.push({ k: 'ring', x: f.x, y: f.y, r: 1.6, t: .35, c: P.grnL });
     }
     if (D.sapper) {
@@ -174,19 +189,28 @@ function combat(dt) {
     t.cd = 1 / st.rate; t.aim = Math.atan2(best.y - t.r, best.x - t.c); t.kick = .12;
     if (st.slow) {
       t.pulse = (t.pulse || 0) + 1; const frz = st.freeze && t.pulse % 3 === 0;
-      for (const f of foes) if (f.hp > 0 && Math.hypot(f.x - t.c, f.y - t.r) <= st.range) { f.slow = st.slow; if (st.brittle) f.brit = st.slow + .5; if (frz) { f.stun = f.type === 'boss' ? .4 : 1.1; f.ice = 1; } hurt(f, st.dmg); }
+      for (const f of foes) if (f.hp > 0 && Math.hypot(f.x - t.c, f.y - t.r) <= st.range) { if (st.frostbite) poison(f, st.dmg * 1.4, 2.5, { ice: 1 }); f.slow = st.slow; if (st.brittle) f.brit = st.slow + .5; if (frz) { f.stun = f.type === 'boss' ? .4 : 1.1; f.ice = 1; } hurt(f, st.dmg); }
       fx.push({ k: 'ring', x: t.c, y: t.r, r: st.range, t: .35, c: frz ? '#ffffff' : st.brittle ? '#c7a0ff' : '#8fe8ff' });
       for (let i = 0; i < (frz ? 16 : 8); i++) { const a = Math.random() * 7, r = Math.random() * st.range; parts.push({ x: t.c + .5 + Math.cos(a) * r, y: t.r + .5 + Math.sin(a) * r, vx: 0, vy: .5, g: 0, t: .6, c: '#fff', s: .05 }); }
       snd('frost', frz ? 1600 : 1200, .08, 'sine', .03, -500);
+    } else if (st.poison) {
+      const q0 = Math.hypot(best.x - t.c, best.y - t.r) || 1;
+      shots.push({ x: t.c, y: t.r - .2, f: best, dmg: st.dmg, q0, ang: t.aim, kind: 'flask', spd: 6, cloud: st.cloud, spread: st.spread });
+      snd('glug', 320, .1, 'triangle', .04, 120);
     } else if (st.chain) {
       let cur = best, dm = st.dmg, px = t.c, py = t.r - .3; const hit = new Set();
-      for (let j = 0; j <= st.chain && cur; j++) {
+      const extra = lv('sice') ? 2 : 0; let jumps = st.chain + extra;
+      for (let j = 0; j <= jumps && cur; j++) {
         hit.add(cur); const pts = [[px, py]]; for (let i = 1; i < 4; i++) pts.push([px + (cur.x - px) * i / 4 + (Math.random() - .5) * .3, py + (cur.y - py) * i / 4 + (Math.random() - .5) * .3]); pts.push([cur.x, cur.y]);
         fx.push({ k: 'bolt', pts, t: .16, c: st.stun ? '#ff8fb0' : '#f2d04a' }); hurt(cur, dm);
         if (st.stun && cur.hp > 0) { cur.stun = Math.max(cur.stun, cur.type === 'boss' ? .5 : 1); cur.ice = 0; }
-        dm *= st.falloff; px = cur.x; py = cur.y;
+        // Conductive Fog: the bolt arcs through everyone in the poison cloud it struck
+        const cl = lv('fog') && inCloud(cur.x, cur.y);
+        if (cl) { for (const f of foes) if (f.hp > 0 && !hit.has(f) && Math.hypot(f.x - cl.x, f.y - cl.y) <= cl.r) { hit.add(f); fx.push({ k: 'bolt', pts: [[cur.x, cur.y], [(cur.x + f.x) / 2 + (Math.random() - .5) * .3, (cur.y + f.y) / 2 + (Math.random() - .5) * .3], [f.x, f.y]], t: .16, c: '#9dff7a' }); hurt(f, dm * .8); } cl.zap = .25; }
+        const iced = f => f.slow > 0 || (f.stun > 0 && f.ice);
+        if (!(lv('sice') && iced(cur))) dm *= st.falloff; px = cur.x; py = cur.y;
         let nx = null, nd = 1.7;
-        for (const f of foes) if (f.hp > 0 && !hit.has(f)) { const q = Math.hypot(f.x - px, f.y - py); if (q < nd) { nd = q; nx = f; } }
+        for (const f of foes) if (f.hp > 0 && !hit.has(f)) { const q = Math.hypot(f.x - px, f.y - py), reach = lv('sice') && iced(f) ? 3.4 : 1.7; if (q < reach && (!nx || q < nd)) { nd = q; nx = f; } }
         cur = nx;
       }
       snd('zap', 900, .1, 'sawtooth', .03, -700);
@@ -207,7 +231,11 @@ function combat(dt) {
     const dx = s.f.x - s.x, dy = s.f.y - s.y, q = Math.hypot(dx, dy), step = s.spd * dt; s.q = q;
     if (q <= step) {
       s.done = true;
-      if (s.splash) {
+      if (s.kind === 'flask') {
+        const r = .9 * (s.cloud || 1); clouds.push({ x: s.f.x, y: s.f.y, r, t: 3 * (s.cloud || 1), t0: 3 * (s.cloud || 1), dps: s.dmg, spread: s.spread });
+        poison(s.f, s.dmg, 4, { spread: s.spread });
+        for (let i = 0; i < 8; i++) parts.push({ x: s.f.x + .5 + (Math.random() - .5) * r, y: s.f.y + .5, vx: (Math.random() - .5), vy: -.6 - Math.random() * .6, g: 0, t: .8, c: '#8fd14f', s: .1, smoke: 1 });
+      } else if (s.splash) {
         for (const f of foes) if (Math.hypot(f.x - s.f.x, f.y - s.f.y) <= s.splash) hurt(f, s.dmg, { splash: 1 });
         fx.push({ k: 'boom', x: s.f.x, y: s.f.y, r: s.splash, t: .3 });
         for (let i = 0; i < 10; i++) parts.push({ x: s.f.x + .5, y: s.f.y + .5, vx: (Math.random() - .5) * 5, vy: -Math.random() * 4, g: 8, t: .5, c: i % 3 ? '#8a6a48' : P.org, s: .09 });
@@ -223,6 +251,11 @@ function combat(dt) {
     for (let i = 0; i < 26; i++) parts.push({ x: b.x + .5, y: b.y + .5, vx: (Math.random() - .5) * 8, vy: -Math.random() * 6, g: 9, t: .7, c: i % 3 ? '#8a6a48' : i % 2 ? P.org : P.yelL, s: .11 });
   }
   bombs = bombs.filter(b => !b.done);
+  // poison clouds poison whoever walks through; tar pits last a while (and burn if an explosion reaches them)
+  for (const c of clouds) { c.t -= dt; c.zap = Math.max(0, (c.zap || 0) - dt); for (const f of foes) if (f.hp > 0 && Math.hypot(f.x - c.x, f.y - c.y) <= c.r) poison(f, c.dps, 4, { spread: c.spread }); }
+  clouds = clouds.filter(c => c.t > 0);
+  for (const p of tars) { p.t -= dt; p.burn = Math.max(0, (p.burn || 0) - dt); for (const e of fx) if (e.k === 'boom' && !e.lit && Math.hypot(e.x - p.x, e.y - p.y) <= p.r + (e.r || 1)) { e.lit = 1; if (!p.burn) { p.burn = 4; floats.push({ x: p.x + .5, y: p.y, t: 1, s: 'Tar alight!', c: P.org, z: .3 }); } } }
+  tars = tars.filter(p => p.t > 0);
   shots = shots.filter(s => !s.done); foes = foes.filter(f => f.hp > 0);
   for (const e of fx) e.t -= dt; fx = fx.filter(e => e.t > 0);
   if (S.vaultHp <= 0) {
@@ -260,7 +293,7 @@ function buyPerk(id) {
   if (l >= p.max || (p.req && !perk(p.req)) || freeDeeds() < p.cost(l)) return;
   S.perks[id] = l + 1; snd('ms', 660, .25, 'triangle', .06, 440); say(p.n + ' is now rank ' + (l + 1) + '.');
 }
-function wipeField() { foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
+function wipeField() { clouds = []; tars = []; foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
 /* Sign a new charter: the town you are in starts over and pays deeds; every other town and the deeds' bonus carry on. */
 function prestige() {
   const g = deedsOnOffer(); if (!g) return;

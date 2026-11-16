@@ -59,10 +59,21 @@ function buyRow(b, list) {
 /* Powers the player triggers by hand */
 const ABIL = {
   dyn: { n: 'Dynamite', icon: 'dynamite', cd: 40, d: 'Blows up the thickest knot of raiders.' },
+  tar: { n: 'Tar Pit', icon: 'tar', cd: 50, from: 8, d: 'Pours tar on the road ahead of the raiders: they crawl through it for 12 seconds. An explosion sets it alight.' },
   ot:  { n: 'Overtime', icon: 'bell', cd: 120, dur: 20, d: 'Every building works three times as fast for 20 seconds.' },
 };
 function useAbility(id) {
   if (S.cd[id] > 0) return say(ABIL[id].n + ' is ready in ' + Math.ceil(S.cd[id]) + 's.');
+  if (ABIL[id].from && S.best < ABIL[id].from) return say(ABIL[id].n + ' opens once you have reached wave ' + ABIL[id].from + '.');
+  if (id === 'tar') {
+    // ahead of the thickest group of raiders on the road (boats sail past tar)
+    const on = foes.filter(f => f.hp > 0 && f.type !== 'boat' && !(MAP.river !== undefined && f.p === MAP.river)); if (!on.length) return say('No raiders on the road to slow down.');
+    let best = on[0], bn = -1; for (const f of on) { const n = on.filter(o => Math.abs(o.d - f.d) < 1.5 && o.p === f.p).length; if (n > bn || (n === bn && f.d > best.d)) { bn = n; best = f; } }
+    const [x, y] = posAt(Math.min(PATHS[best.p].len - .5, best.d + 1.2), best.p);
+    tars.push({ x, y, r: .95, t: 12, dps: foeHp(S.wave) * .4 * MAP.hp }); S.cd.tar = ABIL.tar.cd; snd('glug', 140, .3, 'sine', .06, -40);
+    for (let i = 0; i < 12; i++) parts.push({ x: x + .5 + (Math.random() - .5) * 1.4, y: y + .5, vx: (Math.random() - .5), vy: -Math.random() * 1.5, g: 6, t: .5, c: '#2a2026', s: .08 });
+    refresh(); return;
+  }
   if (id === 'dyn') {
     let best = null, bv = 0;
     for (const f of foes) { let v = 0; for (const o of foes) if (Math.hypot(o.x - f.x, o.y - f.y) < 1.6) v += o.hp; if (v > bv) { bv = v; best = f; } }
@@ -118,7 +129,7 @@ function card() {
       const sellB = h('button', { cls: 'small', on: () => { S.coins += back; S.towers.splice(S.towers.indexOf(t), 1); sel = null; snd('sell', 500, .1, 'triangle', .04, -200); } }, 'Sell +' + fmt(back));
       if (needsBranch(t)) {
         const br = h('div', { cls: 'branches' });
-        for (const k of ['a', 'b']) { const B = BRANCH[t.type][k], b = h('button', { on: () => branchTower(t, k) }, h('span', { cls: 'name' }, B.n), h('small', null, B.d), costEl(() => branchCost(t), null, cardUps)); br.append(b); cardUps.push(() => { b.disabled = S.coins < branchCost(t); }); }
+        for (const k of Object.keys(BRANCH[t.type])) { const B = BRANCH[t.type][k], b = h('button', { on: () => branchTower(t, k) }, h('span', { cls: 'name' }, B.n), h('small', null, B.d), costEl(() => branchCost(t), null, cardUps)); br.append(b); cardUps.push(() => { b.disabled = S.coins < branchCost(t); }); }
         box.append(h('small', null, 'Level 5: pick a path for this tower.'), br, h('div', { cls: 'bar' }, sellB));
       } else {
         const up = h('button', { cls: 'primary grow1', on: () => upgradeTower(t) }, 'Upgrade ', costEl(() => upCost(t), null, cardUps));
@@ -254,7 +265,7 @@ const PANELS = {
     p.append(h('h2', null, 'Towers'), h('p', null, TOWER_TIPS));
     for (const id in TOWERS) {
       const d = TOWERS[id];
-      p.append(h('div', { cls: 'row' }, ico(id), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, d.n), h('small', null, d.d + ' Paths at level 5: ' + BRANCH[id].a.n + ' or ' + BRANCH[id].b.n + '.')), costEl(() => buildCost(id), towerGoods(id), ups)));
+      p.append(h('div', { cls: 'row' }, ico(id), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, d.n), h('small', null, d.d + ' Paths at level 5: ' + Object.values(BRANCH[id]).map(B => B.n).join(', ').replace(/, ([^,]*)$/, ' or $1') + '.')), costEl(() => buildCost(id), towerGoods(id), ups)));
     }
     p.append(h('h2', null, 'Raiders seen so far'));
     for (const k in FOES) if (k === 'boss' ? S.best >= 10 : S.best >= UNLOCK[k]) p.append(h('div', { cls: 'row' }, ico(k), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, FOES[k].n), h('small', null, FOE_TIPS[k]))));
@@ -511,7 +522,8 @@ function buildFixed() {
   for (const id in ABIL) {
     const b = $('ab-' + id), A = ABIL[id], shade = h('i', { cls: 'cd' }), num = h('b', { cls: 'cdn' });
     b.append(ico(A.icon, A.n), shade, num); b.setAttribute('aria-label', A.n + ': ' + A.d); b.addEventListener('click', () => useAbility(id));
-    fixedUps.push(() => { const f = Math.max(0, S.cd[id]) / A.cd; shade.style.transform = 'scaleY(' + f + ')'; num.textContent = S.cd[id] > 0 ? Math.ceil(S.cd[id]) : ''; b.classList.toggle('ready', !(S.cd[id] > 0)); b.classList.toggle('active', id === 'ot' && S.ot > 0); });
+    fixedUps.push(() => { b.hidden = !!(A.from && S.best < A.from); }); // Tar Pit appears once wave 8 has been reached
+    fixedUps.push(() => { const f = Math.max(0, S.cd[id] || 0) / A.cd; shade.style.transform = 'scaleY(' + f + ')'; num.textContent = S.cd[id] > 0 ? Math.ceil(S.cd[id]) : ''; b.classList.toggle('ready', !(S.cd[id] > 0)); b.classList.toggle('active', id === 'ot' && S.ot > 0); });
   }
   const h1 = document.querySelector('h1');
   fixedUps.push(() => {

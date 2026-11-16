@@ -26,14 +26,14 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('day');
   const t = await p.evaluate(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    S.wave = 19; planWave(); startWave(); await wait(5000);
+    S.wave = 19; planWave(); startWave(); await wait(5000); S.best = Math.max(S.best, 10); S.cd.tar = 0; useAbility('tar'); await wait(600);
     // frame timing over two seconds
     let n = 0, t0 = performance.now(); await new Promise(res => { const f = () => { n++; performance.now() - t0 < 2000 ? requestAnimationFrame(f) : res(); }; requestAnimationFrame(f); });
     const fps = n / ((performance.now() - t0) / 1000), info = R3D.info();
     return { fps: Math.round(fps), info };
   });
   await shot('wave');
-  await p.evaluate(async () => { R3.distT = 13; R3.yawT = .5; await new Promise(r => setTimeout(r, 1200)); });
+  await p.evaluate(async () => { const st = S.towers.find(t => t.type === 'still'); if (st) { R3.focus = st; } R3.distT = 13; R3.yawT = .5; await new Promise(r => setTimeout(r, 1200)); });
   await shot('close');
   await p.evaluate(async () => { R3.distT = 24; R3.yawT = 0; goTab('works'); await new Promise(r => setTimeout(r, 1200)); });
   await shot('sheet');

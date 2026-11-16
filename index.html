@@ -373,7 +373,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   #bFull .go, #bFull .back { display: none; } #bFull .hideui { display: block; }
   .toast { position: fixed; z-index: 45; top: calc(var(--top) + 6px); left: 54px; right: 54px; }
   /* in 2D the board is centred and its buttons sit in a row beneath it */
-  body:not(.v3) .mapbtn { top: auto; bottom: calc(var(--bot) - 46px); }
+  body:not(.v3) .mapbtn, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { top: auto; bottom: calc(var(--bot) - 46px); }
   body:not(.v3) #bPause { right: 100px; } body:not(.v3) #bFull { right: 54px; }
   .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 140px); }
   /* hide the interface: only the town (and the button that brings the interface back) */
@@ -407,6 +407,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
       <button id="bWave" class="primary">Call wave</button>
       <button id="bHold" aria-pressed="false" title="Hold waves: raiders only come when you call them"><i class="ic" aria-hidden="true"></i><span>Hold</span></button>
       <button class="ab" id="ab-dyn"></button>
+      <button class="ab" id="ab-tar"></button>
       <button class="ab" id="ab-ot"></button>
       <button id="bSpeed">1×</button>
     </div>

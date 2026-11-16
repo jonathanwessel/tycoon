@@ -57,7 +57,7 @@ function setup() {
   // explosions and frost rings
   V.booms = []; V.rings = [];
   V.boomGeo = new THREE.IcosahedronGeometry(1, 1); V.ringGeo = new THREE.TorusGeometry(1, .05, 4, 32).rotateX(Math.PI / 2);
-  V.flashM = new THREE.MeshBasicMaterial({ color: '#ffffff' }); V.slowM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#9fd8ff', emissive: '#1a4a6a', roughness: .5 }); V.jamM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#777777', roughness: 1 });
+  V.flashM = new THREE.MeshBasicMaterial({ color: '#ffffff' }); V.slowM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#9fd8ff', emissive: '#1a4a6a', roughness: .5 }); V.psnM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#a8ff7a', emissive: '#1e4a10', roughness: .6 }); V.jamM = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, color: '#777777', roughness: 1 });
   c.addEventListener('webglcontextlost', e => { e.preventDefault(); if (window.R3) { R3.on = false; R3.ok = false; } c.hidden = true; });
   V.quality = -1; V.key = '';
   return c;
@@ -191,7 +191,7 @@ function syncFoes(time, dt) {
     if (f.type === 'runner' || f.type === 'thief') o.position.y += Math.abs(Math.sin(v.ph)) * .03;
     if (o.userData.shield) o.userData.shield.visible = !(f.sh <= 0);
     if (o.userData.spark) o.userData.spark.visible = Math.floor(time * 12) % 2 === 0;
-    const want = f.flash > 0 ? V.flashM : f.slow > 0 || f.frz > 0 ? V.slowM : null; if (v.mat !== want) { setMat(o, want); v.mat = want; }
+    const want = f.flash > 0 ? V.flashM : f.slow > 0 || f.frz > 0 || (f.psn && f.psn.t > 0 && f.psn.ice) ? V.slowM : f.psn && f.psn.t > 0 ? V.psnM : null; if (v.mat !== want) { setMat(o, want); v.mat = want; }
     if (o.userData.smoke && Math.random() < dt * (f.rage ? 14 : 5) && GX().parts > 0) { const p = o.userData.smoke.clone().multiplyScalar(sc).applyAxisAngle(v3(0, 1, 0), o.rotation.y).add(o.position); puff(p.x, p.y, p.z, f.rage ? '#4a4450' : '#e8e2d6', .12, { t: 1.2 }); }
   }
   for (const [f, v] of V.foes) if (!seen.has(f)) {
@@ -244,6 +244,7 @@ function syncFx(time, dt) {
   // shots: bolts and bullets fly flat, cannonballs arc
   for (const s of shots) {
     const x = s.x + .5, z = s.y + .5, ry = -(s.ang || 0);
+    if (s.kind === 'flask') { const lift = Math.sin((1 - Math.min(1, s.q / s.q0 || 0)) * Math.PI) * .9; G_(x, .5 + lift, z, .1, .14, .1, _c.setRGB(.6, 1.6, .5), time * 9, time * 7); continue; }
     if (s.kind === 'ball') { const lift = Math.sin((1 - Math.min(1, s.q / s.q0 || 0)) * Math.PI) * .7; S_(x, .45 + lift, z, .15, col('black')); }
     else if (s.kind === 'bullet') G_(x, .42, z, .26, .03, .03, _c.setRGB(3, 2.4, 1.2), ry);
     else { G_(x, .55, z, .34, .035, .035, col('woodL'), ry); G_(x + Math.cos(s.ang || 0) * .17, .55, z + Math.sin(s.ang || 0) * .17, .06, .06, .06, _c.setRGB(1.6, 1.6, 1.6), ry); }
@@ -256,6 +257,8 @@ function syncFx(time, dt) {
     if (p.smoke) { const sz = p.s * (2.6 - p.t) * 1.2; S_(p.x, h, z0 + (p.t - 1) * .05, sz, c); }
     else if (p.t > 0) { const sz = (p.s || .08) * 1.15; if (/^#f[0-9a-f]/i.test(p.c || '') || p.c === P.yel || p.c === P.yelL || p.c === P.org) G_(p.x, h, z0, sz, sz, sz, _c.copy(c).multiplyScalar(1.6), p.x * 9); else S_(p.x, h, z0, sz, c, p.x * 9); }
   }
+  for (const cl of clouds) { const k = Math.min(1, cl.t / .8, (cl.t0 - cl.t) * 4); for (let i = 0; i < 7; i++) { const a = i * .9 + time * .5, rr = cl.r * (.25 + .5 * ((i * 37) % 10) / 10); S_(cl.x + .5 + Math.cos(a) * rr, .2 + (i % 3) * .12 + Math.sin(time * 2 + i) * .04, cl.y + .5 + Math.sin(a) * rr, cl.r * .55 * k, cl.zap > 0 ? col('#d8ff8a') : col(i % 2 ? '#7cc24a' : '#5fae5a'), a); } }
+  for (const p of tars) if (p.burn > 0) for (let i = 0; i < 6; i++) { const a = i * 1.05 + time * 3; G_(p.x + .5 + Math.cos(a) * p.r * .5, .12 + Math.abs(Math.sin(time * 9 + i)) * .25, p.y + .5 + Math.sin(a) * p.r * .35, .1, .2 + Math.random() * .15, .1, _c.setRGB(3, 1.3, .3)); }
   // chimney smoke grows and fades
   for (const q of V.smoke) { q.t -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.vy *= 1 - dt * .3; }
   V.smoke = V.smoke.filter(q => q.t > 0);
@@ -281,7 +284,8 @@ function syncFx(time, dt) {
   V.pSolid.count = ns; V.pGlow.count = ng; V.pCoin.count = nc;
   for (const m of [V.pSolid, V.pGlow, V.pCoin]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
   // scorch marks
-  let nsc = 0; for (const s of FXS.scorch || []) if (nsc < 30) inst(V.scorch, nsc++, s.x + .5, ground(s.x + .5, s.y + .5) + .02, s.y + .5, s.r * 2 * Math.min(1, s.t / 2), 1, s.r * 2 * Math.min(1, s.t / 2), 0, col('black'));
+  let nsc = 0; for (const p of tars) if (nsc < 30) inst(V.scorch, nsc++, p.x + .5, ground(p.x + .5, p.y + .5) + .03, p.y + .5, p.r * 2 * Math.min(1, p.t / 1.5), 1, p.r * 1.6 * Math.min(1, p.t / 1.5), 0, col('black'));
+  for (const s of FXS.scorch || []) if (nsc < 30) inst(V.scorch, nsc++, s.x + .5, ground(s.x + .5, s.y + .5) + .02, s.y + .5, s.r * 2 * Math.min(1, s.t / 2), 1, s.r * 2 * Math.min(1, s.t / 2), 0, col('black'));
   V.scorch.count = nsc; V.scorch.instanceMatrix.needsUpdate = true;
   // explosions: a fireball that swells and burns out; rings for frost pulses and healing
   let nb = 0, nr = 0;

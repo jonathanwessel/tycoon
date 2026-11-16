@@ -128,13 +128,18 @@ export function makeTower(type, br, lvl) {
     if (type === 'crossbow') { for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(sx * .26, 0, sz * .26, .07, .5, .07, 'wood', { rz: -sx * .06, rx: sz * .06 }); k.box(0, .2, 0, .58, .04, .04, 'woodD', { rz: .4 }); k.box(0, .5, 0, .66, .07, .66, 'woodL'); for (let i = 0; i < 6; i++) k.box(-.28 + i * .112, .57, .3, .05, .12, .05, 'woodD'); }
     else if (type === 'cannon') { k.cyl(0, 0, 0, .36, .3, 'stone', { r2: .32, seg: 10, jit: .1 }); for (let i = 0; i < 8; i++) k.box(Math.cos(i * .785) * .3, .3, Math.sin(i * .785) * .3, .12, .1, .12, 'stoneL', { ry: -i * .785 }); }
     else if (type === 'frost') { k.cyl(0, 0, 0, .3, .12, 'stoneL', { seg: 6 }); k.cyl(0, .12, 0, .14, .42, 'stone', { r2: .1, seg: 6 }); k.cyl(0, .54, 0, .2, .05, 'glowI', { seg: 6, mat: 'glow' }); }
+    else if (type === 'still') { k.cyl(0, 0, 0, .32, .1, 'stoneD', { seg: 8 }); for (let i = 0; i < 5; i++) k.log(Math.cos(i * 1.26) * .12, .1, Math.sin(i * 1.26) * .12, .22, .03, 'log', { ry: i * 1.26 }); k.ball(0, .14, 0, .07, 'glowO', { mat: 'fire' });
+      k.ball(0, .36, 0, .24, 'copper', { det: 1, sy: .9, mat: 'metal' }); k.cyl(0, .55, 0, .06, .22, 'copper', { r2: .03, mat: 'metal' }); k.cyl(.12, .75, 0, .025, .3, 'copper', { rz: -1.2, mat: 'metal' });
+      for (let i = 0; i < 4; i++) k.torus(.32, .3 + i * .07, 0, .07, .015, 'copper', { rx: Math.PI / 2, mat: 'metal', ts: 8 }); k.cyl(.32, 0, .18, .09, .26, 'glowT', { seg: 8, mat: 'glow' }); k.cyl(.32, .26, .18, .05, .05, 'woodD', { seg: 6 });
+      if (br === 'a') for (let i = 0; i < 3; i++) k.ball(-.2 + i * .12, .75 + i * .05, -.1, .06 + i * .02, 'verd', { mat: 'glow' });
+      if (br === 'b') { k.cyl(-.3, 0, .2, .08, .2, 'paintR', { seg: 8 }); k.box(-.3, .2, .2, .06, .06, .06, 'white'); } }
     else if (type === 'tesla') { k.cyl(0, 0, 0, .3, .14, 'iron', { seg: 8, mat: 'metal' }); k.cyl(0, .14, 0, .1, .7, 'copper', { r2: .06, seg: 8, mat: 'metal' }); for (let i = 0; i < 5; i++) k.torus(0, .25 + i * .12, 0, .14 - i * .015, .025, 'copper', { mat: 'metal', ts: 10, rx: Math.PI / 2 }); }
     else { for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; k.ball(Math.cos(a) * .3, .07 + (i % 2) * .02, Math.sin(a) * .3, .1, 'sand', { sy: .6, ry: a }); } k.cyl(0, 0, 0, .06, .4, 'iron', { seg: 6 }); for (const a of [0, 2.1, 4.2]) k.box(Math.cos(a) * .12, 0, Math.sin(a) * .12, .03, .3, .03, 'iron', { rz: Math.cos(a) * .4, rx: -Math.sin(a) * .4 }); }
     if (gold) k.cyl(0, .02, 0, type === 'crossbow' ? .4 : .38, .04, 'gold', { seg: 10, mat: 'metal' });
     if (lvl >= 6) for (let i = 0; i < 3; i++) k.box(-.2 + i * .2, 0, .42, .06, .06, .06, 'gold', { mat: 'metal' });
   });
   root.add(base);
-  const hy = type === 'crossbow' ? .62 : type === 'cannon' ? .4 : type === 'frost' ? .85 : type === 'tesla' ? .95 : .42;
+  const hy = type === 'still' ? .9 : type === 'crossbow' ? .62 : type === 'cannon' ? .4 : type === 'frost' ? .85 : type === 'tesla' ? .95 : .42;
   head.position.y = hy;
   if (type === 'crossbow') bar.add(part(k => {
     k.box(.05, 0, 0, .5, .06, .07, 'woodL'); k.box(.27, -.02, 0, .04, .05, .52, 'woodD', { ry: 0 });
@@ -152,6 +157,7 @@ export function makeTower(type, br, lvl) {
     const cr = part(k => { k.cone(0, 0, 0, .14, .28, br === 'b' ? 'paintP' : 'glowI', { seg: 5, mat: 'glow' }); k.cone(0, 0, 0, .14, .16, br === 'b' ? 'paintP' : 'glowI', { seg: 5, mat: 'glow', rx: Math.PI }); if (br === 'a') for (let i = 0; i < 3; i++) k.cone(Math.cos(i * 2.1) * .2, -.05, Math.sin(i * 2.1) * .2, .05, .14, 'glowI', { seg: 4, mat: 'glow' }); }, { cast: false });
     bar.add(cr); root.userData.float = 1;
   }
+  else if (type === 'still') bar.add(part(k => k.ball(0, 0, 0, .001, 'copper')));
   else if (type === 'tesla') bar.add(part(k => { k.ball(0, 0, 0, .14, br === 'b' ? '#ff8fb0' : 'glowW', { mat: 'fire', det: 1 }); k.torus(0, 0, 0, .19, .02, 'copper', { mat: 'metal', ts: 10, rx: Math.PI / 2 }); }, { cast: false }));
   else {
     const spin = G(); bar.add(spin); root.userData.spin = spin;

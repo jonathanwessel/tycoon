@@ -14,7 +14,7 @@ function mk(name, w, h, fn) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!op(x, y) && (op(x - 1, y) || op(x + 1, y) || op(x, y - 1) || op(x, y + 1))) { const i = (y * w + x) * 4; a[i] = 42; a[i + 1] = 28; a[i + 2] = 34; a[i + 3] = 255; }
   g.putImageData(d, 0, 0);
   const tint = (col, mode) => { const s = document.createElement('canvas'); s.width = w; s.height = h; const sg = s.getContext('2d'); sg.drawImage(cvs, 0, 0); sg.globalCompositeOperation = mode; sg.fillStyle = col; sg.fillRect(0, 0, w, h); return s; };
-  SPR[name] = cvs; SPR[name + '_w'] = tint('#fff', 'source-in'); SPR[name + '_i'] = tint('rgba(150,225,255,.6)', 'source-atop');
+  SPR[name] = cvs; SPR[name + '_w'] = tint('#fff', 'source-in'); SPR[name + '_i'] = tint('rgba(150,225,255,.6)', 'source-atop'); SPR[name + '_p'] = tint('rgba(130,220,70,.5)', 'source-atop');
 }
 function iconURL(name) {
   if (!URLS[name]) { const im = SPR[name], c = document.createElement('canvas'); c.width = im.width * 4; c.height = im.height * 4; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, c.width, c.height); URLS[name] = c.toDataURL(); }
@@ -101,8 +101,15 @@ function paintSprites2() {
   add('cannon_b', 'cannon', p => { for (const [x, y] of [[4, 5], [11, 5], [3, 11], [12, 11]]) p(P.yel, x, y, 1, 1); p(P.steelD, 2, 13, 12, 1); });
   add('frost_a', 'frost', p => { p('#5a9ad8', 2, 9, 2, 4); p('#5a9ad8', 12, 10, 2, 3); p(P.white, 7, 0, 2, 1); p('#5a9ad8', 9, 5, 1, 8); });
   add('frost_b', 'frost', p => { p('#c7a0ff', 6, 6, 1, 1); p('#c7a0ff', 7, 7, 1, 2); p('#c7a0ff', 8, 9, 1, 1); p('#c7a0ff', 9, 10, 1, 2); p('#c7a0ff', 12, 10, 2, 1); });
+  add('frost_c', 'frost', p => { p('#e8f8ff', 2, 9, 2, 4); p('#e8f8ff', 12, 10, 2, 3); p(P.red, 7, 8, 2, 1); p(P.red, 6, 10, 1, 1); p(P.red, 9, 11, 1, 1); });
   add('tesla_a', 'tesla', p => { p(P.cop, 1, 9, 2, 5); p(P.yel, 1, 8, 2, 1); p(P.cop, 13, 9, 2, 5); p(P.yel, 13, 8, 2, 1); });
   add('tesla_b', 'tesla', p => { p.disc(P.red, 8, 3.5, 2.6); p(P.pink, 7, 2, 1, 1); p(P.redD, 4, 9, 8, 1); });
+  // the Snake Oil Still: a copper pot over a fire, a coiled pipe and a glass jar of green poison
+  mk('still', 16, 18, p => { p(P.woodD, 3, 15, 10, 2); p(P.org, 5, 14, 6, 1); p.disc(P.cop, 7, 9.5, 4.4); p(P.copD, 3, 12, 9, 2); p('#f5b07a', 5, 7, 2, 2); p(P.copD, 6, 3, 2, 3); p(P.cop, 6, 2, 5, 1); p(P.greyD, 11, 3, 1, 5); p(P.greyD, 11, 8, 2, 1); p('#5fae5a', 12, 9, 3, 5); p('#9dff7a', 12, 9, 1, 3); p(P.greyD, 12, 14, 3, 1); });
+  add('still_a', 'still', p => { p('#8fd14f', 1, 1, 3, 2); p('#8fd14f', 3, 0, 2, 2); p('#5fae5a', 0, 3, 2, 1); });
+  add('still_b', 'still', p => { p(P.red, 1, 6, 2, 2); p(P.redD, 1, 8, 2, 1); p(P.white, 1, 6, 1, 1); });
+  mk('tar', 14, 12, p => { p.disc('#2a2026', 7, 7, 5.6); p('#4a3a44', 4, 5, 3, 1); p('#4a3a44', 8, 8, 2, 1); p.disc('#5a4a52', 10, 5, 1.2); p(P.org, 6, 1, 2, 2); p(P.yelL, 6, 1, 1, 1); });
+  mk('flask', 6, 8, p => { p(P.greyL, 2, 0, 2, 2); p('#5fae5a', 1, 2, 4, 5); p('#9dff7a', 1, 2, 1, 3); });
   add('gatling_a', 'gatling', p => { p(P.yel, 3, 14, 10, 1); });
   add('gatling_b', 'gatling', p => { p.disc(P.dark, 8, 9.5, 3.2); p.disc(P.steelD, 8, 9, 2.2); p(P.red, 7, 8, 2, 1); });
   // powers, tabs and scenery

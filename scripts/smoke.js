@@ -42,9 +42,10 @@ const shots = process.argv[2];
       sell('wood', S.res.wood); deliver(0);
       S.wave = 9; planWave(); startWave(); for (let j = 0; j < 20 * 4; j++) combat(.05); spawn('brute'); spawn('brute'); useAbility('dyn'); const bombThrown = bombs.length === 1 || S.cd.dyn > 0;
       // war wagon phases
-      foes = []; W.queue = []; spawn('boss'); const boss = foes[foes.length - 1];
+      foes = []; W.queue = []; clouds = []; tars = []; for (const t of S.towers) t.cd = 1e9; // towers hold fire so the phases can be checked
+      spawn('boss'); const boss = foes[foes.length - 1];
       hurt(boss, boss.max * .55); combat(.05); const ph1 = !!boss.ph1 && foes.filter(f => f.type === 'brute').length >= 2;
-      hurt(boss, boss.max * .25); combat(.05); const rage = !!boss.rage; const b0 = S.stats.bosses; hurt(boss, boss.max); const bossPaid = S.stats.bosses === b0 + 1;
+      hurt(boss, boss.max * .25); combat(.05); const rage = !!boss.rage; const b0 = S.stats.bosses; hurt(boss, boss.max); const bossPaid = S.stats.bosses === b0 + 1; for (const t of S.towers) t.cd = 0;
       foes = []; W.queue = []; combat(.05);
       // a war wagon that reaches the vault smashes it whatever its strength, and the wave is lost
       S.research.vault = 20; S.vaultHp = vaultMax(); S.wave = 20; planWave(); startWave(); W.queue = []; spawn('boss');
@@ -127,6 +128,19 @@ const shots = process.argv[2];
     });
     if (!lit.on) console.log(name, 'warning: no WebGL in this browser, lighting not tested');
     else { if (!(lit.lights > 0)) errs.push('lighting engine gathered no lights'); if (lit.glErr) errs.push('WebGL error ' + lit.glErr); if (!lit.simpleOk) errs.push('simple graphics did not switch off lighting'); }
+    // poison and tar: a Still makes clouds, Frostbite chills and hurts, the Tar Pit pours on the road
+    const tox = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      S.coins = 1e9; S.best = Math.max(S.best, 10); for (const k in S.res) add(k, 5000);
+      S.towers = []; foes = []; W.queue = []; W.active = false;
+      buildTower('still', PLOTS[0].x, PLOTS[0].y); buildTower('frost', PLOTS[1].x, PLOTS[1].y);
+      const fr = S.towers[1]; for (let k = 0; k < 4; k++) upgradeTower(fr); branchTower(fr, 'c');
+      S.wave = 12; planWave(); startWave(); let seen = false; for (let i = 0; i < 60 && !seen; i++) { await wait(200); seen = clouds.length > 0 || foes.some(f => f.psn); }
+      useAbility('tar'); await wait(400);
+      const r = { cloud: seen, tar: tars.length > 0, frostbite: fr.br === 'c', btn: !document.getElementById('ab-tar').hidden };
+      foes = []; W.queue = []; W.active = false; return r;
+    });
+    for (const k in tox) if (!tox[k]) errs.push('poison/tar check failed: ' + k);
     // phone layout: tabs open a sheet over the town; the same tab, a map tap, Back and the close button shut it; a card replaces it
     const lay = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms)), open = () => document.body.classList.contains('sheet-open');

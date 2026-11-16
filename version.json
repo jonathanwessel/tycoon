@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-19",
-  "notes": "The town now fills the whole screen. Tabs open a sheet that slides up over it: drag it taller, swipe it down, tap the map or press Back to close it. Tapping a building shows its card. The eye button hides the interface."
+  "version": "2026.11.15-20",
+  "notes": "New Snake Oil Still tower with poison clouds, a Frostbite path for the Frost Lens, Tesla research that arcs through poison and jumps across ice, and a Tar Pit power from wave 8. Raiders are slightly tougher after wave 12."
 }

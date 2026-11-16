@@ -83,8 +83,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-19'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'The town now fills the whole screen. Tabs open a sheet that slides up over it: drag it taller, swipe it down, tap the map or press Back to close it. Tapping a building shows its card. The eye button hides the interface.';
+const GAME_VERSION = '2026.11.15-20'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'New Snake Oil Still tower with poison clouds, a Frostbite path for the Frost Lens, Tesla research that arcs through poison and jumps across ice, and a Tar Pit power from wave 8. Raiders are slightly tougher after wave 12.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });
