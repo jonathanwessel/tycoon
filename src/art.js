@@ -16,7 +16,7 @@ function mk(name, w, h, fn) {
   SPR[name] = cvs;
 }
 function iconURL(name) {
-  if (!URLS[name]) { const im = SPR[name], c = document.createElement('canvas'); c.width = im.width * 4; c.height = im.height * 4; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, c.width, c.height); URLS[name] = c.toDataURL(); }
+  if (!URLS[name]) { const im = SPR[iconBase(name)], c = document.createElement('canvas'); c.width = im.width * 4; c.height = im.height * 4; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, c.width, c.height); URLS[name] = c.toDataURL(); }
   return URLS[name];
 }
 const P = { wood: '#a8703f', woodL: '#d9a066', woodD: '#6e4526', gray: '#8f9bb0', grayL: '#c9d2de', grayD: '#5a6378', teal: '#56d3c6', tealL: '#b5f5ee', tealD: '#2f9c92', cop: '#e38d4e', copD: '#a85a2a', yel: '#f2d04a', yelL: '#fff0a0', red: '#f07067', redD: '#a83a3a', pur: '#b06be0', purD: '#6f3fa0', grn: '#5fae5a', grnD: '#36753f', grnL: '#8fd08a', blue: '#5b8be0', skin: '#f0c090', org: '#f5a04a', white: '#ece6d8', pink: '#ff4f8b', dark: '#3a2a2e', night: '#2a1c22', steel: '#7d8fb0', steelL: '#b8c6e0', steelD: '#4a5a78', brass: '#c8961e', coal: '#2f2a33', coalL: '#6a6372' };
@@ -222,4 +222,36 @@ function paintSprites5() {
     p(P.woodD, 6, 12, 14, 4); p(P.wood, 6, 12, 14, 1); for (const x of [8, 11, 14, 17]) p(P.yelL, x, 13, 1, 1); p(P.dark, 20, 13, 2, 2);
     p(P.grayD, 22, f ? 11 : 13, 1, f ? 5 : 2); p(P.grayD, f ? 22 : 21, 13, f ? 1 : 3, 1);
   });
+}
+
+/* Interface icons rendered from the 3D models (src/r3d/icons.js draws them, a few each frame, once the 3D view is up).
+   iconJobs() names every sprite that has a 3D twin: buildings, towers and their paths, raiders and bosses, the vault,
+   wagon, workers, foremen, soldiers, drones and the Capital's buildings. Goods, weather and badges keep their pixel
+   art, and so does everything when there is no 3D view. setIcon3d() swaps a finished picture into every <img> showing
+   that name (ico() tags them with data-ico) and into what iconURL() hands out from then on. */
+const ICON3D = {};
+const ICON_FOES = ['raider', 'runner', 'brute', 'shield', 'sapper', 'healer', 'thief', 'boss', 'boat', 'train', 'steamer', 'zeppelin'];
+const ICON_UNITS = ['worker', 'foreman', 'soldier', 'drone'];
+/* The pixel sprite a name falls back on: the Capitol and the Capital's institutions borrow one until rendered. */
+function iconBase(name) {
+  if (SPR[name]) return name;
+  if (name === 'capitol') return 'office';
+  if (name.startsWith('cap_') && typeof INST !== 'undefined' && INST[name.slice(4)]) return INST[name.slice(4)].icon;
+  return name;
+}
+function iconJobs() {
+  const J = [], seen = new Set(), add = (name, kind, id, br) => { if (!seen.has(name)) { seen.add(name); J.push({ name, kind, id: id || name, br: br || null }); } };
+  for (const b of BUILD_ALL) add(b.def.id, 'bld');
+  for (const id of ['market', 'hall', 'office']) add(id, 'bld');
+  for (const t in TOWERS) { add(t, 'tower'); for (const br in BRANCH[t] || {}) add(t + '_' + br, 'tower', t, br); }
+  for (const f of ICON_FOES) add(f, 'foe');
+  add('vault', 'vault'); add('wagon', 'wagon');
+  for (const u of ICON_UNITS) add(u, 'unit');
+  add('capitol', 'site');
+  if (typeof INST !== 'undefined') for (const id in INST) add('cap_' + id, 'site', id);
+  return J;
+}
+function setIcon3d(name, url) {
+  URLS[name] = url; ICON3D[name] = 1;
+  for (const im of document.querySelectorAll('img[data-ico="' + name + '"]')) im.src = url;
 }

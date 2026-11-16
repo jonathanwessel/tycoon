@@ -13,6 +13,7 @@ import { makeBuilding, BUILDING_IDS } from './buildings.js';
 import { makeFoe, makeTower, makeVault, makeWorker, makeForeman, makeWagon, makeSoldier, makeDrone, PROPS } from './units.js';
 import { buildWorld, makeSky } from './world.js';
 import { buildCapitalWorld, makeSite, capTier, makeCitizens, citizenAt, SITE_IDS } from './capital3d.js';
+import { iconsStep, iconsInfo } from './icons.js';
 
 const V = {}; // everything this renderer keeps
 const G_DRONE = []; // drone tracers this frame: [x, y, z, length, yaw, pitch]
@@ -474,6 +475,7 @@ function render(time, cam) {
   const dt = Math.max(0, Math.min(.1, time - lastT)); lastT = time;
   if (V.key !== TOWN_ID + MAP.n) rebuildWorld();
   applyQuality(W, H);
+  iconsStep(V.r); // the interface icons, drawn from these models a few at a time (src/r3d/icons.js)
   // camera from the bridge (so picking and the overlay agree exactly), plus a little screen shake
   const g = GX(), q = FXS.quake > 0 && !REDUCED && g.shake ? FXS.quake * .12 : 0;
   V.cam.position.set(cam.eye[0] + (Math.random() - .5) * q, cam.eye[1] + (Math.random() - .5) * q, cam.eye[2]); V.cam.lookAt(cam.tgt[0], cam.tgt[1], cam.tgt[2]);
@@ -507,6 +509,6 @@ function prebuild() {
 }
 function info() { const i = V.r.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, err: V.r.getContext().getError(), foes: V.foes.size, towers: V.towers.size }; }
 
-window.R3D = { setup, resize, render, prebuild, info, V };
+window.R3D = { setup, resize, render, prebuild, info, icons: iconsInfo, V };
 // the game may already want the 3D view: switch it on now that the engine has loaded
 try { if (typeof S !== 'undefined' && S) { applyGfx(); fit(); } } catch (e) { /* the game has not started yet; it will ask when it does */ }

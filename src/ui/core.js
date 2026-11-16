@@ -11,7 +11,7 @@ function h(tag, attrs, ...kids) {
   return e;
 }
 document.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.target.closest && e.target.closest('button') && S && S.opt && S.opt.buzz !== false && navigator.vibrate) try { navigator.vibrate(6); } catch (er) {} }, { passive: true });
-const ico = (name, alt) => h('img', { cls: 'px', src: iconURL(name), alt: alt || '' });
+const ico = (name, alt) => h('img', { cls: 'px', src: iconURL(name), alt: alt || '', 'data-ico': name });
 let ups = [], cardUps = [], rebuild = true, tab = 'defend', toastT = 0;
 function say(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); toastT = Math.min(6, 2.5 + t.length / 30); }
 /* A price shown as pictures. coins is a function so it stays live; goods is {item: qty}. */

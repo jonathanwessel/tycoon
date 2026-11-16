@@ -42,7 +42,7 @@ PANELS.capital = p => {
   p.append(h('h2', null, 'Institutions'));
   for (const id in INST) {
     const I = INST[id], name = h('div', { cls: 'name' }), d = h('small'), b = h('button', { cls: 'small', on: () => buyInst(id) }, capLv(id) ? 'Upgrade ' : 'Build ', costEl(() => instCost(id), null, ups));
-    p.append(h('div', { cls: 'row' }, ico(I.icon), h('div', { cls: 'grow' }, name, d), h('div', { cls: 'acts' }, b)));
+    p.append(h('div', { cls: 'row' }, ico('cap_' + id), h('div', { cls: 'grow' }, name, d), h('div', { cls: 'acts' }, b)));
     ups.push(() => { const l = capLv(id); name.textContent = I.n; if (l) name.append(h('i', null, 'Lv ' + l)); d.textContent = I.d(Math.max(1, l)) + (l ? '' : ' (at level 1)'); b.hidden = l >= I.max; b.disabled = S.coins < instCost(id); });
   }
   const keepSeg = h('div', { cls: 'seg' }, h('small', null, 'Auto-sell keeps'));

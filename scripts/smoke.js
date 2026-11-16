@@ -225,10 +225,14 @@ const shots = process.argv[2];
       const err = R3D.info().err, built = R3D.prebuild(), r = cv.getBoundingClientRect(), [px, py] = r3Project(5.5, .1, 10.5), s = cv.clientWidth / R3.canvas.width;
       const g = r3Pick({ clientX: r.left + cv.clientLeft + px * s, clientY: r.top + cv.clientTop + py * s });
       foes = []; W.queue = []; W.active = false;
-      return { on: true, err, fills, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad };
+      // the interface icons drawn from the 3D models: all of them, none failed, and the Works rows show them
+      for (let i = 0; i < 60 && R3D.icons().left !== 0; i++) await wait(100);
+      const ic = R3D.icons(); goTab('works'); await wait(250);
+      const rowImg = document.querySelector('.row.bld img[data-ico]'), icons = { done: ic.done, jobs: iconJobs().length, bad: ic.bad, ms: ic.ms, row: !!rowImg && !!ICON3D[rowImg.dataset.ico] && rowImg.src === iconURL(rowImg.dataset.ico) && rowImg.naturalWidth === 96, hud: document.getElementById('hVaultIcon').src === iconURL('vault') && !!ICON3D.vault };
+      return { on: true, err, fills, pick: [Math.floor(g[0]), Math.floor(g[1])], models: built.n, bad: built.bad, icons };
     });
     if (!v3.on) console.log(name, 'warning: no WebGL2 in this browser, 3D view not tested');
-    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.fills) errs.push('3D check failed: ' + JSON.stringify(v3));
+    else if (v3.err || v3.pick[0] !== 5 || v3.pick[1] !== 10 || v3.models < 90 || v3.bad.length || !v3.fills || v3.icons.done !== v3.icons.jobs || v3.icons.bad.length || !v3.icons.row || !v3.icons.hud) errs.push('3D check failed: ' + JSON.stringify(v3));
     // the empire: open Iron Ridge, play a wave there with its boss, ship goods, look at the Empire tab, come home
     const emp = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));

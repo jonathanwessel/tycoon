@@ -6,7 +6,7 @@
 const TABS = [['defend', 'Defend', 'crossbow'], ['works', 'Works', 'camp'], ['market', 'Market', 'market'], ['research', 'Research', 'flask'], ['empire', 'Empire', 'loco'], ['charter', 'Charter', 'office']];
 const fixedUps = [];
 function buildFixed() {
-  $('hCoinIcon').src = iconURL('coin'); $('hWaveIcon').src = iconURL('raider'); $('hVaultIcon').src = iconURL('vault'); $('hDeedIcon').src = iconURL('star');
+  for (const [id, n] of [['hCoinIcon', 'coin'], ['hWaveIcon', 'raider'], ['hVaultIcon', 'vault'], ['hDeedIcon', 'star']]) { $(id).src = iconURL(n); $(id).dataset.ico = n; }
   const tabs = $('tabs'), dots = {};
   for (const [id, n, icon] of TABS) {
     dots[id] = h('i', { cls: 'dot', hidden: '' });

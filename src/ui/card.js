@@ -98,7 +98,7 @@ function card() {
 function siteCard(box, id, close) {
   if (id === 'capitol') {
     const info = h('small'), c = S.capital;
-    box.append(h('div', { cls: 'cardhead' }, ico('office'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'The Capitol'), info), close),
+    box.append(h('div', { cls: 'cardhead' }, ico('capitol'), h('div', { cls: 'grow' }, h('div', { cls: 'name' }, 'The Capitol'), info), close),
       h('small', null, 'The seat of government. Its budget pays foremen, the War Office and the Academy in every town; its policies and the Constitutional Convention are decided here.'),
       h('div', { cls: 'bar' }, h('button', { cls: 'primary grow1', on: () => goTab('capital') }, 'Budget and waves'), h('button', { on: () => goTab('tech') }, ico('star', ''), ' Tech trees'), h('button', { on: () => goTab('convention') }, 'Convention')));
     cardUps.push(() => { info.textContent = 'Takes ' + pct(c.share) + ' of every town\'s income · ' + fmt(c.inf || 0) + ' influence'; });
@@ -107,7 +107,7 @@ function siteCard(box, id, close) {
   const I = INST[id], name = h('div', { cls: 'name' }), d = h('small'), b = h('button', { cls: 'primary grow1', on: () => { if (buyInst(id)) { sparks(b); say(I.n + (capLv(id) > 1 ? ' upgraded to level ' + capLv(id) + '.' : ' built.')); } } }, h('span'), costEl(() => instCost(id), null, cardUps));
   const bar = h('div', { cls: 'bar' }, b), go = { exchange: ['Trade shares', 'exchange'], education: ['Economy tree', 'tech'], war: ['Defense tree', 'tech'], market: ['Auto-sell rule', 'capital'] }[id];
   let gb = null; if (go) { gb = h('button', { on: () => goTab(go[1]) }, go[0]); bar.append(gb); }
-  box.append(h('div', { cls: 'cardhead' }, ico(I.icon), h('div', { cls: 'grow' }, name, d), close), bar);
+  box.append(h('div', { cls: 'cardhead' }, ico('cap_' + id), h('div', { cls: 'grow' }, name, d), close), bar);
   cardUps.push(() => { const l = capLv(id); name.textContent = I.n; if (l) name.append(h('i', null, 'Lv ' + l)); d.textContent = I.d(Math.max(1, l)) + (l ? '' : ' (at level 1)');
     b.firstChild.textContent = l >= I.max ? 'Top level' : l ? 'Upgrade ' : 'Build '; b.lastChild.hidden = l >= I.max; b.disabled = l >= I.max || S.coins < instCost(id); if (gb) gb.hidden = id === 'exchange' && !l; });
 }

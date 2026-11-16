@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.16-9",
-  "notes": "Market depth: booms and busts, caravan orders with deadlines and reputation, auto-sell modes per good"
+  "version": "2026.11.16-10",
+  "notes": "Menu icons are now drawn from the 3D models of the buildings, towers, raiders and the Capital"
 }
