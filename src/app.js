@@ -57,6 +57,7 @@ function start(data) {
   paintSprites(); paintSprites2(); paintSprites3(); paintSprites4(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
   checkBadges(true); applyMotion(); protectSave(); announceVersion();
+  if (S.movedNote) { const n = S.movedNote; delete S.movedNote; setTimeout(() => say(n), 1500); }
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); applyGfx(); window.addEventListener('resize', fit);
   if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * renderScale() - cv.width) > 2) fit(); }).observe(cv);
@@ -73,8 +74,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.15-14'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Fix: updates now always load the newest code (some copies kept showing Update ready without updating).';
+const GAME_VERSION = '2026.11.15-15'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'One map per town: Forked Canyon and Trestle Bridge are gone. A charter now restarts just the town you are in for deeds, which strengthen every town; Iron Ridge and Silver Falls pay extra deeds. Pinching the 3D map now zooms the map, not the page.';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

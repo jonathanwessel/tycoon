@@ -47,15 +47,6 @@ function bake(g, c) {
     wl(c * 1.12, '#5a4a32'); wl(c * .98, '#7a6a48'); wl(c * .86, '#2f5d78'); wl(c * .5, '#3d6f8f'); wl(c * .18, '#4a82a3');
     for (let d = 0; d < R.len; d += .23) { if (rnd() < .5) continue; const [x, y] = posAt(d, MAP.river); g.fillStyle = rnd() < .5 ? '#8ec4de' : '#5b9cc0'; g.fillRect((x + .5 + (rnd() - .5) * .6) * c, (y + .5 + (rnd() - .5) * .6) * c, c * (.08 + rnd() * .1), Math.max(1, c * .03)); }
   }
-  // Trestle Bridge: a ravine with a creek at the bottom
-  if (MAP.ravine) {
-    const x0 = Math.min(...MAP.ravine) * c, x1 = (Math.max(...MAP.ravine) + 1) * c, y0 = YARD * c, y1 = ROWS * c, rg = g.createLinearGradient(x0, 0, x1, 0);
-    rg.addColorStop(0, '#6a4630'); rg.addColorStop(.25, '#3a2419'); rg.addColorStop(.5, '#24160f'); rg.addColorStop(.75, '#3a2419'); rg.addColorStop(1, '#6a4630');
-    g.fillStyle = rg; g.fillRect(x0, y0, x1 - x0, y1 - y0);
-    const mid = (x0 + x1) / 2; g.fillStyle = '#2f5d78'; g.fillRect(mid - c * .16, y0, c * .32, y1 - y0); g.fillStyle = '#5b9cc0';
-    for (let y = y0; y < y1; y += c * .45) g.fillRect(mid - c * .1 + (Math.floor(y / c) % 2) * c * .08, y, c * .1, Math.max(1, c * .04));
-    for (let y = y0; y < y1; y += px) { const j1 = Math.floor(rnd() * 3), j2 = Math.floor(rnd() * 3); g.fillStyle = '#9a6e4a'; g.fillRect(x0 - j1 * px, y, px * (1 + j1), px); g.fillRect(x1 - px, y, px * (1 + j2), px); g.fillStyle = 'rgba(30,18,12,.35)'; g.fillRect(x0 + px, y, px * 2, px); g.fillRect(x1 - px * 3, y, px * 2, px); }
-  }
   line(c * 1.04, 'rgba(70,46,28,.35)'); line(c * .96, pal.road[0]); line(c * .84, pal.road[1]); line(c * .44, pal.road[2]); line(c * .34, pal.road[3]);
   // wheel ruts and the stones kicked to the road's edge
   for (const P_ of PATHS.filter((q, i) => i !== MAP.river)) for (const s of P_.segs) {
@@ -67,13 +58,6 @@ function bake(g, c) {
       const sx = (x + .5 + (hz ? 0 : side + j)) * c, sy = (y + .5 + (hz ? side + j : 0)) * c, w = px * (1 + Math.floor(rnd() * 2));
       g.fillStyle = 'rgba(50,32,22,.4)'; g.fillRect(sx + px * .4, sy + px * .4, w, px); g.fillStyle = rnd() < .5 ? '#a89a88' : '#8f8170'; g.fillRect(sx, sy, w, px);
     }
-  }
-  if (MAP.ravine) for (const key of PATH) {
-    const [bx, by] = key.split(',').map(Number); if (!MAP.ravine.includes(bx) || by < YARD) continue;
-    const horiz = PATH.has((bx - 1) + ',' + by) || PATH.has((bx + 1) + ',' + by);
-    g.fillStyle = '#2a1c22'; g.fillRect(bx * c - 1, by * c + c * .02, c + 2, c * .96);
-    for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#a8703f' : '#b98250'; if (horiz) g.fillRect(bx * c + i * c / 6, by * c + c * .08, c / 6 - Math.max(1, px * .6), c * .84); else g.fillRect(bx * c + c * .08, by * c + i * c / 6, c * .84, c / 6 - Math.max(1, px * .6)); }
-    g.fillStyle = '#5a3a22'; if (horiz) { g.fillRect(bx * c, by * c + c * .02, c, c * .07); g.fillRect(bx * c, by * c + c * .9, c, c * .07); } else { g.fillRect(bx * c + c * .02, by * c, c * .07, c); g.fillRect(bx * c + c * .9, by * c, c * .07, c); }
   }
   for (let p = 0; p < PATHS.length; p++) for (let i = 0; i < 70; i++) { const [x, y] = posAt(rnd() * PATHS[p].len, p); g.fillStyle = 'rgba(70,48,30,.35)'; g.fillRect((x + .5 + (rnd() - .5) * .7) * c, (y + .5 + (rnd() - .5) * .7) * c, c * .07, c * .05); }
   // worn footpaths between the rows of the yard

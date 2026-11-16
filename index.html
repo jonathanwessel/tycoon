@@ -47,6 +47,7 @@ body {
   padding-right: max(12px, env(safe-area-inset-right, 0px));
 }
 button, canvas { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+canvas#cv { touch-action: none; } /* gestures on the map belong to the game (pinch zooms the 3D camera), not to page zoom */
 button { -webkit-user-select: none; user-select: none; transition: background-color .18s, border-color .18s, color .18s, box-shadow .25s, opacity .18s, transform .08s; }
 img.px { image-rendering: pixelated; image-rendering: crisp-edges; width: 20px; height: 20px; flex: none; vertical-align: middle; }
 .app {

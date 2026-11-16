@@ -130,10 +130,6 @@ function wxSpd() { const w = wx(); return w === 'rain' ? .8 : w === 'heat' ? 1.1
 const MAPS = {
   gulch: { n: 'Copper Gulch', d: 'One long road with room to build along it.',
            paths: [[[-.5, 7], [10, 7], [10, 9], [1, 9], [1, 12], [11, 12]]], vault: [11, 12], hp: 1, coin: 1, deed: 0 },
-  fork:  { n: 'Forked Canyon', d: 'The road splits in two and is shorter. Raiders pay 50% more, and charters signed here earn an extra deed.',
-           paths: [[[-.5, 10], [2, 10], [2, 7], [9, 7], [9, 10], [11, 10]], [[-.5, 10], [2, 10], [2, 13], [9, 13], [9, 10], [11, 10]]], vault: [11, 10], hp: .8, coin: 1.5, deed: 1 },
-  bridge: { n: 'Trestle Bridge', d: 'The road crosses a ravine on three trestle bridges. Raiders on a bridge take 25% more damage. Raiders pay double, and charters signed here earn two extra deeds.',
-           paths: [[[-.5, 7], [10, 7], [10, 10], [1, 10], [1, 13], [11, 13]]], vault: [11, 13], hp: 1.1, coin: 2, deed: 2, ravine: [5, 6] },
   ridge: { n: 'Iron Ridge', d: 'A switchback road climbs the ridge to the vault. Raiders are tougher and pay more; charters here earn an extra deed.',
            paths: [[[-.5, 13], [9, 13], [9, 11], [2, 11], [2, 9], [9, 9], [9, 7], [11, 7]]], vault: [11, 7], hp: 1.2, coin: 1.6, deed: 1,
            pal: { yard: '#9c8a74', a: '#b4a28a', b: '#ab987e', road: ['#5e5048', '#7a6a5c', '#6a5a4e', '#7a6a5c'] } },
@@ -161,7 +157,7 @@ const SLOT_FALLS = {
 };
 const TOWNS = {
   gulch: { n: 'Copper Gulch', era: 'Frontier', ext: ['camp', 'mine', 'drill', 'pit'], shops: ['saw', 'smelt', 'glass', 'mach', 'eng', 'mill', 'clockw', 'autow'],
-           slot: SLOT_GULCH, tap: { trees: 'wood', rocks: 'ore' }, tapN: { trees: 'Chop', rocks: 'Dig' }, trees: true, maps: ['gulch', 'fork', 'bridge'],
+           slot: SLOT_GULCH, tap: { trees: 'wood', rocks: 'ore' }, tapN: { trees: 'Chop', rocks: 'Dig' }, trees: true, maps: ['gulch'],
            boss: { n: 'War wagon', spr: 'boss' }, goods: {}, start: { res: { plank: 10 }, seen: ['wood', 'ore', 'plank'] }, forge: ['smelt', 'mill'], glow: ['drill', 'glass'] },
   ridge: { n: 'Iron Ridge', era: 'Steam and rail', ext: ['ironmine', 'coalseam', 'quarry'], shops: ['blast', 'rolling', 'boilerw', 'locow'],
            slot: SLOT_RIDGE, tap: { trees: 'stone', rocks: 'iron' }, tapN: { trees: 'Quarry', rocks: 'Dig' }, trees: false, maps: ['ridge'],
@@ -179,7 +175,6 @@ const TOWNS = {
 const townOfMap = m => Object.keys(TOWNS).find(t => TOWNS[t].maps.includes(m)) || 'gulch';
 const towerGoods = type => TOWN.goods[type] || TOWERS[type].goods;
 const bossName = () => TOWN.boss.n;
-const onBridge = f => MAP.ravine && MAP.ravine.includes(Math.round(f.x));
 const PERKS = [
   { id: 'start',   n: 'Head Start',     d: 'Each charter starts with the Lumber Camp and Ore Mine at level 5 per rank, and a Sawmill.', max: 3, cost: l => 1 + l },
   { id: 'coffers', n: 'Seed Money',     d: 'Each charter starts with 500 coins, ten times more per extra rank.',                     max: 3, cost: l => 1 + l },

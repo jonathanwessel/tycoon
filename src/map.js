@@ -16,13 +16,13 @@ function setMap(id) {
   });
   PLOTS = [];
   for (let y = YARD; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-    if (PATH.has(x + ',' + y) || (MAP.ravine && MAP.ravine.includes(x))) continue;
+    if (PATH.has(x + ',' + y)) continue;
     let cover = 0;
     for (let p = 0; p < PATHS.length; p++) for (let d = 0; d < PATHS[p].len; d += .25) { const [px, py] = posAt(d, p); if (Math.hypot(px - x, py - y) <= 2.4) cover++; }
     PLOTS.push({ x, y, cover });
   }
   PLOTS.sort((a, b) => b.cover - a.cover);
-  let seed = id === 'fork' ? 91 : id === 'bridge' ? 33 : 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  let seed = { ridge: 33, falls: 57 }[id] || 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const spots = PLOTS.slice(Math.floor(PLOTS.length * .35)); CACTI = [];
   while (CACTI.length < 8 && spots.length) { const i = Math.floor(rnd() * spots.length); CACTI.push([spots[i].x, spots[i].y, rnd()]); spots.splice(i, 1); }
   // props: barrels, crates, skulls and wheels lie about until a tower is built on them

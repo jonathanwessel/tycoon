@@ -51,7 +51,6 @@ function hurt(f, dmg, o) {
     if (!(o && o.splash)) return;
   }
   if (f.brit > 0) dmg *= 1.3;
-  if (onBridge(f)) dmg *= 1.25;
   f.hp -= dmg; f.flash = .09;
   if (f.num <= 0 && floats.length < 40 && S.opt.nums !== false) { f.num = .35; floats.push({ x: f.x + .5, y: f.y, t: .6, s: fmt(Math.max(1, dmg)), c: '#fff', z: .26 }); }
   if (f.hp <= 0) {
@@ -262,17 +261,17 @@ function buyPerk(id) {
   S.perks[id] = l + 1; snd('ms', 660, .25, 'triangle', .06, 440); say(p.n + ' is now rank ' + (l + 1) + '.');
 }
 function wipeField() { foes = []; shots = []; fx = []; bombs = []; corpses = []; workers = []; drops = []; sel = null; W.active = false; W.queue = []; W.next = null; W.weather = W.nweather = null; W.countdown = 30; FXS.scorch = []; rebuild = true; }
-function prestige(mapId) {
+/* Sign a new charter: the town you are in starts over and pays deeds; every other town and the deeds' bonus carry on. */
+function prestige() {
   const g = deedsOnOffer(); if (!g) return;
-  const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, maps: Object.assign(S.maps, { fork: 1 }, S.map === 'fork' ? { bridge: 1 } : {}), goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
+  const keep = { deeds: S.deeds + g, perks: S.perks, charters: S.charters + 1, goal: S.goal, goalsDone: S.goalsDone, stats: S.stats,
     badges: S.badges, bestMap: S.bestMap, chMap: Object.assign(S.chMap, { [S.map]: (S.chMap[S.map] || 0) + 1 }), wxSeen: S.wxSeen, opt: S.opt,
     sound: S.sound, autoWave: S.autoWave, speed: S.speed, sellAbove: S.sellAbove, research: perk('archive') ? S.research : {}, fb: { share: S.fb.share, keep: S.fb.keep, purse: 0 },
     town: S.town, towns: S.towns, routes: S.routes, inbox: S.inbox, railOpen: S.railOpen, seenVersion: S.seenVersion }; // a charter resets this town only; the others carry on
-  if (S.map === 'fork' && !S.maps.bridgeSeen) { S.maps.bridgeSeen = 1; setTimeout(() => say('Trestle Bridge is open. Pick it next time you sign a charter.'), 2600); }
-  const map = TOWNS[S.town].maps.includes(mapId) ? mapId : TOWNS[S.town].maps[0];
+  const map = TOWNS[S.town].maps[0];
   S = fresh(); Object.assign(S, townFresh(map), keep); useTown(S.town); setMap(S.map); bakeGround();
   const st = perk('start'); if (st) { if (S.town === 'ridge') { S.ext.ironmine = S.ext.quarry = 5 * st; S.shops.blast = 1; } else { S.ext.camp = S.ext.mine = 5 * st; S.shops.saw = 1; } }
   const cf = perk('coffers'); if (cf) S.coins += 500 * Math.pow(10, cf - 1);
   for (let i = 0; i < perk('fort'); i++) { const p = PLOTS[i * 2]; if (p) S.towers.push({ c: p.x, r: p.y, type: 'crossbow', lvl: 2, tg: 'first' }); }
-  wipeField(); save(); say('New charter signed for ' + MAP.n + '. You hold ' + S.deeds + ' deeds.');
+  wipeField(); save(); say('New charter signed for ' + TOWN.n + '. You hold ' + S.deeds + ' deeds, and every town works faster for them.');
 }

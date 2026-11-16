@@ -1,4 +1,4 @@
 {
-  "version": "2026.11.15-14",
-  "notes": "Fix: updates now always load the newest code (some copies kept showing Update ready without updating)."
+  "version": "2026.11.15-15",
+  "notes": "One map per town: Forked Canyon and Trestle Bridge are gone. A charter now restarts just the town you are in for deeds, which strengthen every town; Iron Ridge and Silver Falls pay extra deeds. Pinching the 3D map now zooms the map, not the page."
 }

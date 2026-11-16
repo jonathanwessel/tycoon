@@ -2,7 +2,7 @@
 // The page and the game's code are fetched from the network first (revalidated, never from a stale browser cache) so a
 // new version runs as soon as it is published; the cached copies are only used when offline. Icons come from the cache.
 // Bump VERSION with every release (scripts/bump-version.js) so old caches are cleared.
-const VERSION = '2026.11.15-14';
+const VERSION = '2026.11.15-15';
 const CACHE = 'copper-gulch-' + VERSION;
 const SHELL = ["./","./index.html","./manifest.webmanifest","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./icons/icon-maskable-512.png","./src/app.js","./src/art.js","./src/combat.js","./src/defs.js","./src/economy.js","./src/fx.js","./src/gl.js","./src/goals.js","./src/map.js","./src/render2d.js","./src/render3d.js","./src/state.js","./src/ui.js"];
 

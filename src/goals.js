@@ -38,11 +38,11 @@ const BADGES = [
   { id: 'arsenal', n: 'Full Arsenal',       d: 'Have every kind of tower on the map at once.',     icon: 'gatling',  ok: () => Object.keys(TOWERS).every(k => S.towers.some(t => t.type === k)) },
   { id: 'weather', n: 'Weathered',          d: 'Clear a wave in each kind of weather.',            icon: 'w_rain',   ok: () => Object.keys(WEATHER).every(k => S.wxSeen[k]) },
   { id: 'charter', n: 'Founder',            d: 'Sign a charter.',                                  icon: 'office',   ok: () => S.charters >= 1 },
-  { id: 'canyon',  n: 'Canyon Runner',      d: 'Sign a charter on Forked Canyon.',                 icon: 'runner',   ok: () => !!S.chMap.fork },
+  { id: 'chridge', n: 'Railroad Charter',   d: 'Sign a charter in Iron Ridge.',                    icon: 'loco',     ok: () => !!S.chMap.ridge },
   { id: 'ridgeo',  n: 'Iron Horse',         d: 'Open Iron Ridge.',                                 icon: 'loco',     ok: () => townOpen('ridge') },
   { id: 'fallso',  n: 'Bright Lights',      d: 'Open Silver Falls.',                               icon: 'bulb',     ok: () => townOpen('falls') },
   { id: 'wired',   n: 'Wired',              d: 'Make a telegraph.',                                icon: 'tele',     ok: () => townIds().some(id => (id === S.town ? S.seen : S.towns[id].seen || {}).tele) },
-  { id: 'bridge',  n: 'Bridge Builder',     d: 'Sign a charter on Trestle Bridge.',                icon: 'sign',     ok: () => !!S.chMap.bridge },
+  { id: 'chfalls', n: 'Charter of Light',   d: 'Sign a charter in Silver Falls.',                  icon: 'bulb',     ok: () => !!S.chMap.falls },
 ];
 function checkBadges(quiet) {
   for (const b of BADGES) if (!S.badges[b.id] && b.ok()) {

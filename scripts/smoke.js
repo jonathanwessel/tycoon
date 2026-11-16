@@ -1,6 +1,6 @@
 // Smoke test: node scripts/smoke.js [screenshot-dir]
 // Loads the game at phone and desktop widths, plays through a boss wave, taps everything, checks the
-// vault, weather, pause, hold, badges, settings and the bridge map, and fails on console errors or
+// vault, weather, pause, hold, badges, settings, the 3D view and the empire, and fails on console errors or
 // sideways scrolling. Uses Playwright if it is installed, otherwise an installed Edge or Chrome (scripts/cdp.js).
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('./cdp'); } })();
 const path = require('path');
@@ -158,9 +158,6 @@ const shots = process.argv[2];
       return { opened, cards, sugg, routes: S.routes.length, inRidge, trainBar, ridgeRows, fallsOpen, river, powerPanel, home: TOWN_ID === 'gulch' };
     });
     if (!emp.opened || emp.cards < 3 || !emp.inRidge || !emp.trainBar || emp.ridgeRows !== 7 || !emp.fallsOpen || !emp.river || !emp.powerPanel || !emp.home || emp.routes < 1) errs.push('empire check failed: ' + JSON.stringify(emp));
-    // the bridge map draws and keeps the ravine clear of plots
-    const br = await p.evaluate(() => { setMap('bridge'); bakeGround(); const ok = !PLOTS.some(q => MAP.ravine.includes(q.x)); setMap(S.map); bakeGround(); return ok; });
-    if (!br) errs.push('Trestle Bridge has plots in the ravine');
     await p.click('#tab-works');
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight + 1);
     const navVisible = await p.evaluate(() => { const r = document.getElementById('tabs').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.height > 30; });

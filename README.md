@@ -8,7 +8,7 @@ No ads, no purchases, no tracking. The page makes no requests to any other site,
 
 <p>
   <img src="docs/phone.png" alt="The gulch on a phone: workshops, towers by the road and raiders in the rain" width="300">
-  <img src="docs/desktop.png" alt="Trestle Bridge on a computer during a dust storm" width="640">
+  <img src="docs/desktop.png" alt="Silver Falls at night on a computer: river pirates row in while the ironclad steamer comes up the river" width="640">
 </p>
 
 ## What is in it
@@ -17,8 +17,8 @@ No ads, no purchases, no tracking. The page makes no requests to any other site,
 - Five towers, each with two upgrade paths and a choice of target, against seven kinds of raider and a war wagon every tenth wave.
 - Weather that changes the fight: dust storms, rain, heat waves and clear nights.
 - Moving market prices, caravan contracts, research, goals and badges.
-- An empire of towns that all keep working: Copper Gulch (with Forked Canyon and Trestle Bridge charters) Iron Ridge, a steam-and-rail town with its own goods chain up to locomotives, and Silver Falls, an electric river town with a power grid, river pirates and an ironclad steamer. Ship goods between towns by wagon and later by train, and see coins per second for every town and the whole empire.
-- Charters to start a town over with deeds and perks.
+- An empire of towns that all keep working: Copper Gulch, Iron Ridge, a steam-and-rail town with its own goods chain up to locomotives, and Silver Falls, an electric river town with a power grid, river pirates and an ironclad steamer. Ship goods between towns by wagon and later by train, and see coins per second for every town and the whole empire.
+- Charters to start a town over for deeds, which make every town stronger and buy perks; later towns pay more deeds.
 - Pixel art lit by a small hand-written WebGL engine: a moving sun with cast shadows, drifting clouds, lamps, forges, muzzle flashes and explosions that light the ground, and dusk falling as raiders arrive. A voxel 3D view (preview) turns the same town into a diorama you can rotate and zoom, with real sun shadows. Graphics settings (gear button on the map) offer Low to Ultra presets, separate controls for shadows, glow, resolution, effects, weather, shake and frame rate, and five colour looks with optional film grain and scanlines.
 - Install it as an app from your browser (Install app / Add to Home Screen). It works offline and updates itself when a new version is published.
 - Works on phones and computers, keeps working for up to 8 hours while you are away, and can hold waves or pause completely.

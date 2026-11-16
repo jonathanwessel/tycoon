@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 4, town: 'gulch', towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 5, town: 'gulch', towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0 }, ot: 0,
@@ -104,6 +104,10 @@ function adopt(o) {
   if (!o.v) { (o.towers || []).forEach(t => { t.r += 2; }); o.v = 2; } // v1 maps had a two-row yard
   if (o.v < 3) { if (o.goal >= 7) o.goal++; o.v = 3; } // v3 added the vault goal at position 7
   if (o.v < 4) { o.town = 'gulch'; o.towns = {}; o.v = 4; } // v4: the old save becomes the first town of an empire
+  if (o.v < 5) { // v5: Forked Canyon and Trestle Bridge were retired; their charters continue on the Copper Gulch map
+    const fix = t => { if (t && !MAPS[t.map]) { t.map = 'gulch'; t.moved = 1; } };
+    fix(o); for (const id in o.towns || {}) fix(o.towns[id]); o.v = 5;
+  }
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
   for (const k of ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'perks', 'maps', 'demand', 'mgr', 'stats', 'cd', 'badges', 'bestMap', 'chMap', 'wxSeen', 'opt']) S[k] = Object.assign(fresh()[k], o[k]);
@@ -115,7 +119,11 @@ function adopt(o) {
   delete S.opt.gfx;
   S.routes = Array.isArray(o.routes) ? o.routes : []; S.inbox = o.inbox || {};
   useTown(S.town); setMap(S.map);
-  S.towers = (S.towers || []).filter(t => TOWERS[t.type] && t.r >= YARD && t.r < ROWS && t.c >= 0 && t.c < COLS && !onRoad(t.c, t.r));
+  // towers that no longer fit (on the road after a map change) are sold back for their build price and upgrades
+  const fits = t => TOWERS[t.type] && t.r >= YARD && t.r < ROWS && t.c >= 0 && t.c < COLS && !onRoad(t.c, t.r);
+  const lost = (S.towers || []).filter(t => !fits(t)), refund = lost.reduce((a, t) => a + (TOWERS[t.type] ? TOWERS[t.type].coins * Math.pow(1.75, t.lvl || 0) : 0), 0);
+  S.towers = (S.towers || []).filter(fits); S.coins += refund;
+  if (o.moved || S.moved) { delete S.moved; S.movedNote = 'Forked Canyon and Trestle Bridge are gone: every town now has one map, so your charter continues on Copper Gulch.' + (lost.length ? ' ' + lost.length + ' tower' + (lost.length > 1 ? 's' : '') + ' on the new road were refunded ' + fmt(refund) + ' coins.' : ''); }
   return true;
 }
 

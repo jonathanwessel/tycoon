@@ -366,18 +366,15 @@ const PANELS = {
   charter(p) {
     const held = h('b'), freeL = h('small'), offer = h('p'), signs = h('div', { cls: 'bar' });
     p.append(h('h2', null, 'Deeds'), h('div', { cls: 'deeds' }, held, freeL),
-      h('p', null, 'Every deed you hold adds 20% to gathering, workshop speed and tower damage for good. Spend deeds on perks below; spending does not lose the bonus.'),
-      h('h2', null, 'New charter'), h('p', null, 'Sell the gulch and start a new one. You lose coins, stock, buildings, research and towers. You keep deeds, perks and goals.'), offer, signs);
-    for (const id of TOWN.maps) { // a charter restarts the town you are in, on one of its maps
-      const M = MAPS[id], b = h('button', { cls: 'primary', on: () => prestige(id) }, 'Sign for ' + M.n);
-      signs.append(b); ups.push(() => { b.disabled = !deedsOnOffer(); b.hidden = id === 'bridge' ? !S.maps.bridge : id === 'fork' ? !S.maps[id] && !deedsOnOffer() : false; });
-    }
+      h('p', null, 'Every deed you hold adds 20% to gathering, workshop speed and tower damage in every town, for good. Spend deeds on perks below; spending does not lose the bonus.'),
+      h('h2', null, 'New charter for ' + TOWN.n), h('p', null, 'Sell ' + TOWN.n + ' and start it over for deeds. This town loses its coins, stock, buildings, research and towers; your other towns, deeds, perks, badges and goals stay.'), offer, signs);
+    const sign = h('button', { cls: 'primary', on: () => prestige() }, 'Sign a new charter for ' + TOWN.n); signs.append(sign); ups.push(() => { sign.disabled = !deedsOnOffer(); });
     ups.push(() => {
       held.textContent = S.deeds; freeL.textContent = freeDeeds() + ' to spend';
       const g = deedsOnOffer();
-      offer.innerHTML = g ? 'Signing now earns <strong>' + g + ' deed' + (g > 1 ? 's' : '') + '</strong>' + (MAP.deed ? ', including the ' + MAP.n + ' bonus' : '') + '. Forked Canyon has two roads; raiders there pay 50% more and each charter signed there earns an extra deed.'
-          + (S.maps.bridge ? ' Trestle Bridge crosses a ravine: raiders on its bridges take 25% more damage, pay double, and charters there earn two extra deeds.' : ' Sign a charter on Forked Canyon to open a third map.')
-        : 'Reach <strong>wave 35</strong> to earn your first deed. Best so far: wave ' + S.best + '. You are on ' + MAP.n + '.';
+      offer.innerHTML = (g ? 'Signing now earns <strong>' + g + ' deed' + (g > 1 ? 's' : '') + '</strong>' + (MAP.deed ? ', including ' + MAP.deed + ' extra for ' + TOWN.n : '') + '.'
+        : 'Reach <strong>wave 35</strong> in ' + TOWN.n + ' to earn deeds here. Best so far: wave ' + S.best + '.')
+        + ' Later towns pay more: charters in Iron Ridge earn 1 extra deed, in Silver Falls 2.';
     });
     p.append(h('h2', null, 'Perks'));
     for (const pk of PERKS) {
@@ -394,12 +391,12 @@ const PANELS = {
     const got = h('small'); p.append(h('h2', null, 'Badges ', got));
     const grid = h('div', { cls: 'badges' }); p.append(grid);
     for (const b of BADGES) { const tile = h('div', { cls: 'badge', title: b.d }, ico(b.icon, ''), h('b', null, b.n), h('small', null, b.d)); grid.append(tile); ups.push(() => tile.classList.toggle('got', !!S.badges[b.id])); }
-    ups.push(() => { got.textContent = Object.keys(S.badges).length + ' of ' + BADGES.length; });
+    ups.push(() => { got.textContent = BADGES.filter(b => S.badges[b.id]).length + ' of ' + BADGES.length; });
     const recs = h('div', { cls: 'records' }); p.append(h('h2', null, 'Records'), recs);
     const hm = s => { s = Math.floor(s); const hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60; return hh ? hh + 'h ' + mm + 'm' : mm + 'm'; };
     for (const [n, f] of [['Coins per second now', () => '+' + rate(liveIncome())], ['Potential coins per second (all surplus sold)', () => '+' + rate(steadyIncome())], ['Best coins per second', () => '+' + rate(S.bestRate || 0)], ['Coins earned', () => fmt(S.stats.coins)], ['Raiders defeated', () => fmt(S.stats.kills)], ['Bosses destroyed', () => fmt(S.stats.bosses)],
       ['Waves with no leaks', () => fmt(S.stats.flawless)], ['Goods made', () => fmt(S.stats.made)], ['Contracts filled', () => fmt(S.stats.contracts)],
-      ['Charters signed', () => S.charters], ...Object.keys(MAPS).map(id => ['Best wave · ' + MAPS[id].n, () => S.bestMap[id] ? S.bestMap[id] : '—']), ['Time played', () => hm(S.stats.played)]]) {
+      ['Charters signed', () => S.charters], ...Object.keys(TOWNS).map(id => ['Best wave · ' + TOWNS[id].n, () => townOpen(id) ? townBest(id) : '—']), ['Time played', () => hm(S.stats.played)]]) {
       const v = h('b'); recs.append(h('div', null, h('span', null, n), v)); ups.push(() => { v.textContent = f(); });
     }
     // settings live in their own panel (gear button on the map)

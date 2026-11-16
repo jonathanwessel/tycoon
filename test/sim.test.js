@@ -59,20 +59,45 @@ test('repairs are refused while a wave is on the road', () => {
   assert.strictEqual(g.run('S.vaultHp'), 8);
 });
 
-test('a v3 save becomes the first town of a v4 empire, with a backup of the original', () => {
+test('a v3 save becomes the first town of an empire (current save version), with a backup of the original', () => {
   const g = load();
   const v3 = g.run(`(() => { const o = fresh(); delete o.town; delete o.towns; o.v = 3; o.coins = 12345; o.ext.camp = 17; o.wave = 22; o.deeds = 3; o.towers = [{ c: 0, r: 6, type: 'crossbow', lvl: 2, tg: 'first' }]; return JSON.stringify(o); })()`);
   const h = load({ storage: { 'copper-gulch-save-v1': v3 } });
   h.run('load()');
-  assert.strictEqual(h.run('S.v'), 4);
+  assert.strictEqual(h.run('S.v'), h.run('fresh().v'));
   assert.strictEqual(h.run('S.town'), 'gulch');
   assert.deepStrictEqual(h.run('JSON.stringify([S.coins, S.ext.camp, S.wave, S.deeds, S.towers.length])'), JSON.stringify([12345, 17, 22, 3, 1]));
   assert.strictEqual(h.store.get('copper-gulch-save-v1-v3-backup'), v3, 'original kept');
 });
 
+test('a save on the retired Forked Canyon moves to Copper Gulch and refunds towers now on the road', () => {
+  const g = load();
+  const v4 = g.run(`(() => { const o = fresh(); o.v = 4; o.map = 'fork'; o.coins = 1000; o.ext.camp = 12; o.towers = [{ c: 3, r: 7, type: 'cannon', lvl: 2, tg: 'first' }, { c: 0, r: 6, type: 'crossbow', lvl: 0, tg: 'first' }]; return JSON.stringify(o); })()`);
+  const h = load({ storage: { 'copper-gulch-save-v1': v4 } }); h.run('load()');
+  assert.strictEqual(h.run('S.map'), 'gulch');
+  assert.strictEqual(h.run('S.v'), 5);
+  assert.strictEqual(h.run('S.ext.camp'), 12, 'buildings kept');
+  assert.strictEqual(h.run('S.towers.length'), 1, 'the cannon on the new road is gone');
+  assert.ok(h.run('S.coins') > 1000 + 120 * 3, 'and refunded');
+  assert.ok(/Forked Canyon and Trestle Bridge are gone/.test(h.run('S.movedNote')));
+});
+
+test('a charter restarts only this town and pays its town bonus', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.towns.ridge = townFresh('ridge'); switchTown('ridge'); S.best = 40; S.ext.ironmine = 30; S.towns.gulch.ext.camp = 25;`);
+  const offer = g.run('deedsOnOffer()');
+  assert.strictEqual(offer, 2 + 1, 'wave 40 gives 2 deeds, plus 1 for Iron Ridge');
+  g.run('prestige()');
+  assert.strictEqual(g.run('S.deeds'), 3);
+  assert.strictEqual(g.run('S.town'), 'ridge');
+  assert.strictEqual(g.run('S.ext.ironmine || 0'), 0, 'Ridge starts over');
+  assert.strictEqual(g.run('S.towns.gulch.ext.camp'), 25, 'Copper Gulch untouched');
+  assert.strictEqual(g.run('S.chMap.ridge'), 1);
+});
+
 test('towns keep their own buildings; the empire shares coins; background work stays in its town', () => {
   const g = load();
-  g.run(`S = fresh(); setMap('gulch'); S.ext.camp = 3; S.towns.test = townFresh('fork'); S.towns.test.ext = { mine: 5 };`);
+  g.run(`S = fresh(); setMap('gulch'); S.ext.camp = 3; S.towns.test = townFresh('ridge'); S.towns.test.ext = { mine: 5 };`);
   g.run(`withTown('test', () => { econ(10); });`);
   assert.ok(g.run('S.towns.test.res.ore') > 0, 'the other town produced ore');
   assert.strictEqual(g.run('S.ext.camp'), 3, 'the active town is untouched');
