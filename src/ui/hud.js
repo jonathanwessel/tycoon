@@ -33,7 +33,7 @@ function buildFixed() {
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && FULL.asked) { FULL.asked = false; setMapFull(false); } });
   $('pauseCover').addEventListener('click', () => setPaused(false));
   document.addEventListener('keydown', e => {
-    if (e.target.closest && e.target.closest('textarea, input')) return;
+    if ((e.target.closest && e.target.closest('textarea, input')) || TITLE.on) return;
     const md = $('modal'); if (e.key === 'Escape' && !md.hidden && md.classList.contains('sheetm')) { md.hidden = true; md.className = 'modal'; md.onclick = null; save(); return; }
     if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
     else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); goTab('missions'); }

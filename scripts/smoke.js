@@ -20,9 +20,21 @@ const shots = process.argv[2];
     await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
     await p.goto(URL);
     // the 3D view starts once its module has loaded
-    const on3d = await p.evaluate(async () => { for (let i = 0; i < 60 && !R3.on; i++) await new Promise(r => setTimeout(r, 100)); PERF.noAuto = true; await new Promise(r => setTimeout(r, 1000));
+    // the title screen comes first: the town flies by behind it, no raiders move, and a new game offers the tutorial
+    const title = await p.evaluate(async () => { for (let i = 0; i < 60 && !R3.on; i++) await new Promise(r => setTimeout(r, 100)); PERF.noAuto = true; S.opt.calm = 'full'; applyMotion(); // headless browsers ask for reduced motion, which holds the flyover still
+      await new Promise(r => setTimeout(r, 400)); const cd = W.countdown, e0 = R3.cam && R3.cam.eye.slice(); await new Promise(r => setTimeout(r, 900)); const e1 = R3.cam && R3.cam.eye;
+      return { shown: TITLE.on && !document.getElementById('title').hidden && document.body.classList.contains('titling'), label: document.getElementById('tGo').textContent,
+        flying: !!(e0 && e1 && Math.hypot(e1[0] - e0[0], e1[1] - e0[1], e1[2] - e0[2]) > .05), held: W.countdown === cd, tutWaits: document.getElementById('modal').hidden,
+        music: MUSIC.want === 'title', navHidden: getComputedStyle(document.getElementById('tabs')).display === 'none' };
+    });
+    for (const k in title) if (!title[k]) errs.push('title screen check failed: ' + k + ' ' + JSON.stringify(title));
+    if (shots) await p.screenshot({ path: path.join(shots, name + '-title.png') });
+    await p.click('#tGo');
+    const on3d = await p.evaluate(async () => { await new Promise(r => setTimeout(r, 1000));
+      window.__music = { closed: !TITLE.on && document.getElementById('title').hidden !== undefined && !document.body.classList.contains('titling'), want: MUSIC.want === 'town', ctx: !!MUSIC.ctx, running: MUSIC.ctx && MUSIC.ctx.state, bars: MUSIC.bars };
       const offered = !document.getElementById('modal').hidden && /tutorial/i.test(document.getElementById('modal').textContent); if (offered) { document.getElementById('modal').hidden = true; S.tut = 'done'; } window.__offered = offered; return R3.on; });
     if (!(await p.evaluate(() => window.__offered))) errs.push('a new game did not offer the tutorial');
+    { const m = await p.evaluate(() => window.__music); if (!m.closed || !m.want || !m.ctx) errs.push('leaving the title: ' + JSON.stringify(m)); else if (m.running === 'running' && !(m.bars > 0)) errs.push('music did not play: ' + JSON.stringify(m)); }
     if (!on3d) { console.log(name, 'FAIL: the 3D view did not start'); failed = true; await p.close(); continue; }
     // the map layer and the 3D canvas match the screen
     if (!(await p.evaluate(() => Math.abs(cv.width - Math.round(cv.clientWidth * renderScale())) <= 2 && Math.abs(cv.height - Math.round(cv.clientHeight * renderScale())) <= 2 && R3.canvas.width === cv.width && cell > 0))) errs.push('map render size does not match the map on screen');
@@ -255,6 +267,20 @@ const shots = process.argv[2];
       if (SHEET.open) closeSheet(); return r;
     });
     for (const k in cap) if (!cap[k]) errs.push('Capital check failed: ' + k);
+    // the title screen again from Settings: start a new empire (the old one is put aside), then swap back to it
+    const tt = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)), r = {}, leg = legacyPts();
+      openSettings('game'); await wait(100); document.getElementById('setTitle').click(); await wait(300);
+      r.back = TITLE.on && document.getElementById('tGo').textContent.startsWith('Continue') && !!document.getElementById('tNew');
+      document.getElementById('tNew').click(); await wait(100); r.asks = !!document.getElementById('tYes');
+      document.getElementById('tYes').click(); await wait(1100);
+      r.fresh = !TITLE.on && S.wave === 1 && legacyPts() === 0 && !!asideInfo(); r.tut = !document.getElementById('modal').hidden && /tutorial/i.test(document.getElementById('modal').textContent);
+      document.getElementById('modal').hidden = true; S.tut = 'done';
+      showTitle(kind => { r.kind = kind; }); await wait(300); r.swapBtn = !!document.getElementById('tSwap'); document.getElementById('tSwap').click(); await wait(500);
+      r.swapped = r.kind === 'swap' && legacyPts() === leg && leg > 0 && !TITLE.on && asideInfo().wave === 1;
+      r.music = musicVol() > 0; return r;
+    });
+    for (const k in tt) if (!tt[k]) errs.push('title round trip failed: ' + k + ' ' + JSON.stringify(tt));
     await p.click('#tab-works');
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight + 1);
     const navVisible = await p.evaluate(() => { const r = document.getElementById('tabs').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.height > 30; });

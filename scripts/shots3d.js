@@ -12,7 +12,7 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await p.goto(srv.url); await p.waitForTimeout(1500);
   const r = await p.evaluate(async town => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    PERF.noAuto = true; S.tut = 'done'; document.getElementById('modal').hidden = true; S.coins = 1e9; S.best = 40;
+    PERF.noAuto = true; S.tut = 'done'; closeTitle('continue'); document.getElementById('modal').hidden = true; S.coins = 1e9; S.best = 40;
     if (town !== 'gulch') { unlockTown('ridge'); if (town === 'falls' || town === 'mesa') { S.best = 40; withTown('ridge', () => { S.best = 40; }); unlockTown('falls'); }
       if (town === 'mesa') { S.coins = 1e12; withTown('falls', () => { S.best = 40; }); openCapital(); S.capital.lv.transport = 5; unlockTown('mesa'); S.coins = 1e9; }
       goTown(town); await wait(300); }
@@ -27,6 +27,12 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   if (!r.on) { console.log('3D did not start', errs); process.exit(1); }
   const shot = async n => { await p.screenshot({ path: path.join(out, town + (process.env.VIEW ? '-' + process.env.VIEW : '') + '-' + n + '.png') }); };
   await shot('day');
+  // the title screen over the busy town, at two moments of the flyover
+  await p.evaluate(async () => { S.opt.calm = 'full'; applyMotion(); showTitle(null); await new Promise(r => setTimeout(r, 2600)); });
+  await shot('title');
+  await p.evaluate(async () => { TITLE.t = 40; await new Promise(r => setTimeout(r, 300)); });
+  await shot('title2');
+  await p.evaluate(async () => { closeTitle('continue'); await new Promise(r => setTimeout(r, 2000)); });
   await p.evaluate(async () => { const b = BUILD[3], id = b.def.id; S[b.kind][id] = 0; refresh(); await new Promise(r => setTimeout(r, 400)); buyBuilding(b); BUILD.slice(4, 7).forEach(q => { upgradeTower(S.towers[0]); }); await new Promise(r => setTimeout(r, 420)); });
   await shot('build');
   const t = await p.evaluate(async () => {

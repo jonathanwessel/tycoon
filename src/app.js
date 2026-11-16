@@ -59,15 +59,17 @@ function tickHud(dt) {
 function frame(now) {
   const dt = Math.min(OFFLINE_CAP, Math.max(0, (now - prev) / 1000)); prev = now;
   if (!paused) {
-    econTowns(dt); // every town produces; only this one has waves
-    let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; }
-    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); S.stats.played += Math.min(dt, 1); sampleIncome(Math.min(dt, 1));
+    econTowns(dt); // every town produces; only this one has waves (and they wait while the title is up)
+    if (TITLE.on) TITLE.t += Math.min(dt, .1);
+    else { let cdt = Math.min(dt, .1) * S.speed; while (cdt > 0) { const s = Math.min(cdt, .05); combat(s); cdt -= s; } S.stats.played += Math.min(dt, 1); }
+    playT += Math.min(dt, .1); cosmetics(Math.min(dt, .1), playT); sampleIncome(Math.min(dt, 1));
     if (S.bestRate === undefined || INC.samples.length > 30) S.bestRate = Math.max(S.bestRate || 0, liveIncome());
   }
   // the 30 fps setting keeps the simulation running every frame but draws every other one or so (saves battery)
   const cap = GX().fps === 30 ? 1 / 31 : 0; drawAcc += dt;
   if (drawAcc >= cap) { if (R3.on) r3Render(playT); drawAcc = cap ? drawAcc % cap : 0; fpsN++; }
   tickHud(Math.min(dt, .1));
+  MUSIC.want = TITLE.on ? 'title' : foes.some(f => f.type === 'boss' && f.hp > 0) ? 'boss' : 'town'; try { musicTick(); } catch (e) {}
   fpsT += dt; if (fpsT >= .5) { const el = $('fpsMeter'); if (el) { el.hidden = !GX().fpsShow; el.textContent = Math.round(fpsN / fpsT) + ' fps'; } fpsT = 0; fpsN = 0; }
   // if lighting makes a device struggle (well under 30 frames a second for several seconds), drop to simple graphics
   // a device that struggles (well under 30 frames a second for several seconds) gets a lower graphics preset
@@ -83,19 +85,29 @@ function frame(now) {
 function start(data) {
   paintSprites(); paintSprites2(); paintSprites3(); paintSprites4(); paintSprites5(); setMap('gulch');
   if (!(data && data.S && adopt(data.S))) load();
-  checkBadges(true); applyMotion(); protectSave(); announceVersion();
-  if (S.tut === undefined && !S.towers.length && !S.charters && !Object.keys(S.towns).length) setTimeout(tutOffer, 900); else if (S.tut === undefined) S.tut = 'done'; // a brand-new game is offered the tutorial
-  else if (typeof S.tut === 'number') setTimeout(tutShow, 900);
-  if (S.movedNote) { const n = S.movedNote; delete S.movedNote; setTimeout(() => say(n), 1500); }
+  checkBadges(true); applyMotion(); protectSave();
   const away = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - S.last) / 1000));
   buildFixed(); fit(); applyGfx(); window.addEventListener('resize', fit);
   if (window.ResizeObserver) new ResizeObserver(() => { if (Math.abs(cv.clientWidth * renderScale() - cv.width) > 2 || (R3.on && Math.abs(cv.clientHeight * renderScale() - cv.height) > 2)) fit(); }).observe(cv);
+  let gains = null, earned = 0;
   if (away > 60) {
     const before = S.life, r0 = Object.assign({}, S.res); econTowns(away);
-    const gains = {}; for (const k in ITEMS) gains[k] = S.res[k] - r0[k];
-    welcome(away, S.life - before, gains);
-  } else if (!S.life && !S.towers.length) say('Tap a plot beside the road to build a crossbow. Hold the trees and rocks to gather. Raiders arrive in 30 seconds.');
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (S.opt.autoPause) setPaused(true); save(); } });
+    gains = {}; for (const k in ITEMS) gains[k] = S.res[k] - r0[k]; earned = S.life - before;
+  }
+  // what follows the title screen: the news, the tutorial, the welcome back (only for the empire it was earned in)
+  const later = kind => {
+    announceVersion();
+    if (kind === 'new') { setTimeout(tutOffer, 700); return; }
+    if (kind === 'swap') { say('Back in ' + TOWN.n + '. The other empire is put aside until you swap again.'); return; }
+    if (S.tut === undefined && !S.towers.length && !S.charters && !Object.keys(S.towns).length) setTimeout(tutOffer, 900); else if (S.tut === undefined) S.tut = 'done'; // a brand-new game is offered the tutorial
+    else if (typeof S.tut === 'number') setTimeout(tutShow, 900);
+    if (S.movedNote) { const n = S.movedNote; delete S.movedNote; setTimeout(() => say(n), 1500); }
+    if (gains) welcome(away, earned, gains);
+    else if (!S.life && !S.towers.length) say('Tap a plot beside the road to build a crossbow. Hold the trees and rocks to gather. Raiders arrive in 30 seconds.');
+  };
+  if (data && data.S) later('continue'); else showTitle(later); // a live reload while developing skips the title
+  for (const ev of ['pointerdown', 'keydown', 'touchend', 'click']) document.addEventListener(ev, musicStart, { capture: true, passive: true }); // sound may only start after a tap
+  document.addEventListener('visibilitychange', () => { musicSleep(document.hidden); if (document.hidden) { if (S.opt.autoPause) setPaused(true); save(); } });
   window.addEventListener('pagehide', save);
   if (document.fonts && document.fonts.load) document.fonts.load('20px Rye').catch(() => {});
   prev = performance.now(); refresh(); requestAnimationFrame(frame);
@@ -103,8 +115,8 @@ function start(data) {
 /* =========================================================
    Installing as an app, updates and keeping the save safe
    ========================================================= */
-const GAME_VERSION = '2026.11.16-5'; // set by scripts/bump-version.js, together with sw.js and version.json
-const GAME_NEWS = 'Juice: scaffolds and dust for new buildings, upgrade sparkles, a cinematic boss entrance, coin bursts to the counter';
+const GAME_VERSION = '2026.11.16-6'; // set by scripts/bump-version.js, together with sw.js and version.json
+const GAME_NEWS = 'Title screen with a flyover of your town, Western music made as you play, New game with a swap back to the empire put aside';
 const APP = { prompt: null, installed: window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, waiting: null, persisted: null };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APP.prompt = e; rebuild = true; });
 window.addEventListener('appinstalled', () => { APP.prompt = null; APP.installed = true; rebuild = true; say('Copper Gulch is installed. Open it from your home screen or app list.'); });

@@ -40,11 +40,14 @@ function openSettings(t) {
     row('Scanlines', 'Lines like an old arcade screen.', [[1, 'On'], [0, 'Off']], () => GX().scan ? 1 : 0, v => setGx('scan', v));
     row('Show frame rate', 'A small counter in the corner of the map.', [[1, 'On'], [0, 'Off']], () => GX().fpsShow ? 1 : 0, v => setGx('fpsShow', v));
   } else if (setTab === 'sound') {
-    row('Sound', '', [[true, 'On'], [false, 'Off']], () => !!S.sound, v => { S.sound = v; snd('coin', 880, .08, 'square', .04, 440); });
-    row('Volume', '', [[.25, 'Low'], [.6, 'Medium'], [1, 'High']], () => S.opt.vol, v => { S.opt.vol = v; S.sound = true; snd('coin', 880, .08, 'square', .04, 440); });
+    row('Music', 'Western tunes made as you play: a calm one in town, a fast one when a boss rides in.', [[0, 'Off'], [.3, 'Low'], [.6, 'Medium'], [1, 'High']], () => musicVol(), v => { if (v) S.opt.musicWas = v; S.opt.music = v; musicStart(); });
+    row('Sound effects', '', [[true, 'On'], [false, 'Off']], () => !!S.sound, v => { S.sound = v; snd('coin', 880, .08, 'square', .04, 440); });
+    row('Effects volume', '', [[.25, 'Low'], [.6, 'Medium'], [1, 'High']], () => S.opt.vol, v => { S.opt.vol = v; S.sound = true; snd('coin', 880, .08, 'square', .04, 440); });
   } else {
     row('Waves', 'Held waves only come when you call them.', [[true, 'Come on their own'], [false, 'Held']], () => !!S.autoWave, v => { if (S.autoWave !== v) toggleAuto(); });
     body.append(h('div', { cls: 'row setrow' }, h('div', { cls: 'grow' }, h('b', null, 'Tutorial'), h('small', null, 'A three-minute walk through the basics.')), h('button', { cls: 'small', on: () => { $('modal').hidden = true; $('modal').className = 'modal'; tutStart(); } }, 'Play it')));
+    body.append(h('div', { cls: 'row setrow' }, h('div', { cls: 'grow' }, h('b', null, 'Title screen'), h('small', null, 'Start a new empire, or swap to the one put aside.')), h('button', { cls: 'small', id: 'setTitle', on: () => { $('modal').hidden = true; $('modal').className = 'modal'; save();
+      showTitle(kind => { if (kind === 'new') setTimeout(tutOffer, 700); else if (kind === 'swap') say('Back in ' + TOWN.n + '. The other empire is put aside until you swap again.'); }); } }, 'Open')));
     row('Motion', 'Calm turns off sliding, shaking and pop-in.', [['auto', 'Like my device'], ['calm', 'Calm'], ['full', 'Full']], () => S.opt.calm, v => { S.opt.calm = v; applyMotion(); });
     row('Damage numbers', '', [[true, 'Show'], [false, 'Hide']], () => S.opt.nums !== false, v => { S.opt.nums = v; });
     row('Vibration', 'A light buzz when you press a button (phones).', [[true, 'On'], [false, 'Off']], () => S.opt.buzz !== false, v => { S.opt.buzz = v; });

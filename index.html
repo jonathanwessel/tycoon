@@ -487,6 +487,32 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bMis, body.mapfull #bCap, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
   body.mapfull #bFull { top: max(10px, env(safe-area-inset-top, 0px)); opacity: .6; }
 }
+/* the title screen: the town flies by behind a plank sign and the buttons; the rest of the interface waits */
+body.titling header, body.titling .stock, body.titling .controls, body.titling nav.tabs, body.titling main.sheet, body.titling .mapbtn, body.titling #card,
+body.titling .toast, body.titling .bossbar, body.titling .banner, body.titling .fpsmeter, body.titling #pauseCover, body.titling #cineT, body.titling #cineB, body.titling .medal { display: none !important; }
+body.titling .stage { position: fixed; inset: 0; z-index: 55; display: block; padding: 0; background: var(--bg); }
+body.titling .mapwrap { position: absolute; inset: 0; margin: 0; width: auto; height: auto; max-width: none; aspect-ratio: auto; }
+.title { position: fixed; inset: 0; z-index: 58; display: grid; grid-template-rows: 1fr auto; justify-items: center; gap: 16px; pointer-events: none;
+  padding: max(28px, env(safe-area-inset-top, 0px)) 16px max(20px, env(safe-area-inset-bottom, 0px)); animation: fadein .6s ease-out; }
+.title > * { pointer-events: auto; }
+.title.out { animation: tout .38s ease-in forwards; }
+@keyframes tout { to { opacity: 0; transform: translateY(8px); } }
+.tsign { align-self: start; margin-top: 7vh; margin-top: 7dvh; text-align: center; padding: 12px 22px 14px; background: #7a4c2a;
+  background-image: repeating-linear-gradient(180deg, transparent 0 22px, #5e3920 22px 25px); border: 3px solid #2a1c22; box-shadow: inset 0 0 0 3px #9a6438, 6px 6px 0 rgba(0, 0, 0, .45);
+  animation: tsign .7s cubic-bezier(.2, .8, .2, 1.2); }
+@keyframes tsign { from { transform: translateY(-40px) rotate(-3deg); opacity: 0; } }
+.tsign h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.3rem, 11vw, 4.6rem); line-height: 1.02; color: var(--gold); letter-spacing: .02em; text-shadow: 3px 3px 0 #2a1c22; }
+.tsign p { margin: 4px 0 0; color: var(--fg); font-weight: 600; font-size: .95rem; text-transform: uppercase; letter-spacing: .16em; text-shadow: 2px 2px 0 #2a1c22; }
+.tmenu { width: min(100%, 380px); display: grid; gap: 8px; padding: 12px; background: rgba(22, 26, 42, .9); border: 2px solid var(--line); border-radius: 3px; box-shadow: 6px 6px 0 rgba(0, 0, 0, .4); }
+#titleBtns { display: grid; gap: 8px; }
+.tmenu button.big { min-height: 60px; display: grid; justify-items: center; gap: 0; font-size: 1.25rem; }
+.tmenu button.big small { font-size: .9rem; font-weight: 600; color: var(--copper-ink); opacity: .78; }
+.tmenu .tq { margin: 0; font-weight: 600; } .tmenu .tq.warn { color: var(--bad); }
+.tfoot { display: flex; align-items: center; gap: 8px; justify-content: space-between; color: var(--muted); font-size: .8rem; }
+.calm .title, .calm .tsign, .calm .title.out { animation: none; } @media (prefers-reduced-motion: reduce) { .title, .tsign, .title.out { animation: none; } }
+@media (orientation: landscape) and (max-height: 520px) { /* a phone on its side: a small sign and the menu along the bottom, the town between */
+  .title { grid-template-rows: auto; grid-template-columns: 1fr auto; align-items: end; padding-top: 12px; }
+  .tsign { align-self: end; justify-self: start; margin-top: 0; padding: 6px 14px 8px; } .tsign h2 { font-size: 2rem; } .tsign p { font-size: .75rem; } .tmenu { width: 300px; padding: 8px; } .tmenu button.big { min-height: 48px; } }
 </style>
 </head>
 <body class="v3">
@@ -535,6 +561,13 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   <div class="card" id="card" hidden></div>
 </div>
 <div class="modal" id="modal" hidden></div>
+<div class="title" id="title" hidden>
+  <div class="tsign"><h2>Copper Gulch</h2><p>Frontier tycoon</p></div>
+  <div class="tmenu" role="dialog" aria-label="Copper Gulch title screen">
+    <div id="titleBtns"></div>
+    <div class="tfoot"><button class="small" id="tMusic" aria-pressed="true">♪ Music on</button><span id="tVer"></span></div>
+  </div>
+</div>
 <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }</script>
 <script src="src/defs.js"></script>
 <script src="src/map.js"></script>
@@ -546,6 +579,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/fx.js"></script>
 <script src="src/capital.js"></script>
 <script src="src/convention.js"></script>
+<script src="src/music.js"></script>
 <script src="src/view.js"></script>
 <script src="src/ui/core.js"></script>
 <script src="src/ui/actions.js"></script>
@@ -560,6 +594,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
 <script src="src/ui/exchange.js"></script>
 <script src="src/ui/tutorial.js"></script>
 <script src="src/ui/settings.js"></script>
+<script src="src/ui/title.js"></script>
 <script src="src/app.js"></script>
 <script type="module" src="src/r3d/main.js"></script>
 </body>

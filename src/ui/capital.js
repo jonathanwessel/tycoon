@@ -74,7 +74,7 @@ function leaveCapital(quiet) {
   fixedUps.push(() => { if (CAPV.on && !capOpen()) leaveCapital(true); // a Convention dissolves the Capital
     b.hidden = !(capOpen() || townOpen(CAPITAL.from)); b.classList.toggle('ready', !capOpen() && capitalReady() && S.coins >= CAPITAL.coins); b.classList.toggle('on', CAPV.on);
     const t = CAPV.on ? 'Back to ' + TOWN.n + ' (C)' : 'The Capital (C)'; if (b.title !== t) { b.title = t; b.setAttribute('aria-label', t); } });
-  document.addEventListener('keydown', e => { if (e.target.closest && e.target.closest('textarea, input')) return;
+  document.addEventListener('keydown', e => { if ((e.target.closest && e.target.closest('textarea, input')) || TITLE.on) return;
     if ((e.key === 'c' || e.key === 'C') && !b.hidden) go(); else if (e.key === 'Escape' && CAPV.on && !SHEET.open && !sel && $('modal').hidden) leaveCapital(); });
   // in the Capital the wave controls give way to the way home (with the home town's wave, which plays on)
   const back = $('bLeave'); back.addEventListener('click', () => leaveCapital());

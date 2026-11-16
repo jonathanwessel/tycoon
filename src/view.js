@@ -129,7 +129,15 @@ function r3Camera() {
   R3.fz = (R3.fz || 0) + (((fc && phone) ? fc[1] + .5 + dist * .2 - (ROWS / 2 + .6 + R3.panZ) : 0) - (R3.fz || 0)) * .12;
   const tgt = R3.look ? [R3.look[0], 0, R3.look[1]] : [COLS / 2 + R3.panX + R3.fx, 0, ROWS / 2 + .6 + R3.shift + R3.panZ + R3.fz]; // R3.look: aim somewhere else (the icon renderer)
   if (R3.bk) { const k = R3.bk * .75; tgt[0] += (R3.bx - tgt[0]) * k; tgt[2] += (R3.bz - tgt[2]) * k; }
-  const eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * dist, Math.sin(R3.pitch) * dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * dist];
+  let eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * dist, Math.sin(R3.pitch) * dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * dist];
+  // the title screen: a slow, low flyover circling the town; leaving it glides back to the playing view (R3.tk eases in r3Render)
+  const tk = R3.tk > .001 && !R3.look ? R3.tk * R3.tk * (3 - 2 * R3.tk) : 0;
+  if (tk) {
+    const t = typeof TITLE !== 'undefined' ? TITLE.t : 0, mv = REDUCED ? 0 : 1, yaw = .35 + mv * t * .045, pitch = .53 + mv * .06 * Math.sin(t * .11), d = fitD * (.72 + mv * .07 * Math.sin(t * .07));
+    const tt = [COLS / 2 + mv * 1.2 * Math.sin(t * .05), .4, ROWS / 2 - .6 + mv * 1.6 * Math.sin(t * .037)];
+    const te = [tt[0] + Math.sin(yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d, tt[2] + Math.cos(yaw) * Math.cos(pitch) * d];
+    for (let i = 0; i < 3; i++) { eye[i] += (te[i] - eye[i]) * tk; tgt[i] += (tt[i] - tgt[i]) * tk; }
+  }
   const V = M4.look(eye, tgt, [0, 1, 0]), Pm = M4.persp(fov, W / H, .5, 200);
   R3.cam = { eye, tgt, fov, asp: W / H, VP: M4.mul(Pm, V) };
   return R3.cam;
@@ -194,6 +202,7 @@ function r3Project(x, y, z) {
 
 /* --- drawing a frame ---------------------------------------------------------------------------------------- */
 function r3Render(time) {
+  const tOn = typeof TITLE !== 'undefined' && TITLE.on; R3.tk = REDUCED ? (tOn ? 1 : 0) : (R3.tk || 0) + ((tOn ? 1 : 0) - (R3.tk || 0)) * (tOn ? .1 : .035); if (R3.tk < .002) R3.tk = 0;
   R3.yaw += (R3.yawT - R3.yaw) * .15; R3.dist += (R3.distT - R3.dist) * .15;
   if (R3.glide && Math.hypot(R3.vx, R3.vy) > .02) { R3.glide(R3.vx * 16, R3.vy * 16); R3.vx *= .9; R3.vy *= .9; } // a flick glides to a stop
   R3.panX += (R3.panXT - R3.panX) * .3; R3.panZ += (R3.panZT - R3.panZ) * .3;
@@ -204,6 +213,7 @@ function r3Render(time) {
 /* Flat things projected from 3D: building levels, raider health, floating numbers; then the shared HUD. */
 function r3Overlay(time) {
   const ux = R3.ux, c = cell, W = R3.canvas.width; ux.clearRect(0, 0, W, R3.canvas.height);
+  if (R3.tk > .3) return; // the title flyover shows the town without labels
   ux.textAlign = 'center'; ux.textBaseline = 'middle'; ux.font = '700 ' + Math.max(9, c * .28) + 'px "Barlow Semi Condensed", sans-serif';
   const tag = (txt, x, y, z, col) => { const [px, py, w] = r3Project(x, y, z); if (w <= 0) return; const tw = ux.measureText(txt).width + c * .14; ux.fillStyle = 'rgba(22,26,42,.85)'; ux.fillRect(px - tw / 2, py - c * .16, tw, c * .32); ux.fillStyle = col || '#ece6d8'; ux.fillText(txt, px, py + 1); };
   if (CAPV.on) { // the Capital: a sign over each site, its level or what building it costs

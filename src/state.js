@@ -23,12 +23,12 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 11, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
+    v: 12, town: 'gulch', eg: 0, capital: { open: 0, lv: {}, share: .5, split: { foremen: 6, war: 2, academy: 2 }, keep: 1, inf: 0, tech: {}, ex: { s: {}, news: [], t: 0 }, pol: {} },
     legacy: { pts: 0, perks: {}, n: 0, from: 0, best: 0 }, paidDeeds: 0, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0, airships: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
-    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, fb: { share: .5, keep: 0, purse: 0 }, opt: { vol: 1, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0, view: '2d' }, GX_PRESETS.high) },
+    badges: {}, bestMap: {}, chMap: {}, wxSeen: {}, fb: { share: .5, keep: 0, purse: 0 }, opt: { vol: 1, music: .6, calm: 'auto', nums: true, autoPause: false, gx: Object.assign({ preset: 'high', look: 'natural', grain: 0, scan: 0, fpsShow: 0, view: '2d' }, GX_PRESETS.high) },
     autoWave: true, speed: 1, sound: false, last: Date.now(),
   };
 }
@@ -141,6 +141,28 @@ function freshStart(o) {
   n.movedNote = 'Copper Gulch was rebuilt, so your empire starts fresh. You keep your badges, perks and ' + (o.deeds || 0) + ' deeds, plus ' + gift + ' more as a thank-you: every town works faster for them.';
   return n;
 }
+/* New game and the empire put aside. Starting over puts the current empire aside (one slot, kept in its own key) and
+   the title screen can swap back to it. Settings stay with the device, not the empire. */
+const ASIDE = KEY + '-put-aside';
+function asideInfo() {
+  try { const o = JSON.parse(localStorage.getItem(ASIDE)); if (!o || typeof o !== 'object' || !o.res) return null; const id = TOWNS[o.town] ? o.town : 'gulch';
+    return { town: TOWNS[id].n, wave: o.wave || 1, towns: 1 + Object.keys(o.towns || {}).length, coins: (o.stats && o.stats.coins) || 0 }; } catch (e) { return null; }
+}
+function newEmpire() {
+  try { localStorage.setItem(ASIDE, JSON.stringify(S)); } catch (e) { return false; } // never start over unless the old empire is safely put aside
+  const n = fresh(); n.opt = S.opt; n.sound = S.sound; n.seenVersion = S.seenVersion;
+  adopt(n); wipeField(); save(); return true;
+}
+/* Swap: the empire put aside comes back (frozen while it was away: no time-away earnings), the current one goes aside. */
+function swapAside() {
+  let o = null; try { o = JSON.parse(localStorage.getItem(ASIDE)); } catch (e) {}
+  if (!o || typeof o !== 'object' || !o.res) return false;
+  const cur = JSON.stringify(S), opt = S.opt, sound = S.sound, seen = S.seenVersion;
+  let ok = false; try { ok = adopt(o); } catch (e) {}
+  if (!ok) { adopt(JSON.parse(cur)); return false; } // a damaged slot leaves the current empire as it was
+  try { localStorage.setItem(ASIDE, cur); } catch (e) {}
+  S.opt = opt; S.sound = sound; S.seenVersion = seen; S.last = Date.now(); wipeField(); save(); return true;
+}
 let WIPE_OFF = false; // tests of old migrations turn the fresh start off
 function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (!o || typeof o !== 'object' || !o.res) return false;
@@ -161,6 +183,7 @@ function adopt(o, wipeV = WIPE_OFF ? 0 : WIPE_V) {
   if (o.v < 9) { if (o.capital && !o.capital.ex) o.capital.ex = { s: {}, news: [], t: 0 }; o.v = 9; } // v9: the Stock Exchange
   if (o.v < 10) { if (o.capital && !o.capital.pol) o.capital.pol = {}; o.paidDeeds = o.paidDeeds || 0; o.v = 10; } // v10: policies, the Convention and Legacy (the first life counts every coin earned so far)
   if (o.v < 11) { if (o.stats) o.stats.airships = o.stats.airships || 0; o.v = 11; } // v11: Thunder Mesa (its goods start at zero in every town; airships brought down are counted)
+  if (o.v < 12) { if (o.opt && o.opt.music === undefined) o.opt.music = .6; o.v = 12; } // v12: music (its volume; 0 is off)
   if (o.opt && o.opt.gx) { delete o.opt.gx.view; delete o.opt.gx.light; } // 2D settings from before the game went 3D-only
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);
