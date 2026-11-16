@@ -46,7 +46,7 @@ function r3Camera() {
   const fitD = Math.max(24, (COLS / 2 + .7) / (th * asp), 8.2 / th), dist = R3.dist * fitD / 24;
   // with a menu sheet open on a phone, look further down the board so the town shows above the sheet
   R3.shift = (R3.shift || 0) + (((typeof SHEET !== 'undefined' && SHEET.open) ? SHEET.h * dist * .38 : 0) - (R3.shift || 0)) * .15;
-  const tgt = [COLS / 2, 0, ROWS / 2 + .6 + R3.shift];
+  const tgt = R3.look ? [R3.look[0], 0, R3.look[1]] : [COLS / 2, 0, ROWS / 2 + .6 + R3.shift]; // R3.look: aim somewhere else (the icon renderer)
   const eye = [tgt[0] + Math.sin(R3.yaw) * Math.cos(R3.pitch) * dist, Math.sin(R3.pitch) * dist, tgt[2] + Math.cos(R3.yaw) * Math.cos(R3.pitch) * dist];
   const V = M4.look(eye, tgt, [0, 1, 0]), Pm = M4.persp(fov, W / H, .5, 200);
   R3.cam = { eye, tgt, fov, asp: W / H, VP: M4.mul(Pm, V) };

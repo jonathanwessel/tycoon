@@ -23,7 +23,7 @@ const PCAP = [70, 180, 320, 520];
 function fresh() {
   const res = {}; for (const k in ITEMS) res[k] = 0; res.plank = 10;
   return {
-    v: 5, town: 'gulch', towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
+    v: 6, town: 'gulch', eg: 0, towns: {}, routes: [], inbox: {}, railOpen: 0, coins: 60, life: 0, res, seen: { wood: 1, ore: 1, plank: 1 }, ext: {}, shops: {}, off: {}, auto: {}, research: {}, towers: [],
     wave: 1, best: 1, vaultHp: 20, deeds: 0, perks: {}, charters: 0, map: 'gulch', maps: { gulch: 1 },
     contracts: [], demand: {}, sellAbove: 0, mgr: {}, goal: 0, gq: null, goalsDone: 0,
     stats: { sold: 0, soldV: 0, kills: 0, contracts: 0, taps: 0, bosses: 0, flawless: 0, made: 0, coins: 0, played: 0, repairs: 0, vaultSeen: 0 }, cd: { dyn: 0, ot: 0, tar: 0 }, ot: 0,
@@ -36,7 +36,7 @@ let S = fresh();
    belongs to one town. The town you are playing keeps its fields at the top of S (so the rest of the code reads S as
    before); every other town is kept in S.towns[id] and swapped in while it works in the background or when you
    switch to it. */
-const TOWN_KEYS = ['map', 'life', 'res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'towers', 'wave', 'best', 'vaultHp', 'contracts', 'demand', 'sellAbove', 'mgr', 'cd', 'ot', 'fb', 'bestRate'];
+const TOWN_KEYS = ['map', 'life', 'res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'towers', 'wave', 'best', 'vaultHp', 'contracts', 'demand', 'sellAbove', 'mgr', 'cd', 'ot', 'fb', 'bestRate', 'goal', 'gq'];
 const NESTED = ['res', 'seen', 'ext', 'shops', 'off', 'auto', 'research', 'demand', 'mgr', 'cd'];
 const pickTown = o => { const t = {}; for (const k of TOWN_KEYS) if (o[k] !== undefined) t[k] = o[k]; return t; };
 /* A brand-new town on the given map, with that town's starting goods. */
@@ -126,6 +126,10 @@ function adopt(o) {
   if (o.v < 5) { // v5: Forked Canyon and Trestle Bridge were retired; their charters continue on the Copper Gulch map
     const fix = t => { if (t && !MAPS[t.map]) { t.map = 'gulch'; t.moved = 1; } };
     fix(o); for (const id in o.towns || {}) fix(o.towns[id]); o.v = 5;
+  }
+  if (o.v < 6) { // v6: missions are per town; the old shared chain was Copper Gulch's list, so it stays with Copper Gulch
+    if (o.town && o.town !== 'gulch' && o.towns && o.towns.gulch) { o.towns.gulch.goal = o.goal || 0; o.towns.gulch.gq = null; o.goal = 0; o.gq = null; }
+    o.eg = 0; o.v = 6;
   }
   const f = fresh(); S = Object.assign(f, o);
   S.towns = {}; for (const id in o.towns || {}) S.towns[id] = fillTown(o.towns[id]);

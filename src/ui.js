@@ -30,6 +30,7 @@ function buyRow(b, list) {
   const head = kind === 'shops' ? recipe(def) : def.power ? h('span', { cls: 'recipe' }, ico('bulb', 'power')) : h('span', { cls: 'recipe' }, ico(def.out, ITEMS[def.out].n));
   const prog = kind === 'shops' ? h('div', { cls: 'prog' }, h('i')) : null;
   // buy button on top; the run switch and foreman sit small underneath so the row never needs a line of its own
+  btn.addEventListener('click', () => { if (!btn.disabled) sparks(btn); });
   const mini = h('div', { cls: 'mini' }), acts = h('div', { cls: 'acts' }, btn, mini);
   const row = h('div', { cls: 'row bld' }, ico(id, ''), h('div', { cls: 'grow' }, name, h('div', null, head, info), msl, prog), acts);
   let tog = null;
@@ -46,7 +47,8 @@ function buyRow(b, list) {
     const miss = kind === 'shops' && have && !S.off[id] && (ACT[id] || 0) < .08 && STARVE[id];
     if (miss) { const local = BUILD.some(o => o.def.out === miss); msl.textContent = 'Waiting for ' + ITEMS[miss].n.toLowerCase() + (local ? '' : ': none are made here, ship them in from the Empire tab'); }
     msl.classList.toggle('warn', !!miss);
-    lab.textContent = have ? '+' + p.n : 'Build'; btn.disabled = !p.ok;
+    lab.textContent = have ? '+' + p.n : 'Build'; if (btn.disabled && p.ok && btn._seen) { btn.classList.remove('afford'); void btn.offsetWidth; btn.classList.add('afford'); } btn.disabled = !p.ok; btn._seen = 1;
+    if (row._ms !== undefined && ms > row._ms) { row.classList.remove('msflash'); void row.offsetWidth; row.classList.add('msflash'); } row._ms = ms;
     if (tog) { tog.hidden = !have; tog.textContent = S.off[id] ? 'Off' : 'On'; tog.classList.toggle('on', !S.off[id]); tog.title = S.off[id] ? 'Workshop paused. Tap to run it.' : 'Workshop running. Tap to pause it.'; tog.setAttribute('aria-label', tog.title); }
     mg.hidden = !(S.mgr[id] || have >= 1); mgL.textContent = S.mgr[id] ? (S.mgr[id] === 1 ? 'On' : 'Off') : ''; mgL.hidden = !S.mgr[id]; mgC.hidden = !!S.mgr[id];
     mg.title = S.mgr[id] ? (S.mgr[id] === 1 ? 'Foreman working. Tap to rest them.' : 'Foreman resting. Tap to put them to work.') : 'Hire a foreman for ' + fmt(mgrCost(id)) + ' coins'; mg.setAttribute('aria-label', mg.title);
@@ -175,6 +177,7 @@ function closeSheet(fromBack) {
 window.addEventListener('popstate', () => closeSheet(true));
 function goTab(id) {
   if (!docked() && SHEET.open && tab === id) return closeSheet();
+  if (tab !== id || !SHEET.open) snd('tab', 520, .03, 'square', .015, 160);
   tab = id; rebuild = true; $('sheet').scrollTop = 0; openSheet(); refresh();
 }
 /* Travel to another town of the empire: its map, buildings and waves; the town you leave keeps producing. */
@@ -232,17 +235,29 @@ function fbGoal() {
   const b = BY_ID[g]; if (!b) return ''; const n = S.fb.goalN || 1, l = blv(g);
   return ' (now: ' + b.def.n + (n > 1 ? ' levels ' + (l + 1) + ' to ' + (l + n) : ' level ' + (l + 1)) + ', ' + fmt(S.fb.goalC || bCost(b, l)) + ')';
 }
+/* A mission card: title, progress bar, reward, Claim (and Swap for generated ones). */
+function missionCard(p, now, onClaim, onSwap, icon) {
+  const gt = h('span'), gn = h('small'), bar = h('i'), claim = h('button', { cls: 'small', on: onClaim }, 'Claim'), swap = h('button', { cls: 'small', on: onSwap || (() => {}) }, 'Swap');
+  const goal = h('div', { cls: 'goal' }, ico(icon || 'star'), h('div', { cls: 'grow' }, h('div', { cls: 'gt' }, gt, gn), h('div', { cls: 'prog' }, bar)), h('div', { cls: 'bar' }, swap, claim));
+  p.append(goal);
+  ups.push(() => {
+    const g = now(); goal.hidden = !g; if (!g) return; const done = g.cur >= g.need;
+    gt.textContent = g.t; gn.textContent = (g.need > 1 ? fmt(g.cur) + ' / ' + fmt(g.need) + ' · ' : '') + 'reward ' + fmt(g.r) + ' coins';
+    bar.style.width = Math.min(100, g.cur / g.need * 100) + '%'; goal.classList.toggle('done', done);
+    claim.disabled = !done; claim.classList.toggle('primary', done); swap.hidden = !onSwap || !g.gen || done;
+  });
+}
 const PANELS = {
+  missions(p) {
+    p.append(h('h2', null, TOWN.n));
+    missionCard(p, goalNow, claimGoal, () => { S.gq = null; });
+    p.append(h('p', null, 'Each town has its own missions, counted with that town\'s buildings and waves.'));
+    p.append(h('h2', null, 'Empire'));
+    missionCard(p, empireNow, claimEmpire, null, 'loco');
+    const doneE = h('p', null, 'Every empire mission is complete. More come with the Capital.'); p.append(doneE); ups.push(() => { doneE.hidden = !!empireNow(); });
+    p.append(h('p', null, 'Badges, records and deeds are in the Charter tab.'));
+  },
   defend(p) {
-    const gt = h('span'), gn = h('small'), bar = h('i'), claim = h('button', { cls: 'small', on: claimGoal }, 'Claim'), swap = h('button', { cls: 'small', on: () => { S.gq = null; } }, 'Swap');
-    const goal = h('div', { cls: 'goal' }, ico('star'), h('div', { cls: 'grow' }, h('div', { cls: 'gt' }, gt, gn), h('div', { cls: 'prog' }, bar)), h('div', { cls: 'bar' }, swap, claim));
-    p.append(goal);
-    ups.push(() => {
-      const g = goalNow(), done = g.cur >= g.need;
-      gt.textContent = g.t; gn.textContent = (g.need > 1 ? fmt(g.cur) + ' / ' + fmt(g.need) + ' · ' : '') + 'reward ' + fmt(g.r) + ' coins';
-      bar.style.width = Math.min(100, g.cur / g.need * 100) + '%'; goal.classList.toggle('done', done);
-      claim.disabled = !done; claim.classList.toggle('primary', done); swap.hidden = !g.gen || done;
-    });
     const nxT = h('h2'), nx = h('div', { cls: 'next' }), wxl = h('div', { cls: 'wxline' }); let sig = null;
     const bw = h('div', { cls: 'wxline warn' }, ico(TOWN.boss.spr, ''), h('span', null, h('b', null, bossName() + ' wave. '), 'If it reaches the vault, the vault falls however strong it is. Destroy it to move on.'));
     p.append(nxT, nx, bw, wxl);
@@ -480,6 +495,9 @@ function buildFixed() {
   }
   $('bWave').addEventListener('click', startWave);
   $('sheetX').addEventListener('click', () => closeSheet());
+  $('bMis').addEventListener('click', () => goTab('missions'));
+  { const mc = $('bMis').querySelector('.mcount'); let last = 0;
+    fixedUps.push(() => { const n = missionsReady(); mc.hidden = !n; mc.textContent = n; $('bMis').classList.toggle('ready', n > 0); if (n > last) { mc.classList.remove('pop'); void mc.offsetWidth; mc.classList.add('pop'); } last = n; }); }
   // drag the sheet's head: taller, shorter, or flick it down to close
   (() => {
     const hd = $('sheetHead'); let d = null;
@@ -498,6 +516,7 @@ function buildFixed() {
     if (e.target.closest && e.target.closest('textarea, input')) return;
     const md = $('modal'); if (e.key === 'Escape' && !md.hidden && md.classList.contains('sheetm')) { md.hidden = true; md.className = 'modal'; md.onclick = null; save(); return; }
     if (e.key === 'p' || e.key === 'P' || (e.key === 'Escape' && paused)) { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); goTab('missions'); }
     else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setMapFull(!document.body.classList.contains('mapfull')); }
     else if (e.key === 'Escape' && document.body.classList.contains('mapfull')) setMapFull(false);
     else if (e.key === 'Escape' && SHEET.open) closeSheet();
@@ -552,12 +571,20 @@ function buildDynamic() {
     ups.push(() => { v.textContent = fmt(S.res[k]); const x = RATE[k] || 0, show = Math.abs(x) >= .05; r.textContent = show ? (x > 0 ? '▲ ' : '▼ ') + rate(Math.abs(x)) + '/s' : ITEMS[k].n; r.className = 'r' + (show ? x > 0 ? ' up' : ' down' : ''); });
   }
   const p = $('panel'); p.textContent = ''; p.setAttribute('aria-labelledby', 'tab-' + tab); PANELS[tab](p);
-  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : '';
+  const tt = TABS.find(t => t[0] === tab); $('sheetTitle').textContent = tt ? tt[1] : tab === 'missions' ? 'Missions' : '';
   if (shownTab && shownTab !== tab && p.animate && !REDUCED) {
     const order = TABS.map(t => t[0]), dir = order.indexOf(tab) > order.indexOf(shownTab) ? 1 : -1;
     p.animate([{ opacity: 0, transform: 'translateX(' + dir * 28 + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
   }
+  if (shownTab !== tab && !REDUCED) { [...p.children].forEach((c, i) => c.style.setProperty('--i', Math.min(i, 12))); p.classList.add('enter'); setTimeout(() => p.classList.remove('enter'), 900); }
   shownTab = tab;
+}
+/* A little burst of coins from a button you just bought with. */
+function sparks(el) {
+  if (REDUCED || !el || !el.getBoundingClientRect) return; const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  for (let i = 0; i < 8; i++) { const s = document.createElement('i'); s.className = 'spark'; s.style.left = x - 6 + 'px'; s.style.top = y - 6 + 'px'; document.body.append(s);
+    const a = i / 8 * Math.PI * 2 + Math.random() * .4, d = 26 + Math.random() * 22;
+    s.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: 'translate(' + Math.cos(a) * d + 'px,' + (Math.sin(a) * d - 10) + 'px) scale(.4)', opacity: 0 }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' }).onfinish = () => s.remove(); }
 }
 let shownTab = null;
 function refresh() { checkBadges(); if (rebuild) buildDynamic(); for (const f of fixedUps) f(); for (const f of ups) f(); card(); }

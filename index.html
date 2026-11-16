@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Copper Gulch</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon3d-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-3d.png">
 <meta name="theme-color" content="#161a2a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -334,6 +334,34 @@ nav .dot { animation: dotpop .3s cubic-bezier(.2, 1.6, .4, 1); }
 .calm .toast, .calm button, .calm .prog i { transition: none; }
 .calm .modal, .calm .modal .box, .calm .goal.done, .calm #bWave.soon, .calm nav .dot, .calm #hVaultWrap.low b, .calm .medal, .calm .pausecover, .calm .speedmenu { animation: none; }
 :root { --top: 92px; --navh: 66px; --bot: 130px; --sheet-h: 55vh; }
+@media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
+  .mapbtn { left: auto; right: 10px; bottom: auto; }
+  #bMis { top: 10px; } #bPause { top: 54px; } #bFull { left: auto; top: 98px; } #bSet { left: auto; top: 142px; }
+}
+/* the side buttons: one column of chunky pixel buttons; Missions shows how many are ready to claim */
+.mapbtn { border-radius: 6px; border-width: 2px; box-shadow: 0 3px 0 rgba(0, 0, 0, .45); }
+.mapbtn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .45); }
+#bMis.ready { border-color: var(--gold); color: var(--gold); }
+.mcount { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px; background: var(--bad); color: #fff; font: 700 .72rem/15px var(--body); border: 2px solid #12152a; text-align: center; }
+.mcount.pop { animation: mpop .4s steps(5, end); }
+@keyframes mpop { 0% { transform: scale(0); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+/* juice: tab bar presses and the active tab rising */
+nav.tabs button { transition: transform .12s, background-color .18s, border-color .18s, color .18s, box-shadow .2s; }
+nav.tabs button:active { transform: scale(.92) translateY(1px); }
+nav.tabs button[aria-selected="true"] { transform: translateY(-3px); box-shadow: inset 0 -4px 0 var(--copper), 0 4px 0 rgba(0, 0, 0, .35); }
+nav.tabs button[aria-selected="true"] img.px { animation: tabpop .38s steps(6, end); }
+@keyframes tabpop { 0% { transform: scale(.7) translateY(2px); } 55% { transform: scale(1.22) translateY(-4px); } 100% { transform: translateY(-2px); } }
+/* panels slide in row by row */
+.panel.enter > * { animation: rowin .3s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 26ms); }
+@keyframes rowin { from { opacity: 0; transform: translateY(10px); } }
+/* buy buttons: a pulse when you can newly afford them; a row flashes gold at a x2 milestone */
+button.afford { animation: afford .6s steps(3, end); }
+@keyframes afford { 50% { box-shadow: 0 0 0 3px var(--gold); } }
+.row.msflash { animation: msflash .9s steps(4, end); }
+@keyframes msflash { 30% { background: rgba(242, 208, 74, .22); } }
+.spark { position: fixed; z-index: 90; width: 8px; height: 8px; background: var(--gold); border: 2px solid #7a5a12; pointer-events: none; }
+.calm nav.tabs button[aria-selected="true"] img.px, .calm .panel.enter > *, .calm button.afford, .calm .row.msflash, .calm .mcount.pop { animation: none; }
+@media (prefers-reduced-motion: reduce) { nav.tabs button[aria-selected="true"] img.px, .panel.enter > *, button.afford, .row.msflash, .mcount.pop { animation: none; } }
 .sheethead { display: none; }
 #bFull .hideui { display: none; }
 @media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
@@ -367,17 +395,18 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
   .sheethead b { flex: 1; font-family: var(--display); font-weight: 400; font-size: 1.15rem; color: var(--copper); }
   #card:not([hidden]) { position: fixed; z-index: 36; left: 8px; right: 8px; margin: 0 auto; max-width: 460px; bottom: calc(var(--navh) + 62px); max-height: 52vh; max-height: 52dvh; overflow-y: auto; }
   .mapbtn { position: fixed; z-index: 26; left: auto; right: 8px; bottom: auto; }
-  #bPause { top: calc(var(--top) + 6px); }
-  #bFull { left: auto; top: calc(var(--top) + 50px); }
-  #bSet { left: auto; top: calc(var(--top) + 94px); }
+  #bMis { top: calc(var(--top) + 6px); }
+  #bPause { top: calc(var(--top) + 50px); }
+  #bFull { left: auto; top: calc(var(--top) + 94px); }
+  #bSet { left: auto; top: calc(var(--top) + 138px); }
   #bFull .go, #bFull .back { display: none; } #bFull .hideui { display: block; }
   .toast { position: fixed; z-index: 45; top: calc(var(--top) + 6px); left: 54px; right: 54px; }
   /* in 2D the board is centred and its buttons sit in a row beneath it */
-  body:not(.v3) .mapbtn, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { top: auto; bottom: calc(var(--bot) - 46px); }
-  body:not(.v3) #bPause { right: 100px; } body:not(.v3) #bFull { right: 54px; }
-  .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 140px); }
+  body:not(.v3) .mapbtn, body:not(.v3) #bMis, body:not(.v3) #bPause, body:not(.v3) #bFull, body:not(.v3) #bSet { top: auto; bottom: calc(var(--bot) - 46px); }
+  body:not(.v3) #bMis { right: 146px; } body:not(.v3) #bPause { right: 100px; } body:not(.v3) #bFull { right: 54px; }
+  .fpsmeter { position: fixed; z-index: 26; right: 8px; bottom: auto; top: calc(var(--top) + 184px); }
   /* hide the interface: only the town (and the button that brings the interface back) */
-  body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
+  body.mapfull header, body.mapfull .stock, body.mapfull .controls, body.mapfull nav.tabs, body.mapfull main.sheet, body.mapfull #bMis, body.mapfull #bPause, body.mapfull #bSet, body.mapfull #card { display: none !important; }
   body.mapfull #bFull { top: max(10px, env(safe-area-inset-top, 0px)); opacity: .6; }
 }
 </style>
@@ -397,6 +426,7 @@ body.v3 #g3, body.v3 #g3u { left: 0; top: 0; width: 100%; height: 100%; border-r
     <div class="mapwrap">
       <canvas id="cv" aria-label="Map of the gulch. Hold trees and rocks to gather, tap a building to upgrade it, tap an empty plot by the road to build a tower."></canvas>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <button class="mapbtn" id="bMis" aria-label="Missions" title="Missions (M)"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 1h9v2h2v11a1 1 0 0 1-1 1H4a2 2 0 0 1-2-2V3h1zM5 5v1h6V5zm0 3v1h6V8zm0 3v1h4v-1z"/></svg><b class="mcount" hidden></b></button>
       <button class="mapbtn" id="bPause" aria-label="Pause the game" title="Pause (P)"><i class="ic" aria-hidden="true"></i></button>
       <button class="mapbtn" id="bFull" aria-label="Full-screen map" aria-pressed="false" title="Full-screen map (F)"><svg class="hideui" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 8c2-3.5 4.5-5 7-5s5 1.5 7 5c-2 3.5-4.5 5-7 5S3 11.5 1 8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="2.2" fill="currentColor"/></svg><svg class="go" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><svg class="back" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></button>
       <button class="mapbtn" id="bSet" aria-label="Settings" title="Settings: graphics, sound, game"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M7 0h2v2.3l1.5.6 1.6-1.6 1.4 1.4-1.6 1.6.6 1.5H16v2h-2.3l-.6 1.5 1.6 1.6-1.4 1.4-1.6-1.6-1.5.6V16H7v-2.3l-1.5-.6-1.6 1.6-1.4-1.4 1.6-1.6L2.3 9H0V7h2.3l.6-1.5-1.6-1.6 1.4-1.4 1.6 1.6L7 2.3zM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"/></svg></button>

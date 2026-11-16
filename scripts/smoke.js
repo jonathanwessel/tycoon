@@ -144,13 +144,14 @@ const shots = process.argv[2];
     // phone layout: tabs open a sheet over the town; the same tab, a map tap, Back and the close button shut it; a card replaces it
     const lay = await p.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms)), open = () => document.body.classList.contains('sheet-open');
-      if (docked()) { goTab('works'); await wait(100); return { panel: $('panel').childElementCount > 0 }; }
+      if (docked()) { goTab('works'); await wait(100); const panel = $('panel').childElementCount > 0; $('bMis').click(); await wait(150); const missions = $('panel').querySelectorAll('.goal').length >= 1; goTab('defend'); return { panel, missions }; }
       const r = {}; goTab('works'); await wait(350); r.opens = open() && $('sheet').getBoundingClientRect().top < innerHeight - 200;
       goTab('works'); await wait(100); r.sameTab = !open();
       goTab('market'); await wait(100); cv.dispatchEvent(new MouseEvent('click', { clientX: innerWidth / 2, clientY: innerHeight / 3, bubbles: true })); await wait(100); r.mapTap = !open() && !sel;
       goTab('empire'); await wait(100); history.back(); await wait(300); r.back = !open();
       goTab('research'); await wait(100); $('sheetX').click(); await wait(100); r.closeBtn = !open();
       goTab('works'); await wait(100); sel = { vault: 1 }; refresh(); await wait(100); r.card = !open() && !$('card').hidden; sel = null; refresh();
+      $('bMis').click(); await wait(200); r.missions = open() && $('sheetTitle').textContent === 'Missions' && $('panel').querySelectorAll('.goal').length >= 1; closeSheet(); await wait(100);
       r.noScroll = document.documentElement.scrollWidth <= innerWidth + 1;
       return r;
     });

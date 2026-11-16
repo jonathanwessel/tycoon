@@ -37,6 +37,8 @@ const out = process.argv[2] || '.', town = process.argv[3] || 'gulch';
   await shot('close');
   await p.evaluate(async () => { R3.distT = 24; R3.yawT = 0; goTab('works'); await new Promise(r => setTimeout(r, 1200)); });
   await shot('sheet');
+  await p.evaluate(async () => { document.getElementById('bMis').click(); await new Promise(r => setTimeout(r, 1000)); });
+  await shot('missions');
   await p.evaluate(async () => { closeSheet(); for (const t of S.towers) if (t.c > 0) { sel = { t }; break; } refresh(); await new Promise(r => setTimeout(r, 800)); });
   await shot('card');
   await p.evaluate(async () => { sel = null; setGx('view', '2d'); refresh(); await new Promise(r => setTimeout(r, 800)); });

@@ -1,36 +1,44 @@
-// node scripts/make-icons.js — renders the app icons from the game's own pixel sprites into icons/.
-// Uses Playwright if installed, otherwise an installed Edge or Chrome (scripts/cdp.js).
+// node scripts/make-icons.js — renders the app icons from the game's own 3D engine into icons/: the vault at dusk with
+// its lamps lit, a Tesla Coil and a crossbow guarding it, framed in copper. The maskable icon is the same scene full
+// bleed (phones cut it to their own shape). Uses Playwright if installed, otherwise Edge or Chrome (scripts/cdp.js).
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('./cdp'); } })();
 const fs = require('fs');
 const path = require('path');
-const URL = require('url').pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href;
 const out = path.resolve(__dirname, '..', 'icons');
 
 (async () => {
   fs.mkdirSync(out, { recursive: true });
-  const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 600, height: 800 } });
-  await p.goto(URL); await p.waitForTimeout(400);
-  const icons = await p.evaluate(() => {
-    // a desert dusk square: night sky, a sandy rise, the copper-doored vault flanked by torches, a crossbow and a cactus
-    const make = (n, safe) => {
-      const c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-      const u = n / 32, s = safe ? .78 : 1, o = n * (1 - s) / 2, U = u * s;
-      g.fillStyle = '#161a2a'; g.fillRect(0, 0, n, n);
-      const sky = [['#1d2140', 0], ['#2a2850', 8], ['#4a3358', 14], ['#a8553a', 18]];
-      for (const [col, y] of sky) { g.fillStyle = col; g.fillRect(0, o + y * U, n, n); }
-      g.fillStyle = '#f2d04a'; for (const [x, y] of [[5, 4], [24, 3], [13, 6], [28, 9], [8, 10]]) g.fillRect(o + x * U, o + y * U, U, U);
-      g.fillStyle = '#b97e4a'; g.fillRect(0, o + 21 * U, n, n); g.fillStyle = '#c9a26c'; g.fillRect(0, o + 23 * U, n, n);
-      g.fillStyle = '#a8703f'; for (let x = 0; x < 32; x += 3) g.fillRect(o + x * U, o + 26 * U, U * 2, U);
-      const spr = (name, x, y, h, flip) => { const im = SPR[name], w = h * im.width / im.height; g.save(); g.translate(o + x * U, o + y * U); if (flip) g.scale(-1, 1); g.drawImage(im, -w * U / 2, -h * U / 2, w * U, h * U); g.restore(); };
-      spr('vault', 16, 18.5, 14);
-      for (const tx of [6.8, 25.2]) { g.fillStyle = '#6e4526'; g.fillRect(o + (tx - .5) * U, o + 15 * U, U, 8 * U); g.fillStyle = '#f5a04a'; g.fillRect(o + (tx - 1) * U, o + 13 * U, 2 * U, 2 * U); g.fillStyle = '#fff0a0'; g.fillRect(o + (tx - .5) * U, o + 13.5 * U, U, U); }
-      spr('cactus', 3.5, 25, 6); spr('crossbow', 27.5, 26, 6, true);
+  const srv = await require('./serve').start(0), b = await chromium.launch();
+  const p = await b.newPage({ viewport: { width: 512, height: 512 }, deviceScaleFactor: 2 });
+  await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+  await p.goto(srv.url); await p.waitForTimeout(1500);
+  const icons = await p.evaluate(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    for (let i = 0; i < 40 && !window.R3D; i++) await wait(100);
+    // a lived-in town at dusk: buildings up, towers by the vault, lamps lit
+    S.coins = 1e9; for (const k in S.res) add(k, 5000); BUILD.forEach((b, i) => { S[b.kind][b.def.id] = [12, 30, 60][i % 3]; });
+    const [vx, vy] = VAULT; buildTower('tesla', vx - 1, vy - 2); buildTower('frost', vx + 1, vy - 2);
+    for (const t of S.towers) { t.lvl = 6; t.born = 0; t.aim = Math.PI * .8; }
+    S.opt.gx.look = 'natural'; setGx('preset', 'high'); setGx('view', '3d'); await wait(800);
+    setPaused(true); FXS.night = .92; FXS.flash = 0; FXS.quake = 0; foes = []; floats = []; parts = []; FXS.banner = null;
+    R3.look = [vx + .5, vy - .3]; R3.pitch = .58; R3.yaw = R3.yawT = -.35; R3.dist = R3.distT = 6.4;
+    const shot = () => { R3.ux.canvas.hidden = true; r3Render(30); return R3.canvas; };
+    const make = (n, framed) => {
+      const c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d');
+      const src = shot(), s = Math.min(src.width, src.height), sx = (src.width - s) / 2, sy = (src.height - s) / 2;
+      g.imageSmoothingQuality = 'high'; g.drawImage(src, sx, sy, s, s, 0, 0, n, n);
+      if (framed) {
+        // a chunky copper frame with a dark keyline, like the map's frame in the game
+        const w = n * .055; g.lineJoin = 'round';
+        g.strokeStyle = '#2a1c22'; g.lineWidth = w * 1.6; g.strokeRect(w * .8, w * .8, n - w * 1.6, n - w * 1.6);
+        g.strokeStyle = '#e38d4e'; g.lineWidth = w; g.strokeRect(w * .8, w * .8, n - w * 1.6, n - w * 1.6);
+        g.strokeStyle = '#f5b07a'; g.lineWidth = w * .25; g.strokeRect(w * .55, w * .55, n - w * 1.1, n - w * 1.1);
+      }
       return c.toDataURL('image/png');
     };
-    return { 'icon-192.png': make(192), 'icon-512.png': make(512), 'icon-maskable-512.png': make(512, true), 'apple-touch-icon.png': make(180) };
+    return { 'icon3d-192.png': make(192, true), 'icon3d-512.png': make(512, true), 'icon3d-maskable-512.png': make(512, false), 'apple-touch-icon-3d.png': make(180, false) };
   });
   for (const [name, url] of Object.entries(icons)) fs.writeFileSync(path.join(out, name), Buffer.from(url.split(',')[1], 'base64'));
   console.log('wrote', Object.keys(icons).join(', '));
-  await b.close();
+  await b.close(); srv.close(); process.exit(0);
 })();

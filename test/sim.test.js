@@ -75,7 +75,7 @@ test('a save on the retired Forked Canyon moves to Copper Gulch and refunds towe
   const v4 = g.run(`(() => { const o = fresh(); o.v = 4; o.map = 'fork'; o.coins = 1000; o.ext.camp = 12; o.towers = [{ c: 3, r: 7, type: 'cannon', lvl: 2, tg: 'first' }, { c: 0, r: 6, type: 'crossbow', lvl: 0, tg: 'first' }]; return JSON.stringify(o); })()`);
   const h = load({ storage: { 'copper-gulch-save-v1': v4 } }); h.run('load()');
   assert.strictEqual(h.run('S.map'), 'gulch');
-  assert.strictEqual(h.run('S.v'), 5);
+  assert.strictEqual(h.run('S.v'), h.run('fresh().v'));
   assert.strictEqual(h.run('S.ext.camp'), 12, 'buildings kept');
   assert.strictEqual(h.run('S.towers.length'), 1, 'the cannon on the new road is gone');
   assert.ok(h.run('S.coins') > 1000 + 120 * 3, 'and refunded');
@@ -251,4 +251,19 @@ test('Auto routes ship what the other town can use, and trains grow with the Loc
   const base = g.run('carrier().max');
   g.run(`S.towns.ridge.shops.locow = 11; readLoco();`);
   assert.strictEqual(g.run('carrier().max'), Math.round(base * 2), 'ten more levels double the trains');
+});
+
+test('missions are per town: switching towns keeps each chain, and old saves keep Copper Gulch progress', () => {
+  const g = load();
+  g.run(`S = fresh(); setMap('gulch'); S.coins = 1e9; S.best = 25; S.goal = 6; unlockTown('ridge'); switchTown('ridge');`);
+  assert.strictEqual(g.run('S.goal'), 0, 'Iron Ridge starts its own chain');
+  assert.strictEqual(g.run('goalNow().t'), 'Build an Iron Mine');
+  g.run(`switchTown('gulch');`);
+  assert.strictEqual(g.run('S.goal'), 6, 'Copper Gulch kept its place');
+  // a v5 save made while in Iron Ridge: the shared chain index belonged to Copper Gulch's list
+  const h = load(); const old = g.run(`(() => { const o = JSON.parse(JSON.stringify(S)); switchTown('ridge'); const p = JSON.parse(JSON.stringify(S)); p.v = 5; p.goal = 9; delete p.towns.gulch.goal; return JSON.stringify(p); })()`);
+  h.run(`adopt(${old})`);
+  assert.strictEqual(h.run('S.town'), 'ridge');
+  assert.strictEqual(h.run('S.goal'), 0, 'Iron Ridge starts at its first mission');
+  assert.strictEqual(h.run('S.towns.gulch.goal'), 9, 'the old progress stays with Copper Gulch');
 });
