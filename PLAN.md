@@ -1,5 +1,7 @@
 # Copper Gulch: plan
 
+> **Frozen (2026-11-16).** This game is being rebuilt from scratch in the `copper-gulch` repo (https://jonathanwessel.github.io/copper-gulch/). This repo stays playable but gets no more changes, apart from a "Copper Gulch moved" card once the new game reaches 1.0.
+
 ## Roadmap (current; the scheduled task works through this list top to bottom)
 
 How to use it: take the first unchecked item, build it as one release, run the release checklist below, publish, tick it here in the same commit. One item per run. Notes from each run go under the item ("Notes:"). Never skip ahead, never redo a ticked item unless a check below fails.
